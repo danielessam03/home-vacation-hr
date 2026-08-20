@@ -1,1 +1,1211 @@
-<h1>Home Vacation HR v0.0</h1> 
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f766e" />
+<title>Home Vacation HR</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.74.0/dist/umd/supabase.js"></script>
+
+<style>
+  html, body, #root { height: 100%; }
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+  html[dir="rtl"] body { font-family: 'Cairo', system-ui, sans-serif; }
+  input, select, textarea, button { font-family: inherit; font-size: 16px; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+</style>
+
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+/* =====================================================================
+   Home Vacation HR & Payroll
+   Module 1 -- Auth, users & roles, branches, holidays, work week,
+               income tax brackets, social insurance, audit log.
+   ===================================================================== */
+
+const APP_VERSION = 'v1.0';
+
+/* ---------------------------------------------------------------------
+   CONFIG -- Supabase project.
+   Both values are safe to keep in this file: this is the *publishable*
+   key, which is public by design. Row Level Security is what actually
+   protects the data. Never put the service_role / secret key here.
+   --------------------------------------------------------------------- */
+const SUPABASE_URL      = 'https://plwyzkqlbzcikmuurjqg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_jdkL0GvmNoJGHnzadNAqgA_vuiFLthv';
+
+const CONFIGURED = !SUPABASE_URL.startsWith('PASTE_');
+
+/* Some phones block localStorage (private browsing, restricted cookie
+   settings). Touching it directly would throw and leave the user staring
+   at a blank white screen, so fall back to in-memory storage instead:
+   the app still works, the session just does not survive a reload. */
+const safeStorage = (() => {
+  try {
+    const probe = '__hv_probe__';
+    window.localStorage.setItem(probe, '1');
+    window.localStorage.removeItem(probe);
+    return window.localStorage;
+  } catch (e) {
+    const mem = new Map();
+    return {
+      getItem: (k) => (mem.has(k) ? mem.get(k) : null),
+      setItem: (k, v) => { mem.set(k, String(v)); },
+      removeItem: (k) => { mem.delete(k); },
+    };
+  }
+})();
+
+const sb = CONFIGURED
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { storage: safeStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    })
+  : null;
+
+const { useState, useEffect, useMemo, useCallback, useRef, createContext, useContext } = React;
+
+/* =====================================================================
+   1. Translations
+   ===================================================================== */
+const T = {
+  en: {
+    appName: 'Home Vacation HR', appSub: 'HR & Payroll',
+    email: 'Email', password: 'Password', signIn: 'Sign in', signUp: 'Create account',
+    signOut: 'Sign out', fullNameEn: 'Full name (English)', fullNameAr: 'Full name (Arabic)',
+    forgotPw: 'Forgot password?', resetSent: 'Password reset link sent to your email.',
+    haveAccount: 'Already have an account?', noAccount: 'First time here?',
+    signupHint: 'Your role is assigned by HR. If HR has not registered your email yet, ask them first.',
+    checkEmail: 'Account created. Check your email to confirm, then sign in.',
+    notConfigured: 'Supabase is not configured yet. Add your project URL and anon key at the top of index.html.',
+    inactive: 'Your account is deactivated. Contact HR.',
+    dashboard: 'Dashboard', settings: 'Settings', users: 'Users & roles', audit: 'Audit log', profile: 'My profile',
+    branches: 'Branches', holidays: 'Holidays', workWeek: 'Work week', tax: 'Income tax', insurance: 'Social insurance', company: 'Company',
+    role: 'Role', roles: { ceo: 'CEO', hr: 'HR', accountant: 'Accountant', manager: 'Manager', staff: 'Staff' },
+    branch: 'Branch', allBranches: 'All branches', active: 'Active', inactiveLbl: 'Inactive', status: 'Status',
+    add: 'Add', edit: 'Edit', save: 'Save', cancel: 'Cancel', del: 'Delete', close: 'Close',
+    saved: 'Saved', confirmDel: 'Delete this record?', search: 'Search', noData: 'Nothing here yet.',
+    loading: 'Loading...', name: 'Name', code: 'Code', address: 'Address', phone: 'Phone',
+    date: 'Date', paid: 'Paid', unpaid: 'Unpaid', actions: 'Actions', language: 'Language',
+    nameEn: 'Name (English)', nameAr: 'Name (Arabic)',
+    weekendDays: 'Weekend days', hoursPerDay: 'Standard hours / day', daysPerMonth: 'Payroll days / month',
+    days: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    daysShort: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    effectiveFrom: 'Effective from', from: 'From', to: 'To', rate: 'Rate %', upTo: 'and above',
+    personalExemption: 'Annual personal exemption (EGP)',
+    taxHint: 'Annual taxable income brackets. Leave the last "To" empty for no ceiling. Verify with your accountant before running payroll.',
+    addBracket: 'Add bracket',
+    employerRate: 'Employer rate %', employeeRate: 'Employee rate %',
+    minWage: 'Minimum insurance wage (EGP/month)', maxWage: 'Maximum insurance wage (EGP/month)',
+    insHint: 'Contributions are calculated on the insurance base, clamped between the minimum and maximum wage.',
+    notes: 'Notes', currency: 'Currency', city: 'City', country: 'Country',
+    taxFileNo: 'Tax file number', nosiOffice: 'Social insurance office',
+    invite: 'Pre-register employee', inviteHint: 'Record the email and role first. When that person signs up, the role is applied automatically.',
+    pending: 'Pending sign-up', registered: 'Registered', consumed: 'Signed up',
+    actor: 'User', action: 'Action', entity: 'Record', when: 'When', details: 'Details',
+    headcountUsers: 'System users', activeBranches: 'Active branches', holidaysThisYear: 'Holidays this year',
+    yourRole: 'Your role', welcome: 'Welcome', quickSettings: 'Set up your company',
+    noPermission: 'You do not have access to this screen.',
+    moduleSoon: 'Coming in the next module.',
+    savedSettings: 'Settings updated', preview: 'Tax preview', annualIncome: 'Annual taxable income',
+    taxDue: 'Annual tax', monthlyTax: 'Monthly tax', calc: 'Calculate',
+  },
+  ar: {
+    appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
+    email: 'البريد الإلكتروني', password: 'كلمة المرور', signIn: 'تسجيل الدخول', signUp: 'إنشاء حساب',
+    signOut: 'تسجيل الخروج', fullNameEn: 'الاسم بالإنجليزية', fullNameAr: 'الاسم بالعربية',
+    forgotPw: 'نسيت كلمة المرور؟', resetSent: 'تم إرسال رابط إعادة التعيين إلى بريدك.',
+    haveAccount: 'لديك حساب بالفعل؟', noAccount: 'أول مرة؟',
+    signupHint: 'يتم تحديد صلاحيتك بواسطة الموارد البشرية. إذا لم يتم تسجيل بريدك بعد، تواصل معهم أولاً.',
+    checkEmail: 'تم إنشاء الحساب. راجع بريدك للتأكيد ثم سجّل الدخول.',
+    notConfigured: 'لم يتم ضبط Supabase بعد. أضف رابط المشروع والمفتاح في أعلى ملف index.html.',
+    inactive: 'حسابك موقوف. تواصل مع الموارد البشرية.',
+    dashboard: 'الرئيسية', settings: 'الإعدادات', users: 'المستخدمون والصلاحيات', audit: 'سجل التدقيق', profile: 'ملفي',
+    branches: 'الفروع', holidays: 'العطلات الرسمية', workWeek: 'أسبوع العمل', tax: 'ضريبة الدخل', insurance: 'التأمينات الاجتماعية', company: 'بيانات الشركة',
+    role: 'الصلاحية', roles: { ceo: 'المدير التنفيذي', hr: 'الموارد البشرية', accountant: 'المحاسب', manager: 'مدير مباشر', staff: 'موظف' },
+    branch: 'الفرع', allBranches: 'كل الفروع', active: 'نشط', inactiveLbl: 'موقوف', status: 'الحالة',
+    add: 'إضافة', edit: 'تعديل', save: 'حفظ', cancel: 'إلغاء', del: 'حذف', close: 'إغلاق',
+    saved: 'تم الحفظ', confirmDel: 'هل تريد حذف هذا السجل؟', search: 'بحث', noData: 'لا توجد بيانات بعد.',
+    loading: 'جاري التحميل...', name: 'الاسم', code: 'الكود', address: 'العنوان', phone: 'الهاتف',
+    date: 'التاريخ', paid: 'مدفوعة', unpaid: 'غير مدفوعة', actions: 'إجراءات', language: 'اللغة',
+    nameEn: 'الاسم بالإنجليزية', nameAr: 'الاسم بالعربية',
+    weekendDays: 'أيام الإجازة الأسبوعية', hoursPerDay: 'ساعات العمل اليومية', daysPerMonth: 'أيام الشهر للرواتب',
+    days: ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'],
+    daysShort: ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'],
+    effectiveFrom: 'ساري من', from: 'من', to: 'إلى', rate: 'النسبة %', upTo: 'فأكثر',
+    personalExemption: 'الإعفاء الشخصي السنوي (ج.م)',
+    taxHint: 'شرائح الدخل السنوي الخاضع للضريبة. اترك خانة "إلى" فارغة في الشريحة الأخيرة. راجعها مع المحاسب قبل تشغيل الرواتب.',
+    addBracket: 'إضافة شريحة',
+    employerRate: 'حصة صاحب العمل %', employeeRate: 'حصة الموظف %',
+    minWage: 'الحد الأدنى لأجر الاشتراك (ج.م/شهر)', maxWage: 'الحد الأقصى لأجر الاشتراك (ج.م/شهر)',
+    insHint: 'يتم حساب الاشتراكات على أجر التأمين بحد أدنى وحد أقصى.',
+    notes: 'ملاحظات', currency: 'العملة', city: 'المدينة', country: 'الدولة',
+    taxFileNo: 'رقم الملف الضريبي', nosiOffice: 'مكتب التأمينات',
+    invite: 'تسجيل موظف مسبقاً', inviteHint: 'سجّل البريد والصلاحية أولاً. عند إنشاء الموظف لحسابه يتم تطبيق الصلاحية تلقائياً.',
+    pending: 'بانتظار التسجيل', registered: 'مسجل', consumed: 'تم التسجيل',
+    actor: 'المستخدم', action: 'الإجراء', entity: 'السجل', when: 'الوقت', details: 'التفاصيل',
+    headcountUsers: 'مستخدمو النظام', activeBranches: 'الفروع النشطة', holidaysThisYear: 'عطلات هذا العام',
+    yourRole: 'صلاحيتك', welcome: 'أهلاً', quickSettings: 'اضبط بيانات شركتك',
+    noPermission: 'ليس لديك صلاحية لهذه الشاشة.',
+    moduleSoon: 'قادم في الوحدة التالية.',
+    savedSettings: 'تم تحديث الإعدادات', preview: 'محاكاة الضريبة', annualIncome: 'الدخل السنوي الخاضع',
+    taxDue: 'الضريبة السنوية', monthlyTax: 'الضريبة الشهرية', calc: 'احسب',
+  },
+};
+
+const L = createContext({ lang: 'ar', t: T.ar, setLang: () => {} });
+const useL = () => useContext(L);
+
+/* =====================================================================
+   2. Small helpers
+   ===================================================================== */
+const cx = (...a) => a.filter(Boolean).join(' ');
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const money = (n, cur) => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + (cur || 'EGP');
+const pct = (n) => (Number(n) * 100).toFixed(2).replace(/\.00$/, '');
+const fmtDateTime = (s) => { if (!s) return ''; const d = new Date(s); return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); };
+
+/** Progressive tax on annual taxable income using the bracket table. */
+function calcAnnualTax(taxable, brackets) {
+  let tax = 0;
+  for (const b of brackets) {
+    const lo = Number(b.lower_bound);
+    const hi = b.upper_bound == null ? Infinity : Number(b.upper_bound);
+    if (taxable <= lo) break;
+    tax += (Math.min(taxable, hi) - lo) * Number(b.rate);
+  }
+  return Math.max(0, tax);
+}
+
+/* =====================================================================
+   3. UI primitives
+   ===================================================================== */
+function Btn({ variant = 'primary', size = 'md', className, ...p }) {
+  const base = 'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition active:scale-[.97] disabled:opacity-50 disabled:pointer-events-none';
+  const v = {
+    primary: 'bg-teal-700 text-white hover:bg-teal-800',
+    soft: 'bg-teal-50 text-teal-800 hover:bg-teal-100',
+    ghost: 'bg-transparent text-slate-600 hover:bg-slate-100',
+    outline: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+    danger: 'bg-rose-600 text-white hover:bg-rose-700',
+  }[variant];
+  const s = { sm: 'px-3 py-1.5 text-sm', md: 'px-4 py-2.5 text-sm', lg: 'px-5 py-3 text-base w-full' }[size];
+  return <button className={cx(base, v, s, className)} {...p} />;
+}
+
+function Field({ label, children, hint }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-semibold text-slate-600">{label}</span>
+      {children}
+      {hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}
+    </label>
+  );
+}
+
+const inputCls = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100';
+const Input = (p) => <input {...p} className={cx(inputCls, p.className)} />;
+const Select = (p) => <select {...p} className={cx(inputCls, 'appearance-none', p.className)} />;
+
+function Card({ title, action, children, className }) {
+  return (
+    <section className={cx('rounded-2xl border border-slate-200 bg-white shadow-sm', className)}>
+      {(title || action) && (
+        <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+          <h2 className="text-sm font-bold text-slate-800">{title}</h2>
+          {action}
+        </header>
+      )}
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
+function Modal({ open, onClose, title, children, footer }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
+      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white sm:max-w-lg sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <header className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
+          <h3 className="font-bold text-slate-800">{title}</h3>
+          <button onClick={onClose} className="rounded-lg px-2 py-1 text-xl leading-none text-slate-400 hover:bg-slate-100">&times;</button>
+        </header>
+        <div className="space-y-3 p-4">{children}</div>
+        {footer && <footer className="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white p-4 pb-safe">{footer}</footer>}
+      </div>
+    </div>
+  );
+}
+
+function Toast({ msg }) {
+  if (!msg) return null;
+  const bad = msg.type === 'error';
+  return (
+    <div className="fixed inset-x-0 top-3 z-[60] flex justify-center px-4">
+      <div className={cx('max-w-md rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg', bad ? 'bg-rose-600' : 'bg-teal-700')}>
+        {msg.text}
+      </div>
+    </div>
+  );
+}
+
+function Empty({ text }) {
+  return <p className="py-8 text-center text-sm text-slate-400">{text}</p>;
+}
+
+function Badge({ tone = 'slate', children }) {
+  const tones = { slate: 'bg-slate-100 text-slate-600', green: 'bg-emerald-100 text-emerald-700', red: 'bg-rose-100 text-rose-700', teal: 'bg-teal-100 text-teal-800', amber: 'bg-amber-100 text-amber-700' };
+  return <span className={cx('inline-block rounded-full px-2 py-0.5 text-xs font-semibold', tones[tone])}>{children}</span>;
+}
+
+/* =====================================================================
+   4. Auth screen
+   ===================================================================== */
+function AuthScreen({ toast }) {
+  const { lang, t, setLang } = useL();
+  const [mode, setMode] = useState('in');
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [nameEn, setNameEn] = useState('');
+  const [nameAr, setNameAr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!CONFIGURED) return toast(t.notConfigured, 'error');
+    setBusy(true);
+    try {
+      if (mode === 'in') {
+        const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
+        if (error) throw error;
+      } else {
+        const { error } = await sb.auth.signUp({
+          email: email.trim(), password: pw,
+          options: { data: { full_name_en: nameEn, full_name_ar: nameAr } },
+        });
+        if (error) throw error;
+        toast(t.checkEmail);
+        setMode('in');
+      }
+    } catch (err) { toast(err.message, 'error'); }
+    setBusy(false);
+  }
+
+  async function reset() {
+    if (!email.trim()) return toast(t.email, 'error');
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.href });
+    toast(error ? error.message : t.resetSent, error ? 'error' : 'ok');
+  }
+
+  return (
+    <div className="flex min-h-full flex-col justify-center bg-gradient-to-b from-teal-800 to-teal-950 px-4 py-10">
+      <div className="mx-auto w-full max-w-sm">
+        <div className="mb-6 text-center text-white">
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 text-3xl">🏖️</div>
+          <h1 className="text-xl font-bold">{t.appName}</h1>
+          <p className="text-sm text-teal-200">{t.appSub}</p>
+        </div>
+
+        <form onSubmit={submit} className="space-y-3 rounded-2xl bg-white p-5 shadow-xl">
+          {mode === 'up' && (
+            <>
+              <Field label={t.fullNameAr}><Input value={nameAr} onChange={(e) => setNameAr(e.target.value)} /></Field>
+              <Field label={t.fullNameEn}><Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} /></Field>
+            </>
+          )}
+          <Field label={t.email}>
+            <Input type="email" inputMode="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <Field label={t.password}>
+            <Input type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} required minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} />
+          </Field>
+
+          <Btn size="lg" disabled={busy}>{busy ? t.loading : mode === 'in' ? t.signIn : t.signUp}</Btn>
+
+          {mode === 'in' ? (
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <button type="button" onClick={reset} className="text-slate-500 underline">{t.forgotPw}</button>
+              <button type="button" onClick={() => setMode('up')} className="font-semibold text-teal-700">{t.noAccount}</button>
+            </div>
+          ) : (
+            <div className="pt-1 text-xs">
+              <p className="mb-2 text-slate-500">{t.signupHint}</p>
+              <button type="button" onClick={() => setMode('in')} className="font-semibold text-teal-700">{t.haveAccount}</button>
+            </div>
+          )}
+        </form>
+
+        <div className="mt-5 flex items-center justify-center gap-3 text-xs text-teal-200">
+          <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-white">
+            {lang === 'ar' ? 'English' : 'العربية'}
+          </button>
+          <span>{APP_VERSION}</span>
+        </div>
+        {!CONFIGURED && <p className="mt-4 rounded-xl bg-amber-100 p-3 text-center text-xs text-amber-800">{t.notConfigured}</p>}
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   5. Shell -- nav + routing
+   ===================================================================== */
+const NAV = [
+  { key: 'dashboard', icon: '🏠', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
+  { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
+  { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
+  { key: 'audit',     icon: '📋', roles: ['ceo', 'hr', 'accountant'] },
+  { key: 'profile',   icon: '👤', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
+];
+
+function Shell({ me, page, setPage, onSignOut, children }) {
+  const { lang, t, setLang } = useL();
+  const items = NAV.filter((n) => n.roles.includes(me.role));
+  const label = (k) => t[k];
+
+  return (
+    <div className="flex min-h-full flex-col">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-slate-800">{t.appName}</p>
+            <p className="truncate text-xs text-slate-500">
+              {(lang === 'ar' ? me.full_name_ar : me.full_name_en) || me.email} &middot; {t.roles[me.role]}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
+              {lang === 'ar' ? 'EN' : 'ع'}
+            </button>
+            <button onClick={onSignOut} className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
+              {t.signOut}
+            </button>
+          </div>
+        </div>
+
+        <nav className="no-scrollbar hidden gap-1 overflow-x-auto px-4 pb-2 sm:mx-auto sm:flex sm:max-w-5xl">
+          {items.map((n) => (
+            <button key={n.key} onClick={() => setPage(n.key)}
+              className={cx('shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold', page === n.key ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100')}>
+              {n.icon} {label(n.key)}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 pb-28 sm:pb-8">{children}</main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white pb-safe sm:hidden">
+        <div className="flex">
+          {items.map((n) => (
+            <button key={n.key} onClick={() => setPage(n.key)}
+              className={cx('flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold', page === n.key ? 'text-teal-700' : 'text-slate-400')}>
+              <span className="text-lg leading-none">{n.icon}</span>
+              <span className="truncate px-0.5">{label(n.key)}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+/* =====================================================================
+   6. Dashboard
+   ===================================================================== */
+function Dashboard({ me, data }) {
+  const { lang, t } = useL();
+  const year = new Date().getFullYear();
+  const stats = [
+    // Staff never load the user list, so don't show them a misleading zero.
+    ...(me.role === 'staff' ? [] : [{ label: t.headcountUsers, value: data.users.length, icon: '👥' }]),
+    { label: t.activeBranches, value: data.branches.filter((b) => b.is_active).length, icon: '🏢' },
+    { label: t.holidaysThisYear, value: data.holidays.filter((h) => h.holiday_date.startsWith(String(year))).length, icon: '📅' },
+  ];
+  const name = (lang === 'ar' ? me.full_name_ar : me.full_name_en) || me.email;
+
+  return (
+    <>
+      <div className="rounded-2xl bg-gradient-to-br from-teal-700 to-teal-900 p-5 text-white">
+        <p className="text-sm text-teal-200">{t.welcome}</p>
+        <p className="text-xl font-bold">{name}</p>
+        <p className="mt-1 text-sm text-teal-200">{t.yourRole}: {t.roles[me.role]}</p>
+      </div>
+
+      <div className={cx('grid gap-3', stats.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-3 text-center">
+            <div className="text-xl">{s.icon}</div>
+            <div className="text-2xl font-bold text-slate-800">{s.value}</div>
+            <div className="text-[11px] leading-tight text-slate-500">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <Card title={t.moduleSoon}>
+        <p className="text-sm text-slate-500">
+          {lang === 'ar'
+            ? 'الوحدة 1 جاهزة: الحسابات والصلاحيات والفروع والعطلات وأسبوع العمل وشرائح الضريبة والتأمينات. التالي: ملفات الموظفين.'
+            : 'Module 1 is live: accounts, roles, branches, holidays, work week, tax brackets and insurance. Next up: employee records.'}
+        </p>
+      </Card>
+    </>
+  );
+}
+
+/* =====================================================================
+   7. Users & roles
+   ===================================================================== */
+function UsersPage({ me, data, refresh, toast, audit }) {
+  const { lang, t } = useL();
+  const [q, setQ] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [inviting, setInviting] = useState(null);
+
+  const list = data.users.filter((u) => {
+    const s = (u.email + ' ' + (u.full_name_en || '') + ' ' + (u.full_name_ar || '')).toLowerCase();
+    return s.includes(q.toLowerCase());
+  });
+
+  async function saveUser(form) {
+    const before = data.users.find((u) => u.id === form.id);
+    const { data: row, error } = await sb.from('app_users')
+      .update({ full_name_en: form.full_name_en, full_name_ar: form.full_name_ar, role: form.role, branch_id: form.branch_id || null, phone: form.phone, is_active: form.is_active })
+      .eq('id', form.id).select().single();
+    if (error) return toast(error.message, 'error');
+    refresh.users((prev) => prev.map((u) => (u.id === row.id ? row : u)));
+    audit('update', 'app_users', row.id, before, row);
+    setEditing(null);
+    toast(t.saved);
+  }
+
+  async function saveInvite(form) {
+    const { data: row, error } = await sb.from('user_invites')
+      .insert({ email: form.email.trim().toLowerCase(), role: form.role, branch_id: form.branch_id || null, full_name_en: form.full_name_en, full_name_ar: form.full_name_ar, created_by: me.id })
+      .select().single();
+    if (error) return toast(error.message, 'error');
+    refresh.invites((prev) => [row, ...prev]);
+    audit('insert', 'user_invites', row.id, null, row);
+    setInviting(null);
+    toast(t.saved);
+  }
+
+  const branchName = (id) => {
+    const b = data.branches.find((x) => x.id === id);
+    return b ? (lang === 'ar' ? b.name_ar : b.name_en) : '—';
+  };
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Input placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} />
+        <Btn onClick={() => setInviting({ email: '', role: 'staff', branch_id: '', full_name_en: '', full_name_ar: '' })}>+ {t.invite}</Btn>
+      </div>
+
+      <Card title={t.users}>
+        {list.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {list.map((u) => (
+              <li key={u.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">
+                    {(lang === 'ar' ? u.full_name_ar : u.full_name_en) || u.email}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">{u.email} &middot; {branchName(u.branch_id)}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Badge tone={u.is_active ? 'teal' : 'red'}>{t.roles[u.role]}</Badge>
+                  <Btn variant="ghost" size="sm" onClick={() => setEditing({ ...u })}>{t.edit}</Btn>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card title={t.pending}>
+        {data.invites.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {data.invites.map((i) => (
+              <li key={i.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-slate-800">{i.email}</p>
+                  <p className="text-xs text-slate-500">{t.roles[i.role]} &middot; {branchName(i.branch_id)}</p>
+                </div>
+                <Badge tone={i.consumed_at ? 'green' : 'amber'}>{i.consumed_at ? t.consumed : t.pending}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-3 text-xs text-slate-400">{t.inviteHint}</p>
+      </Card>
+
+      <Modal open={!!editing} onClose={() => setEditing(null)} title={t.edit}
+        footer={<><Btn className="flex-1" onClick={() => saveUser(editing)}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setEditing(null)}>{t.cancel}</Btn></>}>
+        {editing && (
+          <>
+            <Field label={t.fullNameAr}><Input value={editing.full_name_ar || ''} onChange={(e) => setEditing({ ...editing, full_name_ar: e.target.value })} /></Field>
+            <Field label={t.fullNameEn}><Input value={editing.full_name_en || ''} onChange={(e) => setEditing({ ...editing, full_name_en: e.target.value })} /></Field>
+            <Field label={t.phone}><Input value={editing.phone || ''} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} /></Field>
+            <Field label={t.role}>
+              <Select value={editing.role} disabled={editing.id === me.id} onChange={(e) => setEditing({ ...editing, role: e.target.value })}>
+                {Object.keys(t.roles).map((r) => <option key={r} value={r}>{t.roles[r]}</option>)}
+              </Select>
+            </Field>
+            <Field label={t.branch}>
+              <Select value={editing.branch_id || ''} onChange={(e) => setEditing({ ...editing, branch_id: e.target.value })}>
+                <option value="">{t.allBranches}</option>
+                {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+              </Select>
+            </Field>
+            <label className="flex items-center gap-2 pt-1 text-sm text-slate-700">
+              <input type="checkbox" className="h-5 w-5 rounded accent-teal-700" checked={editing.is_active}
+                disabled={editing.id === me.id}
+                onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
+              {t.active}
+            </label>
+          </>
+        )}
+      </Modal>
+
+      <Modal open={!!inviting} onClose={() => setInviting(null)} title={t.invite}
+        footer={<><Btn className="flex-1" onClick={() => saveInvite(inviting)}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setInviting(null)}>{t.cancel}</Btn></>}>
+        {inviting && (
+          <>
+            <Field label={t.email}><Input type="email" value={inviting.email} onChange={(e) => setInviting({ ...inviting, email: e.target.value })} /></Field>
+            <Field label={t.fullNameAr}><Input value={inviting.full_name_ar} onChange={(e) => setInviting({ ...inviting, full_name_ar: e.target.value })} /></Field>
+            <Field label={t.fullNameEn}><Input value={inviting.full_name_en} onChange={(e) => setInviting({ ...inviting, full_name_en: e.target.value })} /></Field>
+            <Field label={t.role}>
+              <Select value={inviting.role} onChange={(e) => setInviting({ ...inviting, role: e.target.value })}>
+                {Object.keys(t.roles).map((r) => <option key={r} value={r}>{t.roles[r]}</option>)}
+              </Select>
+            </Field>
+            <Field label={t.branch}>
+              <Select value={inviting.branch_id} onChange={(e) => setInviting({ ...inviting, branch_id: e.target.value })}>
+                <option value="">{t.allBranches}</option>
+                {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+              </Select>
+            </Field>
+            <p className="text-xs text-slate-400">{t.inviteHint}</p>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
+   8. Settings
+   ===================================================================== */
+function SettingsPage({ me, data, refresh, toast, audit }) {
+  const { t } = useL();
+  const tabs = [
+    { k: 'company', label: t.company },
+    { k: 'workWeek', label: t.workWeek },
+    { k: 'branches', label: t.branches },
+    { k: 'holidays', label: t.holidays },
+    { k: 'tax', label: t.tax },
+    { k: 'insurance', label: t.insurance },
+  ];
+  const [tab, setTab] = useState('company');
+  const props = { me, data, refresh, toast, audit };
+
+  return (
+    <>
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        {tabs.map((x) => (
+          <button key={x.k} onClick={() => setTab(x.k)}
+            className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-teal-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
+            {x.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'company' && <CompanySettings {...props} />}
+      {tab === 'workWeek' && <WorkWeekSettings {...props} />}
+      {tab === 'branches' && <BranchSettings {...props} />}
+      {tab === 'holidays' && <HolidaySettings {...props} />}
+      {tab === 'tax' && <TaxSettings {...props} />}
+      {tab === 'insurance' && <InsuranceSettings {...props} />}
+    </>
+  );
+}
+
+/** Shared save for the app_settings key/value table. */
+function useSettingSaver({ me, refresh, toast, audit }) {
+  const { t } = useL();
+  return useCallback(async (key, value, before) => {
+    const { data: row, error } = await sb.from('app_settings')
+      .update({ value, updated_by: me.id }).eq('key', key).select().single();
+    if (error) return toast(error.message, 'error');
+    refresh.settings((prev) => ({ ...prev, [key]: row.value }));
+    audit('update', 'app_settings', key, before, row.value);
+    toast(t.savedSettings);
+  }, [me.id, refresh, toast, audit, t]);
+}
+
+function CompanySettings(props) {
+  const { t } = useL();
+  const save = useSettingSaver(props);
+  const initial = props.data.settings.company || {};
+  const [f, setF] = useState(initial);
+  useEffect(() => { setF(props.data.settings.company || {}); }, [props.data.settings.company]);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  return (
+    <Card title={t.company}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={t.nameAr}><Input value={f.name_ar || ''} onChange={set('name_ar')} /></Field>
+        <Field label={t.nameEn}><Input value={f.name_en || ''} onChange={set('name_en')} /></Field>
+        <Field label={t.city}><Input value={f.city || ''} onChange={set('city')} /></Field>
+        <Field label={t.country}><Input value={f.country || ''} onChange={set('country')} /></Field>
+        <Field label={t.currency}><Input value={f.currency || 'EGP'} onChange={set('currency')} /></Field>
+        <Field label={t.taxFileNo}><Input value={f.tax_file_no || ''} onChange={set('tax_file_no')} /></Field>
+        <Field label={t.nosiOffice}><Input value={f.nosi_office || ''} onChange={set('nosi_office')} /></Field>
+      </div>
+      <Btn className="mt-4" onClick={() => save('company', f, initial)}>{t.save}</Btn>
+    </Card>
+  );
+}
+
+function WorkWeekSettings(props) {
+  const { t } = useL();
+  const save = useSettingSaver(props);
+  const initial = props.data.settings.work_week || { weekend_days: [5, 6], standard_hours_per_day: 8, standard_days_per_month: 30 };
+  const [f, setF] = useState(initial);
+  useEffect(() => { setF(props.data.settings.work_week || initial); }, [props.data.settings.work_week]);
+
+  const toggleDay = (d) => {
+    const cur = f.weekend_days || [];
+    setF({ ...f, weekend_days: cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d].sort() });
+  };
+
+  return (
+    <Card title={t.workWeek}>
+      <p className="mb-2 text-xs font-semibold text-slate-600">{t.weekendDays}</p>
+      <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
+        {t.daysShort.map((d, i) => (
+          <button key={i} onClick={() => toggleDay(i)}
+            className={cx('rounded-xl border px-2 py-2 text-xs font-semibold', (f.weekend_days || []).includes(i) ? 'border-teal-700 bg-teal-700 text-white' : 'border-slate-300 bg-white text-slate-600')}>
+            {d}
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={t.hoursPerDay}>
+          <Input type="number" inputMode="decimal" step="0.5" value={f.standard_hours_per_day ?? 8}
+            onChange={(e) => setF({ ...f, standard_hours_per_day: Number(e.target.value) })} />
+        </Field>
+        <Field label={t.daysPerMonth}>
+          <Input type="number" inputMode="numeric" value={f.standard_days_per_month ?? 30}
+            onChange={(e) => setF({ ...f, standard_days_per_month: Number(e.target.value) })} />
+        </Field>
+      </div>
+      <Btn className="mt-4" onClick={() => save('work_week', f, initial)}>{t.save}</Btn>
+    </Card>
+  );
+}
+
+function BranchSettings({ data, refresh, toast, audit }) {
+  const { lang, t } = useL();
+  const [edit, setEdit] = useState(null);
+
+  async function save() {
+    const payload = { code: edit.code.trim(), name_en: edit.name_en, name_ar: edit.name_ar, address: edit.address, phone: edit.phone, is_active: edit.is_active !== false };
+    let res;
+    if (edit.id) res = await sb.from('branches').update(payload).eq('id', edit.id).select().single();
+    else res = await sb.from('branches').insert(payload).select().single();
+    if (res.error) return toast(res.error.message, 'error');
+    const row = res.data;
+    refresh.branches((prev) => (edit.id ? prev.map((b) => (b.id === row.id ? row : b)) : [...prev, row]));
+    audit(edit.id ? 'update' : 'insert', 'branches', row.id, edit.id ? edit : null, row);
+    setEdit(null);
+    toast(t.saved);
+  }
+
+  return (
+    <Card title={t.branches} action={<Btn size="sm" onClick={() => setEdit({ code: '', name_en: '', name_ar: '', address: '', phone: '', is_active: true })}>+ {t.add}</Btn>}>
+      {data.branches.length === 0 ? <Empty text={t.noData} /> : (
+        <ul className="divide-y divide-slate-100">
+          {data.branches.map((b) => (
+            <li key={b.id} className="flex items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">{lang === 'ar' ? b.name_ar : b.name_en}</p>
+                <p className="truncate text-xs text-slate-500">{b.code} &middot; {b.address || '—'}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {!b.is_active && <Badge tone="red">{t.inactiveLbl}</Badge>}
+                <Btn variant="ghost" size="sm" onClick={() => setEdit({ ...b })}>{t.edit}</Btn>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Modal open={!!edit} onClose={() => setEdit(null)} title={t.branches}
+        footer={<><Btn className="flex-1" onClick={save}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setEdit(null)}>{t.cancel}</Btn></>}>
+        {edit && (
+          <>
+            <Field label={t.code}><Input value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value })} /></Field>
+            <Field label={t.nameAr}><Input value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
+            <Field label={t.nameEn}><Input value={edit.name_en} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} /></Field>
+            <Field label={t.address}><Input value={edit.address || ''} onChange={(e) => setEdit({ ...edit, address: e.target.value })} /></Field>
+            <Field label={t.phone}><Input value={edit.phone || ''} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></Field>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" className="h-5 w-5 rounded accent-teal-700" checked={edit.is_active !== false}
+                onChange={(e) => setEdit({ ...edit, is_active: e.target.checked })} />
+              {t.active}
+            </label>
+          </>
+        )}
+      </Modal>
+    </Card>
+  );
+}
+
+function HolidaySettings({ data, refresh, toast, audit }) {
+  const { lang, t } = useL();
+  const [edit, setEdit] = useState(null);
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+
+  const list = data.holidays.filter((h) => h.holiday_date.startsWith(year));
+
+  async function save() {
+    const payload = { holiday_date: edit.holiday_date, name_en: edit.name_en, name_ar: edit.name_ar, is_paid: edit.is_paid !== false, branch_id: edit.branch_id || null };
+    let res;
+    if (edit.id) res = await sb.from('holidays').update(payload).eq('id', edit.id).select().single();
+    else res = await sb.from('holidays').insert(payload).select().single();
+    if (res.error) return toast(res.error.message, 'error');
+    const row = res.data;
+    refresh.holidays((prev) => {
+      const next = edit.id ? prev.map((h) => (h.id === row.id ? row : h)) : [...prev, row];
+      return next.sort((a, b) => a.holiday_date.localeCompare(b.holiday_date));
+    });
+    audit(edit.id ? 'update' : 'insert', 'holidays', row.id, edit.id ? edit : null, row);
+    setEdit(null);
+    toast(t.saved);
+  }
+
+  async function remove(h) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('holidays').delete().eq('id', h.id);
+    if (error) return toast(error.message, 'error');
+    refresh.holidays((prev) => prev.filter((x) => x.id !== h.id));
+    audit('delete', 'holidays', h.id, h, null);
+    toast(t.saved);
+  }
+
+  const years = [];
+  for (let y = new Date().getFullYear() - 1; y <= new Date().getFullYear() + 2; y++) years.push(String(y));
+
+  return (
+    <Card title={t.holidays}
+      action={<Btn size="sm" onClick={() => setEdit({ holiday_date: todayISO(), name_en: '', name_ar: '', is_paid: true, branch_id: '' })}>+ {t.add}</Btn>}>
+      <Select className="mb-3" value={year} onChange={(e) => setYear(e.target.value)}>
+        {years.map((y) => <option key={y} value={y}>{y}</option>)}
+      </Select>
+      {list.length === 0 ? <Empty text={t.noData} /> : (
+        <ul className="divide-y divide-slate-100">
+          {list.map((h) => (
+            <li key={h.id} className="flex items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">{lang === 'ar' ? h.name_ar : h.name_en}</p>
+                <p className="text-xs text-slate-500">{h.holiday_date} &middot; {h.is_paid ? t.paid : t.unpaid}</p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Btn variant="ghost" size="sm" onClick={() => setEdit({ ...h })}>{t.edit}</Btn>
+                <Btn variant="ghost" size="sm" className="text-rose-600" onClick={() => remove(h)}>{t.del}</Btn>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Modal open={!!edit} onClose={() => setEdit(null)} title={t.holidays}
+        footer={<><Btn className="flex-1" onClick={save}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setEdit(null)}>{t.cancel}</Btn></>}>
+        {edit && (
+          <>
+            <Field label={t.date}><Input type="date" value={edit.holiday_date} onChange={(e) => setEdit({ ...edit, holiday_date: e.target.value })} /></Field>
+            <Field label={t.nameAr}><Input value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
+            <Field label={t.nameEn}><Input value={edit.name_en} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} /></Field>
+            <Field label={t.branch}>
+              <Select value={edit.branch_id || ''} onChange={(e) => setEdit({ ...edit, branch_id: e.target.value })}>
+                <option value="">{t.allBranches}</option>
+                {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+              </Select>
+            </Field>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" className="h-5 w-5 rounded accent-teal-700" checked={edit.is_paid !== false}
+                onChange={(e) => setEdit({ ...edit, is_paid: e.target.checked })} />
+              {t.paid}
+            </label>
+          </>
+        )}
+      </Modal>
+    </Card>
+  );
+}
+
+function TaxSettings({ data, refresh, toast, audit }) {
+  const { t } = useL();
+  const [rows, setRows] = useState(data.taxBrackets);
+  const [exemption, setExemption] = useState(data.taxSettings?.personal_exemption_annual ?? 20000);
+  const [demo, setDemo] = useState(120000);
+  useEffect(() => { setRows(data.taxBrackets); }, [data.taxBrackets]);
+  useEffect(() => { setExemption(data.taxSettings?.personal_exemption_annual ?? 20000); }, [data.taxSettings]);
+
+  const effective = data.taxSettings?.effective_from || '2025-01-01';
+
+  const setCell = (i, k, v) => setRows(rows.map((r, idx) => (idx === i ? { ...r, [k]: v } : r)));
+
+  function addRow() {
+    const last = rows[rows.length - 1];
+    setRows([...rows, { id: null, effective_from: effective, seq: rows.length + 1, lower_bound: last ? (last.upper_bound ?? 0) : 0, upper_bound: null, rate: 0 }]);
+  }
+
+  async function save() {
+    const clean = rows.map((r, i) => ({
+      effective_from: effective, seq: i + 1,
+      lower_bound: Number(r.lower_bound) || 0,
+      upper_bound: r.upper_bound === '' || r.upper_bound == null ? null : Number(r.upper_bound),
+      rate: Number(r.rate) || 0,
+    }));
+    // Replace the whole set for this effective date. If the insert fails we
+    // put the previous brackets straight back, so a bad edit can never leave
+    // the company with no tax table.
+    const previous = data.taxBrackets.map((r) => ({
+      effective_from: r.effective_from, seq: r.seq, lower_bound: r.lower_bound,
+      upper_bound: r.upper_bound, rate: r.rate,
+    }));
+    const { error: delErr } = await sb.from('tax_brackets').delete().eq('effective_from', effective);
+    if (delErr) return toast(delErr.message, 'error');
+    const { data: saved, error } = await sb.from('tax_brackets').insert(clean).select();
+    if (error) {
+      if (previous.length) await sb.from('tax_brackets').insert(previous);
+      return toast(error.message, 'error');
+    }
+    const sorted = saved.sort((a, b) => a.seq - b.seq);
+    refresh.taxBrackets(() => sorted);
+    audit('update', 'tax_brackets', effective, data.taxBrackets, sorted);
+
+    const { data: ts, error: tsErr } = await sb.from('tax_settings')
+      .update({ personal_exemption_annual: Number(exemption) })
+      .eq('effective_from', effective).select().single();
+    if (tsErr) return toast(tsErr.message, 'error');
+    refresh.taxSettings(() => ts);
+    audit('update', 'tax_settings', effective, data.taxSettings, ts);
+    toast(t.saved);
+  }
+
+  const taxable = Math.max(0, Number(demo) - Number(exemption));
+  const annualTax = calcAnnualTax(taxable, rows.map((r) => ({ ...r, rate: Number(r.rate) })));
+
+  return (
+    <>
+      <Card title={t.tax} action={<Btn size="sm" variant="soft" onClick={addRow}>+ {t.addBracket}</Btn>}>
+        <p className="mb-3 text-xs text-slate-500">{t.taxHint}</p>
+        <Field label={t.personalExemption}>
+          <Input type="number" inputMode="decimal" value={exemption} onChange={(e) => setExemption(e.target.value)} />
+        </Field>
+
+        <div className="mt-4 space-y-2">
+          {rows.map((r, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1fr_5rem_2rem] items-end gap-2">
+              <Field label={i === 0 ? t.from : ''}>
+                <Input type="number" inputMode="decimal" value={r.lower_bound ?? ''} onChange={(e) => setCell(i, 'lower_bound', e.target.value)} />
+              </Field>
+              <Field label={i === 0 ? t.to : ''}>
+                <Input type="number" inputMode="decimal" placeholder={t.upTo} value={r.upper_bound ?? ''} onChange={(e) => setCell(i, 'upper_bound', e.target.value === '' ? null : e.target.value)} />
+              </Field>
+              <Field label={i === 0 ? t.rate : ''}>
+                <Input type="number" inputMode="decimal" step="0.0001" value={r.rate ?? 0} onChange={(e) => setCell(i, 'rate', e.target.value)} />
+              </Field>
+              <button onClick={() => setRows(rows.filter((_, idx) => idx !== i))}
+                className="mb-1 rounded-lg px-2 py-2 text-lg leading-none text-rose-500 hover:bg-rose-50">&times;</button>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-slate-400">{t.rate}: 0.20 = 20%</p>
+        <Btn className="mt-4" onClick={save}>{t.save}</Btn>
+      </Card>
+
+      <Card title={t.preview}>
+        <Field label={t.annualIncome}><Input type="number" inputMode="decimal" value={demo} onChange={(e) => setDemo(e.target.value)} /></Field>
+        <div className="mt-3 grid grid-cols-2 gap-3 text-center">
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">{t.taxDue}</p>
+            <p className="text-lg font-bold text-slate-800">{money(annualTax)}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs text-slate-500">{t.monthlyTax}</p>
+            <p className="text-lg font-bold text-slate-800">{money(annualTax / 12)}</p>
+          </div>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function InsuranceSettings({ data, refresh, toast, audit }) {
+  const { t } = useL();
+  const cur = data.insurance;
+  const [f, setF] = useState(cur || {});
+  useEffect(() => { setF(data.insurance || {}); }, [data.insurance]);
+
+  async function save() {
+    const { data: row, error } = await sb.from('insurance_rates').update({
+      employer_rate: Number(f.employer_rate),
+      employee_rate: Number(f.employee_rate),
+      min_insurance_wage: Number(f.min_insurance_wage),
+      max_insurance_wage: Number(f.max_insurance_wage),
+      notes: f.notes,
+    }).eq('id', cur.id).select().single();
+    if (error) return toast(error.message, 'error');
+    refresh.insurance(() => row);
+    audit('update', 'insurance_rates', row.id, cur, row);
+    toast(t.saved);
+  }
+
+  if (!cur) return <Card title={t.insurance}><Empty text={t.noData} /></Card>;
+
+  return (
+    <Card title={t.insurance}>
+      <p className="mb-3 text-xs text-slate-500">{t.insHint}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={t.effectiveFrom}><Input value={cur.effective_from} disabled /></Field>
+        <Field label={t.employerRate} hint={pct(f.employer_rate || 0) + '%'}>
+          <Input type="number" step="0.0001" inputMode="decimal" value={f.employer_rate ?? ''} onChange={(e) => setF({ ...f, employer_rate: e.target.value })} />
+        </Field>
+        <Field label={t.employeeRate} hint={pct(f.employee_rate || 0) + '%'}>
+          <Input type="number" step="0.0001" inputMode="decimal" value={f.employee_rate ?? ''} onChange={(e) => setF({ ...f, employee_rate: e.target.value })} />
+        </Field>
+        <Field label={t.minWage}><Input type="number" inputMode="decimal" value={f.min_insurance_wage ?? ''} onChange={(e) => setF({ ...f, min_insurance_wage: e.target.value })} /></Field>
+        <Field label={t.maxWage}><Input type="number" inputMode="decimal" value={f.max_insurance_wage ?? ''} onChange={(e) => setF({ ...f, max_insurance_wage: e.target.value })} /></Field>
+      </div>
+      <Field label={t.notes}><Input value={f.notes || ''} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
+      <Btn className="mt-4" onClick={save}>{t.save}</Btn>
+    </Card>
+  );
+}
+
+/* =====================================================================
+   9. Audit log
+   ===================================================================== */
+function AuditPage() {
+  const { t } = useL();
+  const [rows, setRows] = useState(null);
+
+  useEffect(() => {
+    sb.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200)
+      .then(({ data, error }) => setRows(error ? [] : data));
+  }, []);
+
+  if (rows === null) return <Card title={t.audit}><Empty text={t.loading} /></Card>;
+
+  return (
+    <Card title={t.audit}>
+      {rows.length === 0 ? <Empty text={t.noData} /> : (
+        <ul className="divide-y divide-slate-100">
+          {rows.map((r) => (
+            <li key={r.id} className="py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-semibold text-slate-800">{r.entity} &middot; {r.action}</p>
+                <span className="shrink-0 text-xs text-slate-400">{fmtDateTime(r.created_at)}</span>
+              </div>
+              <p className="truncate text-xs text-slate-500">{r.actor_email} ({r.actor_role}) {r.entity_id ? '#' + String(r.entity_id).slice(0, 8) : ''}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/* =====================================================================
+   10. Profile
+   ===================================================================== */
+function ProfilePage({ me, setMe, toast }) {
+  const { lang, t, setLang } = useL();
+  const [f, setF] = useState(me);
+  useEffect(() => { setF(me); }, [me]);
+
+  async function save() {
+    const { data: row, error } = await sb.from('app_users')
+      .update({ full_name_en: f.full_name_en, full_name_ar: f.full_name_ar, phone: f.phone, lang })
+      .eq('id', me.id).select().single();
+    if (error) return toast(error.message, 'error');
+    setMe(row);
+    toast(t.saved);
+  }
+
+  return (
+    <Card title={t.profile}>
+      <Field label={t.email}><Input value={me.email} disabled /></Field>
+      <Field label={t.role}><Input value={t.roles[me.role]} disabled /></Field>
+      <Field label={t.fullNameAr}><Input value={f.full_name_ar || ''} onChange={(e) => setF({ ...f, full_name_ar: e.target.value })} /></Field>
+      <Field label={t.fullNameEn}><Input value={f.full_name_en || ''} onChange={(e) => setF({ ...f, full_name_en: e.target.value })} /></Field>
+      <Field label={t.phone}><Input value={f.phone || ''} onChange={(e) => setF({ ...f, phone: e.target.value })} /></Field>
+      <Field label={t.language}>
+        <Select value={lang} onChange={(e) => setLang(e.target.value)}>
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+        </Select>
+      </Field>
+      <Btn className="mt-4" onClick={save}>{t.save}</Btn>
+      <p className="mt-4 text-center text-xs text-slate-400">{APP_VERSION}</p>
+    </Card>
+  );
+}
+
+/* =====================================================================
+   11. Root
+   ===================================================================== */
+function App() {
+  const [lang, setLangState] = useState(() => safeStorage.getItem('hv_lang') || 'ar');
+  const [session, setSession] = useState(undefined);   // undefined = still checking
+  const [me, setMe] = useState(null);
+  const [page, setPage] = useState('dashboard');
+  const [msg, setMsg] = useState(null);
+  const [ready, setReady] = useState(false);
+
+  const [users, setUsers] = useState([]);
+  const [invites, setInvites] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+  const [settings, setSettings] = useState({});
+  const [taxBrackets, setTaxBrackets] = useState([]);
+  const [taxSettings, setTaxSettings] = useState(null);
+  const [insurance, setInsurance] = useState(null);
+
+  const t = T[lang];
+
+  const setLang = useCallback((l) => {
+    setLangState(l);
+    safeStorage.setItem('hv_lang', l);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [lang]);
+
+  const toast = useCallback((text, type) => {
+    setMsg({ text, type });
+    setTimeout(() => setMsg(null), 3500);
+  }, []);
+
+  /* auth session */
+  useEffect(() => {
+    if (!CONFIGURED) { setSession(null); return; }
+    sb.auth.getSession().then(({ data }) => setSession(data.session || null));
+    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s || null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  /* load everything once signed in */
+  useEffect(() => {
+    if (!session) { setMe(null); setReady(false); return; }
+    let cancelled = false;
+
+    (async () => {
+      const uid = session.user.id;
+      const { data: profile, error } = await sb.from('app_users').select('*').eq('id', uid).maybeSingle();
+      if (cancelled) return;
+      if (error) { toast(error.message, 'error'); return; }
+      if (!profile) { toast('Profile not found. Run migration_001.sql first.', 'error'); return; }
+      if (!profile.is_active) { toast(t.inactive, 'error'); await sb.auth.signOut(); return; }
+
+      setMe(profile);
+      if (profile.lang && profile.lang !== lang) setLang(profile.lang);
+      sb.from('app_users').update({ last_login_at: new Date().toISOString() }).eq('id', uid).then(() => {});
+
+      const [b, h, s, tb, ts, ir] = await Promise.all([
+        sb.from('branches').select('*').order('code'),
+        sb.from('holidays').select('*').order('holiday_date'),
+        sb.from('app_settings').select('*'),
+        sb.from('tax_brackets').select('*').order('seq'),
+        sb.from('tax_settings').select('*').order('effective_from', { ascending: false }).limit(1).maybeSingle(),
+        sb.from('insurance_rates').select('*').order('effective_from', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (cancelled) return;
+      setBranches(b.data || []);
+      setHolidays(h.data || []);
+      setSettings(Object.fromEntries((s.data || []).map((r) => [r.key, r.value])));
+      setTaxBrackets(tb.data || []);
+      setTaxSettings(ts.data || null);
+      setInsurance(ir.data || null);
+
+      if (['ceo', 'hr', 'accountant', 'manager'].includes(profile.role)) {
+        const [u, inv] = await Promise.all([
+          sb.from('app_users').select('*').order('created_at'),
+          sb.from('user_invites').select('*').order('created_at', { ascending: false }),
+        ]);
+        if (cancelled) return;
+        setUsers(u.data || []);
+        setInvites(inv.data || []);
+      }
+      setReady(true);
+    })();
+
+    return () => { cancelled = true; };
+  }, [session]);
+
+  /* audit helper -- every sensitive write goes through here */
+  const audit = useCallback(async (action, entity, entityId, before, after) => {
+    if (!me) return;
+    await sb.from('audit_log').insert({
+      actor_id: me.id, actor_email: me.email, actor_role: me.role,
+      action, entity, entity_id: entityId == null ? null : String(entityId),
+      before_data: before ?? null, after_data: after ?? null,
+    });
+  }, [me]);
+
+  const ctx = useMemo(() => ({ lang, t, setLang }), [lang, t, setLang]);
+
+  if (session === undefined) {
+    return <L.Provider value={ctx}><div className="flex h-full items-center justify-center text-slate-400">{t.loading}</div></L.Provider>;
+  }
+
+  if (!session || !me) {
+    return (
+      <L.Provider value={ctx}>
+        <Toast msg={msg} />
+        <AuthScreen toast={toast} />
+      </L.Provider>
+    );
+  }
+
+  const data = { users, invites, branches, holidays, settings, taxBrackets, taxSettings, insurance };
+  const refresh = {
+    users: setUsers, invites: setInvites, branches: setBranches, holidays: setHolidays,
+    settings: setSettings, taxBrackets: setTaxBrackets, taxSettings: setTaxSettings, insurance: setInsurance,
+  };
+  const shared = { me, setMe, data, refresh, toast, audit };
+  const allowed = NAV.find((n) => n.key === page)?.roles.includes(me.role);
+
+  return (
+    <L.Provider value={ctx}>
+      <Toast msg={msg} />
+      <Shell me={me} page={page} setPage={setPage} onSignOut={() => sb.auth.signOut()}>
+        {!ready ? <Empty text={t.loading} />
+          : !allowed ? <Card><Empty text={t.noPermission} /></Card>
+          : page === 'dashboard' ? <Dashboard {...shared} />
+          : page === 'users' ? <UsersPage {...shared} />
+          : page === 'settings' ? <SettingsPage {...shared} />
+          : page === 'audit' ? <AuditPage />
+          : page === 'profile' ? <ProfilePage {...shared} />
+          : null}
+      </Shell>
+    </L.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
