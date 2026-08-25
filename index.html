@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.3';
+const APP_VERSION = 'v1.4';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -170,6 +170,23 @@ const T = {
     locationHint: 'Stand at the branch and tap the button — online check-in (module 3) will only work within this radius.',
     profileTab: 'Profile', salaryTab: 'Salary', docsTab: 'Documents',
     salaryTotal: 'Gross (basic + allowances)', invalidNid: 'Invalid national ID',
+    attendance: 'Attendance', checkIn: 'Check in', checkOut: 'Check out', myDay: 'Today',
+    gettingLoc: 'Getting location...', insideBranch: 'Inside branch zone', outsideBranch: 'Outside branch zone',
+    noEmpLink: 'Your account is not linked to an employee record yet. Ask HR.',
+    noBranchGeo: 'No branch location set yet (Settings → Branches → use my current location).',
+    nearest: 'Nearest branch', mAway: 'm away', monthLocked: 'This month is locked.',
+    tripsTab: 'Trips', startTrip: 'Start trip', endTrip: 'End trip', recordPoint: 'Record point',
+    tripPurpose: 'Trip purpose (client / site)', openTripLbl: 'Trip in progress', pointsN: 'points',
+    km: 'km', totalKm: 'Total km', thisMonth: 'This month',
+    reviewTab: 'Review', lockTab: 'Lock',
+    lateMin: 'Late', workedH: 'Hours', otMin: 'OT', missingOut: 'Missing punch', weekendLbl: 'Weekend',
+    dirIn: 'In', dirOut: 'Out', firstIn: 'First in', lastOut: 'Last out',
+    manualPunch: 'Manual punch', punchNote: 'Reason (required)', punchTime: 'Time',
+    lockMonth: 'Lock month', lockedMonths: 'Locked months', unlock: 'Unlock', monthLbl: 'Month', yearLbl: 'Year',
+    lockWarn: 'Locking stops all punch changes for this branch and month — even for HR. Unlock to change.',
+    shiftsLbl: 'Shifts', graceMin: 'Grace (min)', minOt: 'Min OT (min)', startTime: 'Start', endTime: 'End',
+    shift: 'Shift', deviceCode: 'Device code', selectEmployee: 'Employee',
+    geoDenied: 'Location permission is required — enable it for this site in your browser settings.',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -236,6 +253,23 @@ const T = {
     locationHint: 'قف في الفرع واضغط الزر — تسجيل الحضور أونلاين (الوحدة 3) لن يعمل إلا داخل هذا النطاق.',
     profileTab: 'البيانات', salaryTab: 'الراتب', docsTab: 'المستندات',
     salaryTotal: 'الإجمالي (أساسي + بدلات)', invalidNid: 'رقم قومي غير صحيح',
+    attendance: 'الحضور', checkIn: 'تسجيل حضور', checkOut: 'تسجيل انصراف', myDay: 'اليوم',
+    gettingLoc: 'جاري تحديد الموقع...', insideBranch: 'داخل نطاق الفرع', outsideBranch: 'خارج نطاق الفرع',
+    noEmpLink: 'حسابك غير مرتبط بملف موظف بعد. تواصل مع الموارد البشرية.',
+    noBranchGeo: 'لم يتم تحديد موقع الفرع بعد (الإعدادات ← الفروع ← استخدم موقعي الحالي).',
+    nearest: 'أقرب فرع', mAway: 'متر', monthLocked: 'هذا الشهر مقفل.',
+    tripsTab: 'المشاوير', startTrip: 'بدء مشوار', endTrip: 'إنهاء المشوار', recordPoint: 'تسجيل نقطة',
+    tripPurpose: 'سبب المشوار (عميل / موقع)', openTripLbl: 'مشوار جارٍ', pointsN: 'نقاط',
+    km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
+    reviewTab: 'المراجعة', lockTab: 'القفل',
+    lateMin: 'تأخير', workedH: 'ساعات', otMin: 'إضافي', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية',
+    dirIn: 'حضور', dirOut: 'انصراف', firstIn: 'أول حضور', lastOut: 'آخر انصراف',
+    manualPunch: 'بصمة يدوية', punchNote: 'السبب (إلزامي)', punchTime: 'الوقت',
+    lockMonth: 'قفل الشهر', lockedMonths: 'الشهور المقفلة', unlock: 'فتح', monthLbl: 'الشهر', yearLbl: 'السنة',
+    lockWarn: 'القفل يمنع أي تعديل على البصمات لهذا الفرع والشهر — حتى للموارد البشرية. افتح القفل للتعديل.',
+    shiftsLbl: 'الورديات', graceMin: 'سماح (د)', minOt: 'أدنى إضافي (د)', startTime: 'البداية', endTime: 'النهاية',
+    shift: 'الوردية', deviceCode: 'كود جهاز البصمة', selectEmployee: 'الموظف',
+    geoDenied: 'إذن الموقع مطلوب — فعّله لهذا الموقع من إعدادات المتصفح.',
   },
 };
 
@@ -270,6 +304,28 @@ function parseNationalId(nid) {
 
 /** Whole days from today until dateStr (negative = already past). */
 const daysUntil = (dateStr) => Math.floor((new Date(dateStr + 'T00:00:00') - new Date(todayISO() + 'T00:00:00')) / 86400000);
+
+/** Great-circle distance between two GPS points, in kilometers. */
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180, R = 6371;
+  const dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/** Promise wrapper around the browser GPS. */
+const getGps = () => new Promise((resolve, reject) => {
+  if (!navigator.geolocation) return reject(new Error('no geolocation'));
+  navigator.geolocation.getCurrentPosition(
+    (p) => resolve({ lat: Number(p.coords.latitude.toFixed(6)), lng: Number(p.coords.longitude.toFixed(6)), acc: Math.round(p.coords.accuracy) }),
+    (e) => reject(e), { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
+  );
+});
+
+const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const fmtTime = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const minutesOf = (ts) => { const d = new Date(ts); return d.getHours() * 60 + d.getMinutes(); };
+const timeToMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 
 /** Progressive tax on annual taxable income using the bracket table. */
 function calcAnnualTax(taxable, brackets) {
@@ -474,6 +530,7 @@ function AuthScreen({ toast }) {
    ===================================================================== */
 const NAV = [
   { key: 'dashboard', icon: '🏠', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
+  { key: 'attendance', icon: '🕐', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
   { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
@@ -522,10 +579,10 @@ function Shell({ me, page, setPage, onSignOut, children }) {
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 pb-28 sm:pb-8">{children}</main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white pb-safe sm:hidden">
-        <div className="flex">
+        <div className="no-scrollbar flex overflow-x-auto">
           {items.map((n) => (
             <button key={n.key} onClick={() => setPage(n.key)}
-              className={cx('flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold', page === n.key ? 'text-brand-700' : 'text-slate-400')}>
+              className={cx('flex min-w-[64px] flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold', page === n.key ? 'text-brand-700' : 'text-slate-400')}>
               <span className="text-lg leading-none">{n.icon}</span>
               <span className="truncate px-0.5">{label(n.key)}</span>
             </button>
@@ -606,8 +663,8 @@ function Dashboard({ me, data }) {
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 2 جاهزة: ملفات الموظفين والأقسام والمستندات وجداول العمل المرنة. التالي: الحضور والانصراف مع تسجيل الموقع.'
-            : 'Module 2 is live: employee records, departments, documents and flexible work schedules. Next up: attendance with GPS check-in.'}
+            ? 'الوحدة 3 جاهزة: الحضور بالموقع الجغرافي والمشاوير والورديات والقفل الشهري. التالي: الإجازات.'
+            : 'Module 3 is live: GPS attendance, car trips, shifts and monthly locks. Next up: leave management.'}
         </p>
       </Card>
     </>
@@ -800,7 +857,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       hire_date: todayISO(), contract_type: 'indefinite', contract_end: '', probation_end: '',
       weekend_days: null, basic_salary: 0, allowances: [], insurance_base: 0,
       nosi_number: '', bank_name: '', bank_account: '', status: 'active',
-      termination_date: '', user_id: '', notes: '',
+      termination_date: '', user_id: '', notes: '', shift_id: '', device_code: '',
     };
   }
 
@@ -827,6 +884,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       insurance_base: Number(form.insurance_base) || 0, nosi_number: nn(form.nosi_number),
       bank_name: nn(form.bank_name), bank_account: nn(form.bank_account),
       status: form.status, termination_date: nn(form.termination_date), user_id: nn(form.user_id), notes: nn(form.notes),
+      shift_id: nn(form.shift_id), device_code: nn(form.device_code),
     };
     let res;
     if (form.id) res = await sb.from('employees').update(payload).eq('id', form.id).select().single();
@@ -1083,6 +1141,17 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
               <Field label={t.probationEnd}><Input type="date" value={form.probation_end || ''} onChange={(e) => setForm({ ...form, probation_end: e.target.value })} /></Field>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.shift}>
+                <Select value={form.shift_id || ''} onChange={(e) => setForm({ ...form, shift_id: e.target.value })}>
+                  <option value="">—</option>
+                  {data.shifts.map((s) => <option key={s.id} value={s.id}>{lang === 'ar' ? s.name_ar : s.name_en}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.deviceCode}>
+                <Input dir="ltr" inputMode="numeric" value={form.device_code || ''} onChange={(e) => setForm({ ...form, device_code: e.target.value })} />
+              </Field>
+            </div>
             <Field label={t.scheduleLbl}>
               <Select value={form.weekend_days ? 'custom' : 'default'}
                 onChange={(e) => setForm({ ...form, weekend_days: e.target.value === 'custom' ? ((data.settings.work_week || {}).weekend_days || [5, 6]) : null })}>
@@ -1134,6 +1203,471 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
 }
 
 /* =====================================================================
+   7c. Attendance + trips
+   ===================================================================== */
+function AttendancePage({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const isHr = ['ceo', 'hr'].includes(me.role);
+  const admin = me.role !== 'staff';
+  const myEmp = data.employees.find((e) => e.user_id === me.id);
+  const tabs = [
+    ...(myEmp ? [{ k: 'checkin', label: t.checkIn }, { k: 'trips', label: t.tripsTab }] : []),
+    ...(admin ? [{ k: 'review', label: t.reviewTab }] : []),
+    ...(!myEmp && !admin ? [] : []),
+    ...(isHr ? [{ k: 'lock', label: t.lockTab }] : []),
+  ];
+  const [tab, setTab] = useState(tabs.length ? tabs[0].k : 'none');
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+
+  if (!tabs.length) return <Card><Empty text={t.noEmpLink} /></Card>;
+
+  return (
+    <>
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        {tabs.map((x) => (
+          <button key={x.k} onClick={() => setTab(x.k)}
+            className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
+            {x.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'checkin' && <CheckInTab me={me} myEmp={myEmp} data={data} toast={toast} />}
+      {tab === 'trips' && <TripsTab me={me} myEmp={myEmp} data={data} toast={toast} eName={eName} admin={admin} />}
+      {tab === 'review' && <ReviewTab me={me} data={data} toast={toast} audit={audit} eName={eName} isHr={isHr} />}
+      {tab === 'lock' && <LockTab me={me} data={data} toast={toast} audit={audit} />}
+    </>
+  );
+}
+
+function CheckInTab({ me, myEmp, data, toast }) {
+  const { t } = useL();
+  const [todays, setTodays] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    sb.from('attendance_punches').select('*').eq('employee_id', myEmp.id)
+      .gte('punch_time', start.toISOString()).order('punch_time')
+      .then(({ data: d }) => setTodays(d || []));
+  }, [myEmp.id]);
+
+  const last = todays && todays.length ? todays[todays.length - 1] : null;
+  const nextDir = last && last.direction === 'in' ? 'out' : 'in';
+
+  async function punch() {
+    setBusy(true);
+    let gps;
+    try { gps = await getGps(); }
+    catch (e) { setBusy(false); return toast(e.code === 1 ? t.geoDenied : e.message, 'error'); }
+
+    const geoBranches = data.branches.filter((b) => b.is_active && b.latitude != null && b.longitude != null);
+    let nearest = null, distM = null;
+    for (const b of geoBranches) {
+      const d = haversineKm(gps.lat, gps.lng, Number(b.latitude), Number(b.longitude)) * 1000;
+      if (distM === null || d < distM) { distM = d; nearest = b; }
+    }
+    const within = nearest ? distM <= (nearest.geofence_radius_m || 200) : null;
+
+    const { data: row, error } = await sb.from('attendance_punches').insert({
+      employee_id: myEmp.id,
+      employee_device_code: myEmp.device_code || myEmp.employee_code,
+      punch_time: new Date().toISOString(),
+      direction: nextDir, device_id: 'web', source: 'web',
+      latitude: gps.lat, longitude: gps.lng, accuracy_m: gps.acc,
+      within_geofence: within, branch_id: nearest ? nearest.id : null,
+    }).select().single();
+    setBusy(false);
+    if (error) return toast(error.message.includes('ATTENDANCE_LOCKED') ? t.monthLocked : error.message, 'error');
+    setTodays((prev) => [...(prev || []), row]);
+    if (!geoBranches.length) toast(t.noBranchGeo, 'error');
+    else if (!within) toast(t.outsideBranch + ' (' + Math.round(distM) + ' ' + t.mAway + ')', 'error');
+    else toast(t.saved);
+  }
+
+  return (
+    <>
+      <Card>
+        <div className="py-2 text-center">
+          <Btn size="lg" disabled={busy || todays === null}
+            className={nextDir === 'out' ? '!bg-amber-600 hover:!bg-amber-700' : ''}
+            onClick={punch}>
+            {busy ? t.gettingLoc : nextDir === 'in' ? '🕐 ' + t.checkIn : '🏁 ' + t.checkOut}
+          </Btn>
+        </div>
+      </Card>
+      <Card title={t.myDay}>
+        {todays === null ? <Empty text={t.loading} /> : todays.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {todays.map((p) => (
+              <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
+                <span className="font-semibold text-slate-800">{p.direction === 'in' ? t.dirIn : p.direction === 'out' ? t.dirOut : '—'} · {fmtTime(p.punch_time)}</span>
+                {p.source === 'web'
+                  ? <Badge tone={p.within_geofence ? 'green' : 'red'}>{p.within_geofence ? t.insideBranch : t.outsideBranch}</Badge>
+                  : <Badge>{p.source}</Badge>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
+  );
+}
+
+function TripsTab({ me, myEmp, data, toast, eName, admin }) {
+  const { t } = useL();
+  const [open, setOpen] = useState(undefined);   // undefined = loading
+  const [trips, setTrips] = useState([]);
+  const [purpose, setPurpose] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+
+  useEffect(() => {
+    (async () => {
+      const { data: o } = await sb.from('trips').select('*').eq('employee_id', myEmp.id).eq('status', 'open').limit(1).maybeSingle();
+      setOpen(o || null);
+      const { data: list } = await sb.from('trips').select('*').gte('started_at', monthStart.toISOString()).order('started_at', { ascending: false });
+      setTrips(list || []);
+    })();
+  }, [myEmp.id]);
+
+  const tripKm = (tr) => tr.manual_km != null ? Number(tr.manual_km) : tr.distance_km != null ? Number(tr.distance_km) : 0;
+  const chainKm = (pts) => { let s = 0; for (let i = 1; i < pts.length; i++) s += haversineKm(pts[i-1].lat, pts[i-1].lng, pts[i].lat, pts[i].lng); return Math.round(s * 100) / 100; };
+
+  async function withGps(fn) {
+    setBusy(true);
+    try { const gps = await getGps(); await fn(gps); }
+    catch (e) { toast(e.code === 1 ? t.geoDenied : e.message, 'error'); }
+    setBusy(false);
+  }
+
+  const start = () => withGps(async (gps) => {
+    const { data: row, error } = await sb.from('trips').insert({
+      employee_id: myEmp.id, purpose: purpose || null,
+      started_at: new Date().toISOString(),
+      waypoints: [{ t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }],
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setOpen(row); setPurpose('');
+    setTrips((prev) => [row, ...prev]);
+    toast(t.saved);
+  });
+
+  const addPoint = () => withGps(async (gps) => {
+    const pts = [...(open.waypoints || []), { t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }];
+    const { data: row, error } = await sb.from('trips').update({ waypoints: pts }).eq('id', open.id).select().single();
+    if (error) return toast(error.message, 'error');
+    setOpen(row);
+    setTrips((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    toast(t.saved);
+  });
+
+  const end = () => withGps(async (gps) => {
+    const pts = [...(open.waypoints || []), { t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }];
+    const { data: row, error } = await sb.from('trips').update({
+      waypoints: pts, ended_at: new Date().toISOString(), status: 'closed', distance_km: chainKm(pts),
+    }).eq('id', open.id).select().single();
+    if (error) return toast(error.message, 'error');
+    setOpen(null);
+    setTrips((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    toast(t.saved + ' — ' + chainKm(pts) + ' ' + t.km);
+  });
+
+  const mine = trips.filter((x) => x.employee_id === myEmp.id);
+  const others = trips.filter((x) => x.employee_id !== myEmp.id);
+  const byEmp = {};
+  for (const tr of others) (byEmp[tr.employee_id] = byEmp[tr.employee_id] || []).push(tr);
+
+  return (
+    <>
+      <Card title={open ? '🚗 ' + t.openTripLbl : t.startTrip}>
+        {open === undefined ? <Empty text={t.loading} /> : open ? (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              {open.purpose || '—'} · {fmtTime(open.started_at)} · {(open.waypoints || []).length} {t.pointsN} · ~{chainKm(open.waypoints || [])} {t.km}
+            </p>
+            <div className="flex gap-2">
+              <Btn variant="soft" className="flex-1" disabled={busy} onClick={addPoint}>📍 {t.recordPoint}</Btn>
+              <Btn className="flex-1 !bg-amber-600 hover:!bg-amber-700" disabled={busy} onClick={end}>🏁 {t.endTrip}</Btn>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <Input placeholder={t.tripPurpose} value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+            <Btn size="lg" disabled={busy} onClick={start}>🚗 {busy ? t.gettingLoc : t.startTrip}</Btn>
+          </div>
+        )}
+      </Card>
+
+      <Card title={t.tripsTab + ' — ' + t.thisMonth + ' (' + t.totalKm + ': ' + mine.reduce((s, x) => s + tripKm(x), 0).toFixed(1) + ' ' + t.km + ')'}>
+        {mine.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {mine.map((tr) => (
+              <li key={tr.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-800">{tr.purpose || '—'}</p>
+                  <p className="text-xs text-slate-500">{localDay(tr.started_at)} · {fmtTime(tr.started_at)}{tr.ended_at ? '–' + fmtTime(tr.ended_at) : ''}</p>
+                </div>
+                {tr.status === 'open' ? <Badge tone="amber">{t.openTripLbl}</Badge> : <Badge tone="teal">{tripKm(tr).toFixed(1)} {t.km}</Badge>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {admin && others.length > 0 && (
+        <Card title={t.tripsTab + ' — ' + t.employees}>
+          <ul className="divide-y divide-slate-100">
+            {Object.entries(byEmp).map(([empId, list]) => (
+              <li key={empId} className="flex items-center justify-between py-2.5 text-sm">
+                <span className="font-semibold text-slate-800">{eName(data.employees.find((e) => e.id === empId))}</span>
+                <span className="text-slate-500">{list.length} · {list.reduce((s, x) => s + tripKm(x), 0).toFixed(1)} {t.km}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </>
+  );
+}
+
+function ReviewTab({ me, data, toast, audit, eName, isHr }) {
+  const { t } = useL();
+  const first = todayISO().slice(0, 8) + '01';
+  const [from, setFrom] = useState(first);
+  const [to, setTo] = useState(todayISO());
+  const [fEmp, setFEmp] = useState('');
+  const [punches, setPunches] = useState(null);
+  const [dayView, setDayView] = useState(null);   // {emp, date, punches}
+  const [manual, setManual] = useState(null);
+
+  useEffect(() => {
+    setPunches(null);
+    const end = new Date(to + 'T00:00:00'); end.setDate(end.getDate() + 1);
+    sb.from('attendance_punches').select('*')
+      .gte('punch_time', new Date(from + 'T00:00:00').toISOString())
+      .lt('punch_time', end.toISOString())
+      .order('punch_time')
+      .then(({ data: d, error }) => { if (error) toast(error.message, 'error'); setPunches(d || []); });
+  }, [from, to]);
+
+  const companyWeekend = (data.settings.work_week || {}).weekend_days || [5, 6];
+  const defShift = data.shifts[0];
+
+  const rows = useMemo(() => {
+    if (!punches) return [];
+    const groups = {};
+    for (const p of punches) {
+      if (!p.employee_id) continue;
+      if (fEmp && p.employee_id !== fEmp) continue;
+      const k = p.employee_id + '|' + localDay(p.punch_time);
+      (groups[k] = groups[k] || []).push(p);
+    }
+    return Object.entries(groups).map(([k, list]) => {
+      const [empId, date] = k.split('|');
+      const emp = data.employees.find((e) => e.id === empId);
+      const shift = data.shifts.find((s) => s.id === (emp && emp.shift_id)) || defShift;
+      const ins = list.filter((p) => p.direction === 'in');
+      const outs = list.filter((p) => p.direction === 'out');
+      const firstIn = ins.length ? ins[0] : list[0];
+      const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
+      const weekend = (emp && emp.weekend_days ? emp.weekend_days : companyWeekend).includes(new Date(date + 'T00:00:00').getDay());
+      let late = 0, ot = 0, hours = 0;
+      if (shift && firstIn) late = Math.max(0, minutesOf(firstIn.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes));
+      if (firstIn && lastOut) hours = Math.round((new Date(lastOut.punch_time) - new Date(firstIn.punch_time)) / 36000) / 100;
+      if (shift && lastOut) {
+        const over = minutesOf(lastOut.punch_time) - timeToMin(shift.end_time);
+        if (over >= shift.min_overtime_minutes) ot = over;
+      }
+      const flagged = list.some((p) => p.source === 'web' && p.within_geofence === false);
+      return { emp, date, list, firstIn, lastOut, late: weekend ? 0 : late, ot, hours, weekend, missing: !lastOut, flagged };
+    }).sort((a, b) => b.date.localeCompare(a.date) || eName(a.emp).localeCompare(eName(b.emp)));
+  }, [punches, fEmp, data.employees, data.shifts]);
+
+  async function saveManual() {
+    if (!manual.employee_id || !manual.note) return toast(t.punchNote, 'error');
+    const emp = data.employees.find((e) => e.id === manual.employee_id);
+    const iso = new Date(manual.date + 'T' + manual.time).toISOString();
+    const { data: row, error } = await sb.from('attendance_punches').insert({
+      employee_id: emp.id, employee_device_code: emp.device_code || emp.employee_code,
+      punch_time: iso, direction: manual.direction, device_id: 'manual', source: 'manual',
+      note: manual.note, created_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message.includes('ATTENDANCE_LOCKED') ? t.monthLocked : error.message, 'error');
+    setPunches((prev) => [...prev, row].sort((a, b) => a.punch_time.localeCompare(b.punch_time)));
+    audit('insert', 'attendance_punches', row.id, null, row);
+    setManual(null);
+    toast(t.saved);
+  }
+
+  async function removePunch(p) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('attendance_punches').delete().eq('id', p.id);
+    if (error) return toast(error.message.includes('ATTENDANCE_LOCKED') ? t.monthLocked : error.message, 'error');
+    setPunches((prev) => prev.filter((x) => x.id !== p.id));
+    setDayView((prev) => prev ? { ...prev, list: prev.list.filter((x) => x.id !== p.id) } : null);
+    audit('delete', 'attendance_punches', p.id, p, null);
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+      </div>
+      <div className="flex gap-2">
+        <Select value={fEmp} onChange={(e) => setFEmp(e.target.value)}>
+          <option value="">{t.selectEmployee} — {t.allBranches}</option>
+          {data.employees.map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+        </Select>
+        {isHr && <Btn onClick={() => setManual({ employee_id: fEmp || '', date: todayISO(), time: '09:00', direction: 'in', note: '' })}>+ {t.manualPunch}</Btn>}
+      </div>
+
+      <Card title={t.reviewTab}>
+        {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead><tr className="text-start text-xs text-slate-400">
+                {[t.date, t.selectEmployee, t.firstIn, t.lastOut, t.lateMin, t.workedH, t.otMin, ''].map((h, i) => <th key={i} className="py-2 text-start font-semibold">{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="cursor-pointer border-t border-slate-100 hover:bg-slate-50" onClick={() => setDayView(r)}>
+                    <td className="py-2 text-xs">{r.date.slice(5)}</td>
+                    <td className="max-w-[130px] truncate font-semibold text-slate-800">{eName(r.emp)}</td>
+                    <td>{r.firstIn ? fmtTime(r.firstIn.punch_time) : '—'}</td>
+                    <td>{r.lastOut ? fmtTime(r.lastOut.punch_time) : '—'}</td>
+                    <td className={r.late > 0 ? 'font-bold text-rose-600' : ''}>{r.late || ''}</td>
+                    <td>{r.hours || ''}</td>
+                    <td className={r.ot > 0 ? 'font-bold text-emerald-600' : ''}>{r.ot || ''}</td>
+                    <td className="text-xs">
+                      {r.weekend && <Badge>{t.weekendLbl}</Badge>}
+                      {r.missing && !r.weekend && <Badge tone="amber">{t.missingOut}</Badge>}
+                      {r.flagged && <Badge tone="red">📍</Badge>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Modal open={!!dayView} onClose={() => setDayView(null)} title={dayView ? eName(dayView.emp) + ' · ' + dayView.date : ''}>
+        {dayView && (
+          <ul className="divide-y divide-slate-100">
+            {dayView.list.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
+                <div>
+                  <p className="font-semibold text-slate-800">{p.direction === 'in' ? t.dirIn : p.direction === 'out' ? t.dirOut : '—'} · {fmtTime(p.punch_time)}</p>
+                  <p className="text-xs text-slate-500">
+                    {p.source}{p.note ? ' · ' + p.note : ''}
+                    {p.source === 'web' && p.within_geofence === false ? ' · ' + t.outsideBranch : ''}
+                    {p.latitude != null && <> · <a className="text-brand-700 underline" target="_blank" rel="noreferrer"
+                      href={'https://maps.google.com/?q=' + p.latitude + ',' + p.longitude} onClick={(e) => e.stopPropagation()}>📍</a></>}
+                  </p>
+                </div>
+                {isHr && <Btn variant="ghost" size="sm" className="text-rose-600" onClick={() => removePunch(p)}>{t.del}</Btn>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+
+      <Modal open={!!manual} onClose={() => setManual(null)} title={t.manualPunch}
+        footer={<><Btn className="flex-1" onClick={saveManual}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setManual(null)}>{t.cancel}</Btn></>}>
+        {manual && (
+          <>
+            <Field label={t.selectEmployee}>
+              <Select value={manual.employee_id} onChange={(e) => setManual({ ...manual, employee_id: e.target.value })}>
+                <option value="">—</option>
+                {data.employees.map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.date}><Input type="date" value={manual.date} onChange={(e) => setManual({ ...manual, date: e.target.value })} /></Field>
+              <Field label={t.punchTime}><Input type="time" value={manual.time} onChange={(e) => setManual({ ...manual, time: e.target.value })} /></Field>
+            </div>
+            <Field label={t.direction || ''}>
+              <Select value={manual.direction} onChange={(e) => setManual({ ...manual, direction: e.target.value })}>
+                <option value="in">{t.dirIn}</option><option value="out">{t.dirOut}</option>
+              </Select>
+            </Field>
+            <Field label={t.punchNote}><Input value={manual.note} onChange={(e) => setManual({ ...manual, note: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+function LockTab({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const now = new Date();
+  const [locks, setLocks] = useState(null);
+  const [form, setForm] = useState({ branch_id: '', year: now.getFullYear(), month: now.getMonth() + 1 });
+
+  useEffect(() => {
+    sb.from('attendance_locks').select('*').order('year', { ascending: false }).order('month', { ascending: false })
+      .then(({ data: d }) => setLocks(d || []));
+  }, []);
+
+  async function lock() {
+    if (!form.branch_id) return toast(t.branch, 'error');
+    const { data: row, error } = await sb.from('attendance_locks').insert({
+      branch_id: form.branch_id, year: Number(form.year), month: Number(form.month), locked_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setLocks((prev) => [row, ...(prev || [])]);
+    audit('lock', 'attendance_locks', row.id, null, row);
+    toast(t.saved);
+  }
+
+  async function unlock(l) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('attendance_locks').delete().eq('id', l.id);
+    if (error) return toast(error.message, 'error');
+    setLocks((prev) => prev.filter((x) => x.id !== l.id));
+    audit('unlock', 'attendance_locks', l.id, l, null);
+  }
+
+  const branchName = (id) => { const b = data.branches.find((x) => x.id === id); return b ? (lang === 'ar' ? b.name_ar : b.name_en) : '—'; };
+
+  return (
+    <>
+      <Card title={t.lockMonth}>
+        <p className="mb-3 text-xs text-slate-500">{t.lockWarn}</p>
+        <div className="grid grid-cols-3 gap-2">
+          <Select value={form.branch_id} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}>
+            <option value="">{t.branch}</option>
+            {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+          </Select>
+          <Select value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })}>
+            {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+          </Select>
+          <Select value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })}>
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y} value={y}>{y}</option>)}
+          </Select>
+        </div>
+        <Btn className="mt-3" onClick={lock}>🔒 {t.lockMonth}</Btn>
+      </Card>
+      <Card title={t.lockedMonths}>
+        {locks === null ? <Empty text={t.loading} /> : locks.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {locks.map((l) => (
+              <li key={l.id} className="flex items-center justify-between py-2.5 text-sm">
+                <span className="font-semibold text-slate-800">{branchName(l.branch_id)} · {l.month}/{l.year}</span>
+                <Btn variant="ghost" size="sm" className="text-rose-600" onClick={() => unlock(l)}>{t.unlock}</Btn>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -1141,6 +1675,7 @@ function SettingsPage({ me, data, refresh, toast, audit }) {
   const tabs = [
     { k: 'company', label: t.company },
     { k: 'workWeek', label: t.workWeek },
+    { k: 'shifts', label: t.shiftsLbl },
     { k: 'branches', label: t.branches },
     { k: 'holidays', label: t.holidays },
     { k: 'tax', label: t.tax },
@@ -1161,6 +1696,7 @@ function SettingsPage({ me, data, refresh, toast, audit }) {
       </div>
       {tab === 'company' && <CompanySettings {...props} />}
       {tab === 'workWeek' && <WorkWeekSettings {...props} />}
+      {tab === 'shifts' && <ShiftSettings {...props} />}
       {tab === 'branches' && <BranchSettings {...props} />}
       {tab === 'holidays' && <HolidaySettings {...props} />}
       {tab === 'tax' && <TaxSettings {...props} />}
@@ -1240,6 +1776,69 @@ function WorkWeekSettings(props) {
         </Field>
       </div>
       <Btn className="mt-4" onClick={() => save('work_week', f, initial)}>{t.save}</Btn>
+    </Card>
+  );
+}
+
+function ShiftSettings({ data, refresh, toast, audit }) {
+  const { lang, t } = useL();
+  const [edit, setEdit] = useState(null);
+
+  async function save() {
+    const payload = {
+      name_en: edit.name_en, name_ar: edit.name_ar,
+      start_time: edit.start_time, end_time: edit.end_time,
+      grace_minutes: Number(edit.grace_minutes) || 0,
+      min_overtime_minutes: Number(edit.min_overtime_minutes) || 0,
+      is_active: edit.is_active !== false,
+    };
+    let res;
+    if (edit.id) res = await sb.from('shifts').update(payload).eq('id', edit.id).select().single();
+    else res = await sb.from('shifts').insert(payload).select().single();
+    if (res.error) return toast(res.error.message, 'error');
+    const row = res.data;
+    refresh.shifts((prev) => (edit.id ? prev.map((s) => (s.id === row.id ? row : s)) : [...prev, row]));
+    audit(edit.id ? 'update' : 'insert', 'shifts', row.id, edit.id ? edit : null, row);
+    setEdit(null);
+    toast(t.saved);
+  }
+
+  return (
+    <Card title={t.shiftsLbl}
+      action={<Btn size="sm" onClick={() => setEdit({ name_en: '', name_ar: '', start_time: '09:00', end_time: '17:00', grace_minutes: 15, min_overtime_minutes: 30, is_active: true })}>+ {t.add}</Btn>}>
+      {data.shifts.length === 0 ? <Empty text={t.noData} /> : (
+        <ul className="divide-y divide-slate-100">
+          {data.shifts.map((s) => (
+            <li key={s.id} className="flex items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">{lang === 'ar' ? s.name_ar : s.name_en}</p>
+                <p className="text-xs text-slate-500" dir="ltr">{String(s.start_time).slice(0, 5)}–{String(s.end_time).slice(0, 5)} · +{s.grace_minutes}m</p>
+              </div>
+              <Btn variant="ghost" size="sm" onClick={() => setEdit({ ...s, start_time: String(s.start_time).slice(0, 5), end_time: String(s.end_time).slice(0, 5) })}>{t.edit}</Btn>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Modal open={!!edit} onClose={() => setEdit(null)} title={t.shiftsLbl}
+        footer={<><Btn className="flex-1" onClick={save}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setEdit(null)}>{t.cancel}</Btn></>}>
+        {edit && (
+          <>
+            <Field label={t.nameAr}><Input value={edit.name_ar} onChange={(e) => setEdit({ ...edit, name_ar: e.target.value })} /></Field>
+            <Field label={t.nameEn}><Input value={edit.name_en} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.startTime}><Input type="time" value={edit.start_time} onChange={(e) => setEdit({ ...edit, start_time: e.target.value })} /></Field>
+              <Field label={t.endTime}><Input type="time" value={edit.end_time} onChange={(e) => setEdit({ ...edit, end_time: e.target.value })} /></Field>
+              <Field label={t.graceMin}><Input type="number" inputMode="numeric" value={edit.grace_minutes} onChange={(e) => setEdit({ ...edit, grace_minutes: e.target.value })} /></Field>
+              <Field label={t.minOt}><Input type="number" inputMode="numeric" value={edit.min_overtime_minutes} onChange={(e) => setEdit({ ...edit, min_overtime_minutes: e.target.value })} /></Field>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={edit.is_active !== false}
+                onChange={(e) => setEdit({ ...edit, is_active: e.target.checked })} />
+              {t.active}
+            </label>
+          </>
+        )}
+      </Modal>
     </Card>
   );
 }
@@ -1639,6 +2238,7 @@ function App() {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [expiringDocs, setExpiringDocs] = useState([]);
+  const [shifts, setShifts] = useState([]);
 
   const t = T[lang];
 
@@ -1682,7 +2282,9 @@ function App() {
       if (profile.lang && profile.lang !== lang) setLang(profile.lang);
       sb.from('app_users').update({ last_login_at: new Date().toISOString() }).eq('id', uid).then(() => {});
 
-      const [b, h, s, tb, ts, ir, dep] = await Promise.all([
+      // employees is loaded for everyone: RLS trims it to "just me" for
+      // staff and "my team" for managers, so the same code serves all roles.
+      const [b, h, s, tb, ts, ir, dep, emp, sh] = await Promise.all([
         sb.from('branches').select('*').order('code'),
         sb.from('holidays').select('*').order('holiday_date'),
         sb.from('app_settings').select('*'),
@@ -1690,6 +2292,8 @@ function App() {
         sb.from('tax_settings').select('*').order('effective_from', { ascending: false }).limit(1).maybeSingle(),
         sb.from('insurance_rates').select('*').order('effective_from', { ascending: false }).limit(1).maybeSingle(),
         sb.from('departments').select('*').order('name_en'),
+        sb.from('employees').select('*').order('full_name_en'),
+        sb.from('shifts').select('*').order('start_time'),
       ]);
       if (cancelled) return;
       setBranches(b.data || []);
@@ -1699,19 +2303,19 @@ function App() {
       setTaxSettings(ts.data || null);
       setInsurance(ir.data || null);
       setDepartments(dep.data || []);
+      setEmployees(emp.data || []);
+      setShifts(sh.data || []);
 
       if (['ceo', 'hr', 'accountant', 'manager'].includes(profile.role)) {
         const in60 = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
-        const [u, inv, emp, xd] = await Promise.all([
+        const [u, inv, xd] = await Promise.all([
           sb.from('app_users').select('*').order('created_at'),
           sb.from('user_invites').select('*').order('created_at', { ascending: false }),
-          sb.from('employees').select('*').order('full_name_en'),
           sb.from('employee_documents').select('*').not('expiry_date', 'is', null).lte('expiry_date', in60).order('expiry_date'),
         ]);
         if (cancelled) return;
         setUsers(u.data || []);
         setInvites(inv.data || []);
-        setEmployees(emp.data || []);
         setExpiringDocs(xd.data || []);
       }
       setReady(true);
@@ -1745,11 +2349,11 @@ function App() {
     );
   }
 
-  const data = { users, invites, branches, holidays, settings, taxBrackets, taxSettings, insurance, employees, departments, expiringDocs };
+  const data = { users, invites, branches, holidays, settings, taxBrackets, taxSettings, insurance, employees, departments, expiringDocs, shifts };
   const refresh = {
     users: setUsers, invites: setInvites, branches: setBranches, holidays: setHolidays,
     settings: setSettings, taxBrackets: setTaxBrackets, taxSettings: setTaxSettings, insurance: setInsurance,
-    employees: setEmployees, departments: setDepartments, expiringDocs: setExpiringDocs,
+    employees: setEmployees, departments: setDepartments, expiringDocs: setExpiringDocs, shifts: setShifts,
   };
   const shared = { me, setMe, data, refresh, toast, audit };
   const allowed = NAV.find((n) => n.key === page)?.roles.includes(me.role);
@@ -1761,6 +2365,7 @@ function App() {
         {!ready ? <Empty text={t.loading} />
           : !allowed ? <Card><Empty text={t.noPermission} /></Card>
           : page === 'dashboard' ? <Dashboard {...shared} />
+          : page === 'attendance' ? <AttendancePage {...shared} />
           : page === 'employees' ? <EmployeesPage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
           : page === 'settings' ? <SettingsPage {...shared} />
