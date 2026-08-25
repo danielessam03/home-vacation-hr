@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.2';
+const APP_VERSION = 'v1.3';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -145,6 +145,31 @@ const T = {
     moduleSoon: 'Coming in the next module.',
     savedSettings: 'Settings updated', preview: 'Tax preview', annualIncome: 'Annual taxable income',
     taxDue: 'Annual tax', monthlyTax: 'Monthly tax', calc: 'Calculate',
+    employees: 'Employees', addEmployee: 'Add employee', empCode: 'Code',
+    nationalId: 'National ID', nidHint: '14 digits — birth date and gender fill in automatically',
+    birthDate: 'Birth date', gender: 'Gender', male: 'Male', female: 'Female',
+    hireDate: 'Hire date', contractType: 'Contract type',
+    contractTypes: { indefinite: 'Indefinite', fixed_term: 'Fixed term', part_time: 'Part time', probation: 'Probation' },
+    contractEnd: 'Contract end', probationEnd: 'Probation end',
+    department: 'Department', jobTitleEn: 'Job title (English)', jobTitleAr: 'Job title (Arabic)',
+    managerLbl: 'Direct manager', scheduleLbl: 'Work schedule',
+    companyDefaultWeek: 'Company default weekend', customWeek: 'Custom weekend days',
+    basicSalary: 'Basic salary (EGP)', allowancesLbl: 'Allowances', amount: 'Amount',
+    addAllowance: 'Add allowance', insuranceBase: 'Insurance base wage (EGP)',
+    nosiNumber: 'Social insurance no.', bankName: 'Bank', bankAccount: 'Account / IBAN',
+    empStatus: { active: 'Active', suspended: 'Suspended', terminated: 'Terminated' },
+    terminationDate: 'Termination date', linkedAccount: 'Linked user account', noneLbl: 'None',
+    personalEmail: 'Personal email', docsLbl: 'Documents',
+    docTypes: { national_id: 'National ID', contract: 'Contract', certificate: 'Certificate', work_permit: 'Work permit', cv: 'CV', photo: 'Photo', other: 'Other' },
+    docTitle: 'Document title', expiryDate: 'Expiry date', noExpiry: 'No expiry',
+    upload: 'Upload', uploading: 'Uploading...', download: 'Open',
+    expiryAlerts: 'Expiring within 60 days', expiredLbl: 'Expired', expiresOn: 'expires',
+    activeEmployees: 'Active employees',
+    latitude: 'Latitude', longitude: 'Longitude', geofenceRadius: 'Check-in radius (m)',
+    useMyLocation: 'Use my current location',
+    locationHint: 'Stand at the branch and tap the button — online check-in (module 3) will only work within this radius.',
+    profileTab: 'Profile', salaryTab: 'Salary', docsTab: 'Documents',
+    salaryTotal: 'Gross (basic + allowances)', invalidNid: 'Invalid national ID',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -186,6 +211,31 @@ const T = {
     moduleSoon: 'قادم في الوحدة التالية.',
     savedSettings: 'تم تحديث الإعدادات', preview: 'محاكاة الضريبة', annualIncome: 'الدخل السنوي الخاضع',
     taxDue: 'الضريبة السنوية', monthlyTax: 'الضريبة الشهرية', calc: 'احسب',
+    employees: 'الموظفون', addEmployee: 'إضافة موظف', empCode: 'الكود',
+    nationalId: 'الرقم القومي', nidHint: '14 رقماً — يتم ملء تاريخ الميلاد والنوع تلقائياً',
+    birthDate: 'تاريخ الميلاد', gender: 'النوع', male: 'ذكر', female: 'أنثى',
+    hireDate: 'تاريخ التعيين', contractType: 'نوع العقد',
+    contractTypes: { indefinite: 'غير محدد المدة', fixed_term: 'محدد المدة', part_time: 'دوام جزئي', probation: 'فترة اختبار' },
+    contractEnd: 'نهاية العقد', probationEnd: 'نهاية فترة الاختبار',
+    department: 'القسم', jobTitleEn: 'المسمى الوظيفي (إنجليزي)', jobTitleAr: 'المسمى الوظيفي (عربي)',
+    managerLbl: 'المدير المباشر', scheduleLbl: 'جدول العمل',
+    companyDefaultWeek: 'إجازة الشركة الأساسية', customWeek: 'أيام إجازة مخصصة',
+    basicSalary: 'الراتب الأساسي (ج.م)', allowancesLbl: 'البدلات', amount: 'المبلغ',
+    addAllowance: 'إضافة بدل', insuranceBase: 'أجر الاشتراك التأميني (ج.م)',
+    nosiNumber: 'الرقم التأميني', bankName: 'البنك', bankAccount: 'رقم الحساب / IBAN',
+    empStatus: { active: 'نشط', suspended: 'موقوف', terminated: 'منتهي الخدمة' },
+    terminationDate: 'تاريخ انتهاء الخدمة', linkedAccount: 'حساب المستخدم المرتبط', noneLbl: 'بدون',
+    personalEmail: 'البريد الشخصي', docsLbl: 'المستندات',
+    docTypes: { national_id: 'بطاقة الرقم القومي', contract: 'عقد العمل', certificate: 'شهادة', work_permit: 'تصريح عمل', cv: 'سيرة ذاتية', photo: 'صورة شخصية', other: 'أخرى' },
+    docTitle: 'اسم المستند', expiryDate: 'تاريخ الانتهاء', noExpiry: 'بدون انتهاء',
+    upload: 'رفع', uploading: 'جاري الرفع...', download: 'فتح',
+    expiryAlerts: 'ينتهي خلال 60 يوماً', expiredLbl: 'منتهي', expiresOn: 'ينتهي',
+    activeEmployees: 'الموظفون النشطون',
+    latitude: 'خط العرض', longitude: 'خط الطول', geofenceRadius: 'نطاق الحضور (متر)',
+    useMyLocation: 'استخدم موقعي الحالي',
+    locationHint: 'قف في الفرع واضغط الزر — تسجيل الحضور أونلاين (الوحدة 3) لن يعمل إلا داخل هذا النطاق.',
+    profileTab: 'البيانات', salaryTab: 'الراتب', docsTab: 'المستندات',
+    salaryTotal: 'الإجمالي (أساسي + بدلات)', invalidNid: 'رقم قومي غير صحيح',
   },
 };
 
@@ -200,6 +250,26 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const money = (n, cur) => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + (cur || 'EGP');
 const pct = (n) => (Number(n) * 100).toFixed(2).replace(/\.00$/, '');
 const fmtDateTime = (s) => { if (!s) return ''; const d = new Date(s); return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); };
+
+/** Egyptian national ID: [century][YYMMDD][gov][serial][check].
+    Digit 1: 2 = 1900s, 3 = 2000s. Digit 13 odd = male, even = female. */
+function parseNationalId(nid) {
+  if (!/^[23]\d{13}$/.test(nid)) return null;
+  const century = nid[0] === '2' ? 1900 : 2000;
+  const y = century + Number(nid.slice(1, 3));
+  const m = Number(nid.slice(3, 5));
+  const d = Number(nid.slice(5, 7));
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  return {
+    birth_date: y + '-' + pad(m) + '-' + pad(d),
+    gender: Number(nid[12]) % 2 === 1 ? 'male' : 'female',
+  };
+}
+
+/** Whole days from today until dateStr (negative = already past). */
+const daysUntil = (dateStr) => Math.floor((new Date(dateStr + 'T00:00:00') - new Date(todayISO() + 'T00:00:00')) / 86400000);
 
 /** Progressive tax on annual taxable income using the bracket table. */
 function calcAnnualTax(taxable, brackets) {
@@ -404,6 +474,7 @@ function AuthScreen({ toast }) {
    ===================================================================== */
 const NAV = [
   { key: 'dashboard', icon: '🏠', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
+  { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
   { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'audit',     icon: '📋', roles: ['ceo', 'hr', 'accountant'] },
@@ -471,13 +542,32 @@ function Shell({ me, page, setPage, onSignOut, children }) {
 function Dashboard({ me, data }) {
   const { lang, t } = useL();
   const year = new Date().getFullYear();
+  const admin = me.role !== 'staff';
   const stats = [
-    // Staff never load the user list, so don't show them a misleading zero.
-    ...(me.role === 'staff' ? [] : [{ label: t.headcountUsers, value: data.users.length, icon: '👥' }]),
+    // Staff never load these lists, so don't show them misleading zeros.
+    ...(admin ? [
+      { label: t.activeEmployees, value: data.employees.filter((e) => e.status === 'active').length, icon: '🧑‍💼' },
+      { label: t.headcountUsers, value: data.users.length, icon: '👥' },
+    ] : []),
     { label: t.activeBranches, value: data.branches.filter((b) => b.is_active).length, icon: '🏢' },
     { label: t.holidaysThisYear, value: data.holidays.filter((h) => h.holiday_date.startsWith(String(year))).length, icon: '📅' },
   ];
   const name = (lang === 'ar' ? me.full_name_ar : me.full_name_en) || me.email;
+
+  /* contract / probation / document expiries within 60 days */
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const expiry = [];
+  if (admin) {
+    for (const e of data.employees.filter((x) => x.status === 'active')) {
+      for (const [field, label] of [['contract_end', t.contractEnd], ['probation_end', t.probationEnd]]) {
+        if (e[field] && daysUntil(e[field]) <= 60) expiry.push({ who: eName(e), what: label, date: e[field], d: daysUntil(e[field]) });
+      }
+    }
+    for (const doc of data.expiringDocs) {
+      expiry.push({ who: eName(data.employees.find((e) => e.id === doc.employee_id)), what: t.docTypes[doc.doc_type] || doc.title, date: doc.expiry_date, d: daysUntil(doc.expiry_date) });
+    }
+    expiry.sort((a, b) => a.d - b.d);
+  }
 
   return (
     <>
@@ -487,7 +577,7 @@ function Dashboard({ me, data }) {
         <p className="mt-1 text-sm text-brand-200">{t.yourRole}: {t.roles[me.role]}</p>
       </div>
 
-      <div className={cx('grid gap-3', stats.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
+      <div className={cx('grid gap-3', stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
         {stats.map((s) => (
           <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-3 text-center">
             <div className="text-xl">{s.icon}</div>
@@ -497,11 +587,27 @@ function Dashboard({ me, data }) {
         ))}
       </div>
 
+      {admin && expiry.length > 0 && (
+        <Card title={'⚠️ ' + t.expiryAlerts}>
+          <ul className="divide-y divide-slate-100">
+            {expiry.slice(0, 10).map((x, i) => (
+              <li key={i} className="flex items-center justify-between gap-2 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{x.who}</p>
+                  <p className="text-xs text-slate-500">{x.what}</p>
+                </div>
+                <Badge tone={x.d < 0 ? 'red' : 'amber'}>{x.d < 0 ? t.expiredLbl : x.date}</Badge>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 1 جاهزة: الحسابات والصلاحيات والفروع والعطلات وأسبوع العمل وشرائح الضريبة والتأمينات. التالي: ملفات الموظفين.'
-            : 'Module 1 is live: accounts, roles, branches, holidays, work week, tax brackets and insurance. Next up: employee records.'}
+            ? 'الوحدة 2 جاهزة: ملفات الموظفين والأقسام والمستندات وجداول العمل المرنة. التالي: الحضور والانصراف مع تسجيل الموقع.'
+            : 'Module 2 is live: employee records, departments, documents and flexible work schedules. Next up: attendance with GPS check-in.'}
         </p>
       </Card>
     </>
@@ -650,6 +756,384 @@ function UsersPage({ me, data, refresh, toast, audit }) {
 }
 
 /* =====================================================================
+   7b. Employees
+   ===================================================================== */
+function EmployeesPage({ me, data, refresh, toast, audit }) {
+  const { lang, t } = useL();
+  const canEdit = ['ceo', 'hr'].includes(me.role);
+  const [q, setQ] = useState('');
+  const [fBranch, setFBranch] = useState('');
+  const [fStatus, setFStatus] = useState('active');
+  const [view, setView] = useState(null);
+  const [tab, setTab] = useState('profile');
+  const [form, setForm] = useState(null);
+  const [docs, setDocs] = useState(null);
+  const [docForm, setDocForm] = useState({ doc_type: 'other', title: '', expiry_date: '' });
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const eName = (e) => (lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en;
+  const branchName = (id) => { const b = data.branches.find((x) => x.id === id); return b ? (lang === 'ar' ? b.name_ar : b.name_en) : '—'; };
+  const deptName = (id) => { const d = data.departments.find((x) => x.id === id); return d ? (lang === 'ar' ? d.name_ar : d.name_en) : '—'; };
+
+  const list = data.employees.filter((e) =>
+    (!fStatus || e.status === fStatus) &&
+    (!fBranch || e.branch_id === fBranch) &&
+    (e.full_name_en + ' ' + e.full_name_ar + ' ' + e.employee_code + ' ' + (e.phone || '')).toLowerCase().includes(q.toLowerCase())
+  );
+
+  /* load documents when an employee is opened */
+  useEffect(() => {
+    if (!view) { setDocs(null); return; }
+    let gone = false;
+    sb.from('employee_documents').select('*').eq('employee_id', view.id).order('created_at', { ascending: false })
+      .then(({ data: d }) => { if (!gone) setDocs(d || []); });
+    return () => { gone = true; };
+  }, [view && view.id]);
+
+  function blank() {
+    return {
+      employee_code: 'HV-' + String(data.employees.length + 1).padStart(3, '0'),
+      full_name_en: '', full_name_ar: '', national_id: '', birth_date: '', gender: '',
+      phone: '', personal_email: '', address: '',
+      branch_id: '', department_id: '', job_title_en: '', job_title_ar: '', manager_id: '',
+      hire_date: todayISO(), contract_type: 'indefinite', contract_end: '', probation_end: '',
+      weekend_days: null, basic_salary: 0, allowances: [], insurance_base: 0,
+      nosi_number: '', bank_name: '', bank_account: '', status: 'active',
+      termination_date: '', user_id: '', notes: '',
+    };
+  }
+
+  function onNid(v) {
+    const next = { ...form, national_id: v };
+    const parsed = parseNationalId(v);
+    if (parsed) { next.birth_date = parsed.birth_date; next.gender = parsed.gender; }
+    setForm(next);
+  }
+
+  async function save() {
+    if (form.national_id && !parseNationalId(form.national_id)) return toast(t.invalidNid, 'error');
+    const nn = (v) => (v === '' || v == null ? null : v);
+    const payload = {
+      employee_code: form.employee_code.trim(), full_name_en: form.full_name_en, full_name_ar: form.full_name_ar,
+      national_id: nn(form.national_id), birth_date: nn(form.birth_date), gender: nn(form.gender),
+      phone: nn(form.phone), personal_email: nn(form.personal_email), address: nn(form.address),
+      branch_id: nn(form.branch_id), department_id: nn(form.department_id),
+      job_title_en: nn(form.job_title_en), job_title_ar: nn(form.job_title_ar), manager_id: nn(form.manager_id),
+      hire_date: form.hire_date, contract_type: form.contract_type,
+      contract_end: nn(form.contract_end), probation_end: nn(form.probation_end),
+      weekend_days: form.weekend_days, basic_salary: Number(form.basic_salary) || 0,
+      allowances: (form.allowances || []).filter((a) => a.name_en || a.name_ar || a.amount),
+      insurance_base: Number(form.insurance_base) || 0, nosi_number: nn(form.nosi_number),
+      bank_name: nn(form.bank_name), bank_account: nn(form.bank_account),
+      status: form.status, termination_date: nn(form.termination_date), user_id: nn(form.user_id), notes: nn(form.notes),
+    };
+    let res;
+    if (form.id) res = await sb.from('employees').update(payload).eq('id', form.id).select().single();
+    else res = await sb.from('employees').insert(payload).select().single();
+    if (res.error) return toast(res.error.message, 'error');
+    const row = res.data;
+    refresh.employees((prev) => (form.id ? prev.map((e) => (e.id === row.id ? row : e)) : [...prev, row]));
+    audit(form.id ? 'update' : 'insert', 'employees', row.id, form.id ? data.employees.find((e) => e.id === form.id) : null, row);
+    if (view && view.id === row.id) setView(row);
+    setForm(null);
+    toast(t.saved);
+  }
+
+  async function uploadDoc(file) {
+    if (!file || !view) return;
+    setUploading(true);
+    const path = view.id + '/' + Date.now() + '_' + file.name.replace(/[^\w.\-]/g, '_');
+    const { error: upErr } = await sb.storage.from('employee-docs').upload(path, file);
+    if (upErr) { setUploading(false); return toast(upErr.message, 'error'); }
+    const { data: row, error } = await sb.from('employee_documents').insert({
+      employee_id: view.id, doc_type: docForm.doc_type, title: docForm.title || file.name,
+      file_path: path, expiry_date: docForm.expiry_date || null, uploaded_by: me.id,
+    }).select().single();
+    setUploading(false);
+    if (error) return toast(error.message, 'error');
+    setDocs((prev) => [row, ...(prev || [])]);
+    audit('insert', 'employee_documents', row.id, null, { ...row, file: file.name });
+    setDocForm({ doc_type: 'other', title: '', expiry_date: '' });
+    toast(t.saved);
+  }
+
+  async function openDoc(doc) {
+    const { data: s, error } = await sb.storage.from('employee-docs').createSignedUrl(doc.file_path, 300);
+    if (error) return toast(error.message, 'error');
+    window.open(s.signedUrl, '_blank');
+  }
+
+  async function removeDoc(doc) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('employee_documents').delete().eq('id', doc.id);
+    if (error) return toast(error.message, 'error');
+    await sb.storage.from('employee-docs').remove([doc.file_path]);
+    setDocs((prev) => prev.filter((d) => d.id !== doc.id));
+    audit('delete', 'employee_documents', doc.id, doc, null);
+  }
+
+  const gross = form ? (Number(form.basic_salary) || 0) + (form.allowances || []).reduce((s, a) => s + (Number(a.amount) || 0), 0) : 0;
+  const setAllow = (i, k, v) => setForm({ ...form, allowances: form.allowances.map((a, idx) => (idx === i ? { ...a, [k]: v } : a)) });
+  const expBadge = (d) => { const n = daysUntil(d); return n < 0 ? <Badge tone="red">{t.expiredLbl}</Badge> : n <= 60 ? <Badge tone="amber">{t.expiresOn} {d}</Badge> : null; };
+
+  const linkableUsers = data.users.filter((u) => {
+    const owner = data.employees.find((e) => e.user_id === u.id);
+    return !owner || (form && owner.id === form.id);
+  });
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Input placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} />
+        {canEdit && <Btn onClick={() => setForm(blank())}>+ {t.add}</Btn>}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Select value={fBranch} onChange={(e) => setFBranch(e.target.value)}>
+          <option value="">{t.allBranches}</option>
+          {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+        </Select>
+        <Select value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+          <option value="">{t.status}</option>
+          {Object.keys(t.empStatus).map((s) => <option key={s} value={s}>{t.empStatus[s]}</option>)}
+        </Select>
+      </div>
+
+      <Card title={t.employees + ' (' + list.length + ')'}>
+        {list.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {list.map((e) => (
+              <li key={e.id} className="flex cursor-pointer items-center justify-between gap-3 py-3" onClick={() => { setView(e); setTab('profile'); }}>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{eName(e)}</p>
+                  <p className="truncate text-xs text-slate-500">
+                    {e.employee_code} &middot; {(lang === 'ar' ? e.job_title_ar : e.job_title_en) || deptName(e.department_id)} &middot; {branchName(e.branch_id)}
+                  </p>
+                </div>
+                <Badge tone={e.status === 'active' ? 'teal' : e.status === 'suspended' ? 'amber' : 'red'}>{t.empStatus[e.status]}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* ---------- detail modal ---------- */}
+      <Modal open={!!view} onClose={() => setView(null)} title={view ? eName(view) : ''}
+        footer={canEdit && view ? <><Btn className="flex-1" onClick={() => setForm({ ...view, allowances: view.allowances || [] })}>{t.edit}</Btn><Btn variant="outline" className="flex-1" onClick={() => setView(null)}>{t.close}</Btn></> : null}>
+        {view && (
+          <>
+            <div className="flex gap-2">
+              {['profile', 'salary', 'docs'].map((k) => (
+                <button key={k} onClick={() => setTab(k)}
+                  className={cx('flex-1 rounded-lg py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600')}>
+                  {k === 'profile' ? t.profileTab : k === 'salary' ? t.salaryTab : t.docsTab}
+                </button>
+              ))}
+            </div>
+
+            {tab === 'profile' && (
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                {[
+                  [t.empCode, view.employee_code], [t.status, t.empStatus[view.status]],
+                  [t.nationalId, view.national_id], [t.birthDate, view.birth_date],
+                  [t.gender, view.gender ? t[view.gender] : '—'], [t.phone, view.phone],
+                  [t.branch, branchName(view.branch_id)], [t.department, deptName(view.department_id)],
+                  [t.managerLbl, view.manager_id ? eName(data.employees.find((x) => x.id === view.manager_id) || { full_name_en: '—' }) : '—'],
+                  [t.hireDate, view.hire_date], [t.contractType, t.contractTypes[view.contract_type]],
+                  [t.contractEnd, view.contract_end], [t.probationEnd, view.probation_end],
+                  [t.scheduleLbl, view.weekend_days ? view.weekend_days.map((d) => t.daysShort[d]).join('، ') : t.companyDefaultWeek],
+                ].map(([k, v], i) => (
+                  <div key={i}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-medium text-slate-800">{v || '—'}</dd></div>
+                ))}
+                {(view.contract_end || view.probation_end) && (
+                  <div className="col-span-2 flex gap-2">
+                    {view.contract_end && expBadge(view.contract_end)}
+                    {view.probation_end && expBadge(view.probation_end)}
+                  </div>
+                )}
+              </dl>
+            )}
+
+            {tab === 'salary' && (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-slate-500">{t.basicSalary}</span><b>{money(view.basic_salary)}</b></div>
+                {(view.allowances || []).map((a, i) => (
+                  <div key={i} className="flex justify-between"><span className="text-slate-500">{(lang === 'ar' ? a.name_ar : a.name_en) || t.allowancesLbl}</span><b>{money(a.amount)}</b></div>
+                ))}
+                <div className="flex justify-between border-t border-slate-100 pt-2"><span className="font-semibold">{t.salaryTotal}</span>
+                  <b>{money((Number(view.basic_salary) || 0) + (view.allowances || []).reduce((s, a) => s + (Number(a.amount) || 0), 0))}</b></div>
+                <div className="flex justify-between"><span className="text-slate-500">{t.insuranceBase}</span><b>{money(view.insurance_base)}</b></div>
+                <div className="flex justify-between"><span className="text-slate-500">{t.nosiNumber}</span><b>{view.nosi_number || '—'}</b></div>
+                <div className="flex justify-between"><span className="text-slate-500">{t.bankName}</span><b>{view.bank_name || '—'}</b></div>
+                <div className="flex justify-between"><span className="text-slate-500">{t.bankAccount}</span><b dir="ltr">{view.bank_account || '—'}</b></div>
+              </div>
+            )}
+
+            {tab === 'docs' && (
+              <div className="space-y-3">
+                {docs === null ? <Empty text={t.loading} /> : docs.length === 0 ? <Empty text={t.noData} /> : (
+                  <ul className="divide-y divide-slate-100">
+                    {docs.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between gap-2 py-2.5">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-800">{d.title}</p>
+                          <p className="text-xs text-slate-500">{t.docTypes[d.doc_type]} {d.expiry_date ? <>&middot; {expBadge(d.expiry_date) || d.expiry_date}</> : null}</p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Btn variant="ghost" size="sm" onClick={() => openDoc(d)}>{t.download}</Btn>
+                          {canEdit && <Btn variant="ghost" size="sm" className="text-rose-600" onClick={() => removeDoc(d)}>{t.del}</Btn>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {canEdit && (
+                  <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select value={docForm.doc_type} onChange={(e) => setDocForm({ ...docForm, doc_type: e.target.value })}>
+                        {Object.keys(t.docTypes).map((k) => <option key={k} value={k}>{t.docTypes[k]}</option>)}
+                      </Select>
+                      <Input type="date" value={docForm.expiry_date} onChange={(e) => setDocForm({ ...docForm, expiry_date: e.target.value })} />
+                    </div>
+                    <Input placeholder={t.docTitle} value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} />
+                    <input ref={fileRef} type="file" className="hidden" onChange={(e) => { uploadDoc(e.target.files[0]); e.target.value = ''; }} />
+                    <Btn variant="soft" size="sm" disabled={uploading} onClick={() => fileRef.current.click()}>
+                      📎 {uploading ? t.uploading : t.upload}
+                    </Btn>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </Modal>
+
+      {/* ---------- add / edit form ---------- */}
+      <Modal open={!!form} onClose={() => setForm(null)} title={form && form.id ? t.edit : t.addEmployee}
+        footer={<><Btn className="flex-1" onClick={save}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
+        {form && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.empCode}><Input value={form.employee_code} onChange={(e) => setForm({ ...form, employee_code: e.target.value })} /></Field>
+              <Field label={t.status}>
+                <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  {Object.keys(t.empStatus).map((s) => <option key={s} value={s}>{t.empStatus[s]}</option>)}
+                </Select>
+              </Field>
+            </div>
+            {form.status === 'terminated' && (
+              <Field label={t.terminationDate}><Input type="date" value={form.termination_date || ''} onChange={(e) => setForm({ ...form, termination_date: e.target.value })} /></Field>
+            )}
+            <Field label={t.fullNameAr}><Input value={form.full_name_ar} onChange={(e) => setForm({ ...form, full_name_ar: e.target.value })} /></Field>
+            <Field label={t.fullNameEn}><Input value={form.full_name_en} onChange={(e) => setForm({ ...form, full_name_en: e.target.value })} /></Field>
+            <Field label={t.nationalId} hint={t.nidHint}>
+              <Input inputMode="numeric" maxLength={14} dir="ltr" value={form.national_id || ''} onChange={(e) => onNid(e.target.value.replace(/\D/g, ''))} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.birthDate}><Input type="date" value={form.birth_date || ''} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></Field>
+              <Field label={t.gender}>
+                <Select value={form.gender || ''} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                  <option value="">—</option><option value="male">{t.male}</option><option value="female">{t.female}</option>
+                </Select>
+              </Field>
+              <Field label={t.phone}><Input inputMode="tel" dir="ltr" value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
+              <Field label={t.personalEmail}><Input type="email" dir="ltr" value={form.personal_email || ''} onChange={(e) => setForm({ ...form, personal_email: e.target.value })} /></Field>
+            </div>
+            <Field label={t.address}><Input value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} /></Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.branch}>
+                <Select value={form.branch_id || ''} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}>
+                  <option value="">—</option>
+                  {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.department}>
+                <Select value={form.department_id || ''} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
+                  <option value="">—</option>
+                  {data.departments.map((d) => <option key={d.id} value={d.id}>{lang === 'ar' ? d.name_ar : d.name_en}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.jobTitleAr}><Input value={form.job_title_ar || ''} onChange={(e) => setForm({ ...form, job_title_ar: e.target.value })} /></Field>
+              <Field label={t.jobTitleEn}><Input value={form.job_title_en || ''} onChange={(e) => setForm({ ...form, job_title_en: e.target.value })} /></Field>
+            </div>
+            <Field label={t.managerLbl}>
+              <Select value={form.manager_id || ''} onChange={(e) => setForm({ ...form, manager_id: e.target.value })}>
+                <option value="">{t.noneLbl}</option>
+                {data.employees.filter((x) => x.status === 'active' && x.id !== form.id).map((x) => <option key={x.id} value={x.id}>{eName(x)}</option>)}
+              </Select>
+            </Field>
+            <Field label={t.linkedAccount}>
+              <Select value={form.user_id || ''} onChange={(e) => setForm({ ...form, user_id: e.target.value })}>
+                <option value="">{t.noneLbl}</option>
+                {linkableUsers.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
+              </Select>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.hireDate}><Input type="date" value={form.hire_date} onChange={(e) => setForm({ ...form, hire_date: e.target.value })} /></Field>
+              <Field label={t.contractType}>
+                <Select value={form.contract_type} onChange={(e) => setForm({ ...form, contract_type: e.target.value })}>
+                  {Object.keys(t.contractTypes).map((k) => <option key={k} value={k}>{t.contractTypes[k]}</option>)}
+                </Select>
+              </Field>
+              {(form.contract_type === 'fixed_term' || form.contract_end) && (
+                <Field label={t.contractEnd}><Input type="date" value={form.contract_end || ''} onChange={(e) => setForm({ ...form, contract_end: e.target.value })} /></Field>
+              )}
+              <Field label={t.probationEnd}><Input type="date" value={form.probation_end || ''} onChange={(e) => setForm({ ...form, probation_end: e.target.value })} /></Field>
+            </div>
+
+            <Field label={t.scheduleLbl}>
+              <Select value={form.weekend_days ? 'custom' : 'default'}
+                onChange={(e) => setForm({ ...form, weekend_days: e.target.value === 'custom' ? ((data.settings.work_week || {}).weekend_days || [5, 6]) : null })}>
+                <option value="default">{t.companyDefaultWeek}</option>
+                <option value="custom">{t.customWeek}</option>
+              </Select>
+            </Field>
+            {form.weekend_days && (
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                {t.daysShort.map((d, i) => (
+                  <button key={i} type="button"
+                    onClick={() => setForm({ ...form, weekend_days: form.weekend_days.includes(i) ? form.weekend_days.filter((x) => x !== i) : [...form.weekend_days, i].sort() })}
+                    className={cx('rounded-xl border px-2 py-2 text-xs font-semibold', form.weekend_days.includes(i) ? 'border-brand-700 bg-brand-700 text-white' : 'border-slate-300 bg-white text-slate-600')}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <Field label={t.basicSalary}><Input type="number" inputMode="decimal" value={form.basic_salary} onChange={(e) => setForm({ ...form, basic_salary: e.target.value })} /></Field>
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600">{t.allowancesLbl}</span>
+                <Btn variant="soft" size="sm" onClick={() => setForm({ ...form, allowances: [...(form.allowances || []), { name_ar: '', name_en: '', amount: '' }] })}>+ {t.addAllowance}</Btn>
+              </div>
+              {(form.allowances || []).map((a, i) => (
+                <div key={i} className="mb-2 grid grid-cols-[1fr_1fr_5rem_2rem] items-center gap-2">
+                  <Input placeholder={t.nameAr} value={a.name_ar} onChange={(e) => setAllow(i, 'name_ar', e.target.value)} />
+                  <Input placeholder={t.nameEn} value={a.name_en} onChange={(e) => setAllow(i, 'name_en', e.target.value)} />
+                  <Input type="number" inputMode="decimal" placeholder={t.amount} value={a.amount} onChange={(e) => setAllow(i, 'amount', e.target.value)} />
+                  <button onClick={() => setForm({ ...form, allowances: form.allowances.filter((_, idx) => idx !== i) })}
+                    className="rounded-lg px-2 py-2 text-lg leading-none text-rose-500 hover:bg-rose-50">&times;</button>
+                </div>
+              ))}
+              <p className="text-end text-xs font-semibold text-slate-500">{t.salaryTotal}: {money(gross)}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.insuranceBase}><Input type="number" inputMode="decimal" value={form.insurance_base} onChange={(e) => setForm({ ...form, insurance_base: e.target.value })} /></Field>
+              <Field label={t.nosiNumber}><Input dir="ltr" value={form.nosi_number || ''} onChange={(e) => setForm({ ...form, nosi_number: e.target.value })} /></Field>
+              <Field label={t.bankName}><Input value={form.bank_name || ''} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></Field>
+              <Field label={t.bankAccount}><Input dir="ltr" value={form.bank_account || ''} onChange={(e) => setForm({ ...form, bank_account: e.target.value })} /></Field>
+            </div>
+            <Field label={t.notes}><Input value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -764,8 +1248,23 @@ function BranchSettings({ data, refresh, toast, audit }) {
   const { lang, t } = useL();
   const [edit, setEdit] = useState(null);
 
+  function grabLocation() {
+    if (!navigator.geolocation) return toast('Geolocation unsupported', 'error');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setEdit((prev) => ({ ...prev, latitude: Number(pos.coords.latitude.toFixed(6)), longitude: Number(pos.coords.longitude.toFixed(6)) })),
+      (err) => toast(err.message, 'error'),
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+
   async function save() {
-    const payload = { code: edit.code.trim(), name_en: edit.name_en, name_ar: edit.name_ar, address: edit.address, phone: edit.phone, is_active: edit.is_active !== false };
+    const num = (v) => (v === '' || v == null ? null : Number(v));
+    const payload = {
+      code: edit.code.trim(), name_en: edit.name_en, name_ar: edit.name_ar, address: edit.address, phone: edit.phone,
+      is_active: edit.is_active !== false,
+      latitude: num(edit.latitude), longitude: num(edit.longitude),
+      geofence_radius_m: num(edit.geofence_radius_m) || 200,
+    };
     let res;
     if (edit.id) res = await sb.from('branches').update(payload).eq('id', edit.id).select().single();
     else res = await sb.from('branches').insert(payload).select().single();
@@ -805,6 +1304,13 @@ function BranchSettings({ data, refresh, toast, audit }) {
             <Field label={t.nameEn}><Input value={edit.name_en} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} /></Field>
             <Field label={t.address}><Input value={edit.address || ''} onChange={(e) => setEdit({ ...edit, address: e.target.value })} /></Field>
             <Field label={t.phone}><Input value={edit.phone || ''} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.latitude}><Input type="number" step="0.000001" dir="ltr" value={edit.latitude ?? ''} onChange={(e) => setEdit({ ...edit, latitude: e.target.value })} /></Field>
+              <Field label={t.longitude}><Input type="number" step="0.000001" dir="ltr" value={edit.longitude ?? ''} onChange={(e) => setEdit({ ...edit, longitude: e.target.value })} /></Field>
+            </div>
+            <Field label={t.geofenceRadius}><Input type="number" inputMode="numeric" value={edit.geofence_radius_m ?? 200} onChange={(e) => setEdit({ ...edit, geofence_radius_m: e.target.value })} /></Field>
+            <Btn variant="soft" size="sm" onClick={grabLocation}>📍 {t.useMyLocation}</Btn>
+            <p className="text-xs text-slate-400">{t.locationHint}</p>
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={edit.is_active !== false}
                 onChange={(e) => setEdit({ ...edit, is_active: e.target.checked })} />
@@ -1130,6 +1636,9 @@ function App() {
   const [taxBrackets, setTaxBrackets] = useState([]);
   const [taxSettings, setTaxSettings] = useState(null);
   const [insurance, setInsurance] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [expiringDocs, setExpiringDocs] = useState([]);
 
   const t = T[lang];
 
@@ -1173,13 +1682,14 @@ function App() {
       if (profile.lang && profile.lang !== lang) setLang(profile.lang);
       sb.from('app_users').update({ last_login_at: new Date().toISOString() }).eq('id', uid).then(() => {});
 
-      const [b, h, s, tb, ts, ir] = await Promise.all([
+      const [b, h, s, tb, ts, ir, dep] = await Promise.all([
         sb.from('branches').select('*').order('code'),
         sb.from('holidays').select('*').order('holiday_date'),
         sb.from('app_settings').select('*'),
         sb.from('tax_brackets').select('*').order('seq'),
         sb.from('tax_settings').select('*').order('effective_from', { ascending: false }).limit(1).maybeSingle(),
         sb.from('insurance_rates').select('*').order('effective_from', { ascending: false }).limit(1).maybeSingle(),
+        sb.from('departments').select('*').order('name_en'),
       ]);
       if (cancelled) return;
       setBranches(b.data || []);
@@ -1188,15 +1698,21 @@ function App() {
       setTaxBrackets(tb.data || []);
       setTaxSettings(ts.data || null);
       setInsurance(ir.data || null);
+      setDepartments(dep.data || []);
 
       if (['ceo', 'hr', 'accountant', 'manager'].includes(profile.role)) {
-        const [u, inv] = await Promise.all([
+        const in60 = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+        const [u, inv, emp, xd] = await Promise.all([
           sb.from('app_users').select('*').order('created_at'),
           sb.from('user_invites').select('*').order('created_at', { ascending: false }),
+          sb.from('employees').select('*').order('full_name_en'),
+          sb.from('employee_documents').select('*').not('expiry_date', 'is', null).lte('expiry_date', in60).order('expiry_date'),
         ]);
         if (cancelled) return;
         setUsers(u.data || []);
         setInvites(inv.data || []);
+        setEmployees(emp.data || []);
+        setExpiringDocs(xd.data || []);
       }
       setReady(true);
     })();
@@ -1229,10 +1745,11 @@ function App() {
     );
   }
 
-  const data = { users, invites, branches, holidays, settings, taxBrackets, taxSettings, insurance };
+  const data = { users, invites, branches, holidays, settings, taxBrackets, taxSettings, insurance, employees, departments, expiringDocs };
   const refresh = {
     users: setUsers, invites: setInvites, branches: setBranches, holidays: setHolidays,
     settings: setSettings, taxBrackets: setTaxBrackets, taxSettings: setTaxSettings, insurance: setInsurance,
+    employees: setEmployees, departments: setDepartments, expiringDocs: setExpiringDocs,
   };
   const shared = { me, setMe, data, refresh, toast, audit };
   const allowed = NAV.find((n) => n.key === page)?.roles.includes(me.role);
@@ -1244,6 +1761,7 @@ function App() {
         {!ready ? <Empty text={t.loading} />
           : !allowed ? <Card><Empty text={t.noPermission} /></Card>
           : page === 'dashboard' ? <Dashboard {...shared} />
+          : page === 'employees' ? <EmployeesPage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
           : page === 'settings' ? <SettingsPage {...shared} />
           : page === 'audit' ? <AuditPage />
