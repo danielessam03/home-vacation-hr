@@ -21,7 +21,8 @@ import requests
 from zk import ZK
 
 # ----------------------------------------------------------------------
-# CONFIG -- edit these four lines
+# CONFIG -- defaults; overridden by bridge_config.json in this folder
+# (bridge_config.json is git-ignored so the secret never enters git).
 # ----------------------------------------------------------------------
 DEVICE_IP = "192.168.1.201"          # TX628 IP on your office network
 DEVICE_PORT = 4370
@@ -29,6 +30,16 @@ FUNCTION_URL = "https://plwyzkqlbzcikmuurjqg.supabase.co/functions/v1/punch"
 PUNCH_SECRET = "PUT_A_LONG_RANDOM_SECRET_HERE"   # must equal the PUNCH_SECRET edge-function secret
 
 DEVICE_ID = "tx628-hq"               # label stored with every punch
+
+_cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge_config.json")
+if os.path.exists(_cfg_path):
+    with open(_cfg_path, "r", encoding="utf-8") as _f:
+        _cfg = json.load(_f)
+    DEVICE_IP = _cfg.get("device_ip", DEVICE_IP)
+    DEVICE_PORT = int(_cfg.get("device_port", DEVICE_PORT))
+    FUNCTION_URL = _cfg.get("function_url", FUNCTION_URL)
+    PUNCH_SECRET = _cfg.get("punch_secret", PUNCH_SECRET)
+    DEVICE_ID = _cfg.get("device_id", DEVICE_ID)
 TIMEZONE_OFFSET_HOURS = 3            # device clock is Egypt local time (UTC+3 in summer 2026)
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge_state.json")
 LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge.log")
