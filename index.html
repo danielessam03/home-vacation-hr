@@ -1,13 +1,41 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#0f766e" />
+<meta name="theme-color" content="#1a4a60" />
 <title>Home Vacation HR</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20120%20140'%3E%3Cpath%20d='M60%206%20C36%2022%2022%2044%2022%2070%20L22%20132%20L98%20132%20L98%2070%20C98%2044%2084%2022%2060%206%20Z'%20fill='%23d3a93c'/%3E%3Cpath%20d='M60%2014%20C40%2028%2028%2048%2028%2070%20L28%20126%20L92%20126%20L92%2070%20C92%2048%2080%2028%2060%2014%20Z'%20fill='%23bfe8f0'/%3E%3Ccircle%20cx='60'%20cy='64'%20r='16'%20fill='%23f59422'/%3E%3Cpath%20d='M28%2076%20C44%2069%2078%2070%2092%2078%20L92%20126%20L28%20126%20Z'%20fill='%2329b8ce'/%3E%3Cpath%20d='M28%2092%20C48%2085%2076%2087%2092%2094%20L92%20126%20L28%20126%20Z'%20fill='%231d6fa3'/%3E%3Cpath%20d='M28%20108%20C50%20101%2074%20103%2092%20109%20L92%20126%20L28%20126%20Z'%20fill='%23d3a93c'/%3E%3C/svg%3E" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+/* Brand palette taken from the Home Vacation logo:
+   sea cyan #29b8ce, deep sea blue #1d6fa3, sand gold #d3a93c, sun #f59422 */
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50:  '#eef8fb',
+          100: '#d9f0f6',
+          200: '#b0e1ec',
+          300: '#7fcbdd',
+          400: '#45afc9',
+          500: '#29b8ce',
+          600: '#1d8fae',
+          700: '#1d6fa3',
+          800: '#1a5478',
+          900: '#1a4a60',
+          950: '#0f3141',
+        },
+        gold: '#d3a93c',
+        sun: '#f59422',
+      },
+    },
+  },
+};
+</script>
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
@@ -32,7 +60,7 @@
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.0';
+const APP_VERSION = 'v1.1';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -188,11 +216,26 @@ function calcAnnualTax(taxable, brackets) {
 /* =====================================================================
    3. UI primitives
    ===================================================================== */
+/** Company logo, vector recreation of the brand mark (arch / sun / sea / sand). */
+function Logo({ className }) {
+  return (
+    <svg viewBox="0 0 120 140" className={className} aria-hidden="true">
+      <path d="M60 6 C36 22 22 44 22 70 L22 132 L98 132 L98 70 C98 44 84 22 60 6 Z" fill="#d3a93c" />
+      <path d="M60 12 C39 26 26 46 26 70 L26 128 L94 128 L94 70 C94 46 81 26 60 12 Z" fill="#fff" />
+      <path d="M60 17 C42 30 30 49 30 70 L30 124 L90 124 L90 70 C90 49 78 30 60 17 Z" fill="#bfe8f0" />
+      <circle cx="60" cy="64" r="16" fill="#f59422" stroke="#fff" strokeWidth="3" />
+      <path d="M30 76 C46 69 76 70 90 78 L90 124 L30 124 Z" fill="#29b8ce" stroke="#fff" strokeWidth="3" />
+      <path d="M30 92 C50 85 74 87 90 94 L90 124 L30 124 Z" fill="#1d6fa3" stroke="#fff" strokeWidth="3" />
+      <path d="M30 108 C52 101 72 103 90 109 L90 124 L30 124 Z" fill="#d3a93c" stroke="#fff" strokeWidth="3" />
+    </svg>
+  );
+}
+
 function Btn({ variant = 'primary', size = 'md', className, ...p }) {
   const base = 'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition active:scale-[.97] disabled:opacity-50 disabled:pointer-events-none';
   const v = {
-    primary: 'bg-teal-700 text-white hover:bg-teal-800',
-    soft: 'bg-teal-50 text-teal-800 hover:bg-teal-100',
+    primary: 'bg-brand-700 text-white hover:bg-brand-800',
+    soft: 'bg-brand-50 text-brand-800 hover:bg-brand-100',
     ghost: 'bg-transparent text-slate-600 hover:bg-slate-100',
     outline: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
     danger: 'bg-rose-600 text-white hover:bg-rose-700',
@@ -211,7 +254,7 @@ function Field({ label, children, hint }) {
   );
 }
 
-const inputCls = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100';
+const inputCls = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100';
 const Input = (p) => <input {...p} className={cx(inputCls, p.className)} />;
 const Select = (p) => <select {...p} className={cx(inputCls, 'appearance-none', p.className)} />;
 
@@ -250,7 +293,7 @@ function Toast({ msg }) {
   const bad = msg.type === 'error';
   return (
     <div className="fixed inset-x-0 top-3 z-[60] flex justify-center px-4">
-      <div className={cx('max-w-md rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg', bad ? 'bg-rose-600' : 'bg-teal-700')}>
+      <div className={cx('max-w-md rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg', bad ? 'bg-rose-600' : 'bg-brand-700')}>
         {msg.text}
       </div>
     </div>
@@ -262,7 +305,7 @@ function Empty({ text }) {
 }
 
 function Badge({ tone = 'slate', children }) {
-  const tones = { slate: 'bg-slate-100 text-slate-600', green: 'bg-emerald-100 text-emerald-700', red: 'bg-rose-100 text-rose-700', teal: 'bg-teal-100 text-teal-800', amber: 'bg-amber-100 text-amber-700' };
+  const tones = { slate: 'bg-slate-100 text-slate-600', green: 'bg-emerald-100 text-emerald-700', red: 'bg-rose-100 text-rose-700', teal: 'bg-brand-100 text-brand-800', amber: 'bg-amber-100 text-amber-700' };
   return <span className={cx('inline-block rounded-full px-2 py-0.5 text-xs font-semibold', tones[tone])}>{children}</span>;
 }
 
@@ -306,12 +349,14 @@ function AuthScreen({ toast }) {
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center bg-gradient-to-b from-teal-800 to-teal-950 px-4 py-10">
+    <div className="flex min-h-full flex-col justify-center bg-gradient-to-b from-brand-800 to-brand-950 px-4 py-10">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-6 text-center text-white">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 text-3xl">🏖️</div>
+          <div className="mx-auto mb-3 flex h-24 w-24 items-center justify-center rounded-3xl bg-white p-2 shadow-xl">
+            <Logo className="h-full w-auto" />
+          </div>
           <h1 className="text-xl font-bold">{t.appName}</h1>
-          <p className="text-sm text-teal-200">{t.appSub}</p>
+          <p className="text-sm text-brand-200">{t.appSub}</p>
         </div>
 
         <form onSubmit={submit} className="space-y-3 rounded-2xl bg-white p-5 shadow-xl">
@@ -333,17 +378,17 @@ function AuthScreen({ toast }) {
           {mode === 'in' ? (
             <div className="flex items-center justify-between pt-1 text-xs">
               <button type="button" onClick={reset} className="text-slate-500 underline">{t.forgotPw}</button>
-              <button type="button" onClick={() => setMode('up')} className="font-semibold text-teal-700">{t.noAccount}</button>
+              <button type="button" onClick={() => setMode('up')} className="font-semibold text-brand-700">{t.noAccount}</button>
             </div>
           ) : (
             <div className="pt-1 text-xs">
               <p className="mb-2 text-slate-500">{t.signupHint}</p>
-              <button type="button" onClick={() => setMode('in')} className="font-semibold text-teal-700">{t.haveAccount}</button>
+              <button type="button" onClick={() => setMode('in')} className="font-semibold text-brand-700">{t.haveAccount}</button>
             </div>
           )}
         </form>
 
-        <div className="mt-5 flex items-center justify-center gap-3 text-xs text-teal-200">
+        <div className="mt-5 flex items-center justify-center gap-3 text-xs text-brand-200">
           <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-white">
             {lang === 'ar' ? 'English' : 'العربية'}
           </button>
@@ -375,11 +420,14 @@ function Shell({ me, page, setPage, onSignOut, children }) {
     <div className="flex min-h-full flex-col">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Logo className="h-9 w-auto shrink-0" />
+            <div className="min-w-0">
             <p className="truncate text-sm font-bold text-slate-800">{t.appName}</p>
             <p className="truncate text-xs text-slate-500">
               {(lang === 'ar' ? me.full_name_ar : me.full_name_en) || me.email} &middot; {t.roles[me.role]}
             </p>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
@@ -394,7 +442,7 @@ function Shell({ me, page, setPage, onSignOut, children }) {
         <nav className="no-scrollbar hidden gap-1 overflow-x-auto px-4 pb-2 sm:mx-auto sm:flex sm:max-w-5xl">
           {items.map((n) => (
             <button key={n.key} onClick={() => setPage(n.key)}
-              className={cx('shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold', page === n.key ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100')}>
+              className={cx('shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold', page === n.key ? 'bg-brand-700 text-white' : 'text-slate-600 hover:bg-slate-100')}>
               {n.icon} {label(n.key)}
             </button>
           ))}
@@ -407,7 +455,7 @@ function Shell({ me, page, setPage, onSignOut, children }) {
         <div className="flex">
           {items.map((n) => (
             <button key={n.key} onClick={() => setPage(n.key)}
-              className={cx('flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold', page === n.key ? 'text-teal-700' : 'text-slate-400')}>
+              className={cx('flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold', page === n.key ? 'text-brand-700' : 'text-slate-400')}>
               <span className="text-lg leading-none">{n.icon}</span>
               <span className="truncate px-0.5">{label(n.key)}</span>
             </button>
@@ -434,10 +482,10 @@ function Dashboard({ me, data }) {
 
   return (
     <>
-      <div className="rounded-2xl bg-gradient-to-br from-teal-700 to-teal-900 p-5 text-white">
-        <p className="text-sm text-teal-200">{t.welcome}</p>
+      <div className="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
+        <p className="text-sm text-brand-200">{t.welcome}</p>
         <p className="text-xl font-bold">{name}</p>
-        <p className="mt-1 text-sm text-teal-200">{t.yourRole}: {t.roles[me.role]}</p>
+        <p className="mt-1 text-sm text-brand-200">{t.yourRole}: {t.roles[me.role]}</p>
       </div>
 
       <div className={cx('grid gap-3', stats.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
@@ -567,7 +615,7 @@ function UsersPage({ me, data, refresh, toast, audit }) {
               </Select>
             </Field>
             <label className="flex items-center gap-2 pt-1 text-sm text-slate-700">
-              <input type="checkbox" className="h-5 w-5 rounded accent-teal-700" checked={editing.is_active}
+              <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={editing.is_active}
                 disabled={editing.id === me.id}
                 onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
               {t.active}
@@ -623,7 +671,7 @@ function SettingsPage({ me, data, refresh, toast, audit }) {
       <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {tabs.map((x) => (
           <button key={x.k} onClick={() => setTab(x.k)}
-            className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-teal-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
+            className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
             {x.label}
           </button>
         ))}
@@ -693,7 +741,7 @@ function WorkWeekSettings(props) {
       <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
         {t.daysShort.map((d, i) => (
           <button key={i} onClick={() => toggleDay(i)}
-            className={cx('rounded-xl border px-2 py-2 text-xs font-semibold', (f.weekend_days || []).includes(i) ? 'border-teal-700 bg-teal-700 text-white' : 'border-slate-300 bg-white text-slate-600')}>
+            className={cx('rounded-xl border px-2 py-2 text-xs font-semibold', (f.weekend_days || []).includes(i) ? 'border-brand-700 bg-brand-700 text-white' : 'border-slate-300 bg-white text-slate-600')}>
             {d}
           </button>
         ))}
@@ -759,7 +807,7 @@ function BranchSettings({ data, refresh, toast, audit }) {
             <Field label={t.address}><Input value={edit.address || ''} onChange={(e) => setEdit({ ...edit, address: e.target.value })} /></Field>
             <Field label={t.phone}><Input value={edit.phone || ''} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></Field>
             <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" className="h-5 w-5 rounded accent-teal-700" checked={edit.is_active !== false}
+              <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={edit.is_active !== false}
                 onChange={(e) => setEdit({ ...edit, is_active: e.target.checked })} />
               {t.active}
             </label>
@@ -842,7 +890,7 @@ function HolidaySettings({ data, refresh, toast, audit }) {
               </Select>
             </Field>
             <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" className="h-5 w-5 rounded accent-teal-700" checked={edit.is_paid !== false}
+              <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={edit.is_paid !== false}
                 onChange={(e) => setEdit({ ...edit, is_paid: e.target.checked })} />
               {t.paid}
             </label>
