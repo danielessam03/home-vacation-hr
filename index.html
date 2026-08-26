@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.5';
+const APP_VERSION = 'v1.6';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -2527,9 +2527,15 @@ function App() {
 
   const t = T[lang];
 
+  // Persist language choice: locally always, and to the user's profile
+  // when signed in — otherwise the next profile load snaps it back.
+  const meRef = useRef(null);
   const setLang = useCallback((l) => {
     setLangState(l);
     safeStorage.setItem('hv_lang', l);
+    if (meRef.current && sb) {
+      sb.from('app_users').update({ lang: l }).eq('id', meRef.current.id).then(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -2552,7 +2558,7 @@ function App() {
 
   /* load everything once signed in */
   useEffect(() => {
-    if (!session) { setMe(null); setReady(false); return; }
+    if (!session) { setMe(null); meRef.current = null; setReady(false); return; }
     let cancelled = false;
 
     (async () => {
@@ -2564,7 +2570,11 @@ function App() {
       if (!profile.is_active) { toast(t.inactive, 'error'); await sb.auth.signOut(); return; }
 
       setMe(profile);
-      if (profile.lang && profile.lang !== lang) setLang(profile.lang);
+      meRef.current = profile;
+      // The profile's language only wins when this device has no local
+      // choice yet (first login on a new phone) — a language the user
+      // picked here must never be overridden by a background reload.
+      if (!safeStorage.getItem('hv_lang') && profile.lang && profile.lang !== lang) setLang(profile.lang);
       sb.from('app_users').update({ last_login_at: new Date().toISOString() }).eq('id', uid).then(() => {});
 
       // employees is loaded for everyone: RLS trims it to "just me" for
@@ -2607,7 +2617,10 @@ function App() {
     })();
 
     return () => { cancelled = true; };
-  }, [session]);
+    // Keyed on the user id, not the session object: Supabase refreshes the
+    // token in the background (and on tab focus), which yields a new session
+    // object for the same user — that must not re-trigger a full reload.
+  }, [session && session.user.id]);
 
   /* audit helper -- every sensitive write goes through here */
   const audit = useCallback(async (action, entity, entityId, before, after) => {
