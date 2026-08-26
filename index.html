@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.4';
+const APP_VERSION = 'v1.5';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -187,6 +187,14 @@ const T = {
     shiftsLbl: 'Shifts', graceMin: 'Grace (min)', minOt: 'Min OT (min)', startTime: 'Start', endTime: 'End',
     shift: 'Shift', deviceCode: 'Device code', selectEmployee: 'Employee',
     geoDenied: 'Location permission is required — enable it for this site in your browser settings.',
+    jobs: 'Jobs', addRole: 'Add role', duties: 'Duties & scope', requirementsLbl: 'Requirements',
+    salaryNote: 'Salary', commissionNote: 'Commission', benefitsLbl: 'Benefits', scheduleNote: 'Default schedule',
+    papersLbl: 'Required hiring papers', addPaper: 'Add paper',
+    genJd: 'Job description', genOffer: 'Offer letter', candidateName: 'Candidate name',
+    customNotes: 'Custom terms / different schedule (optional)',
+    generating: 'Generating with AI…', generate: '✨ Generate with AI', docLang: 'Language', bothLangs: 'Arabic + English',
+    savedDocs: 'Saved documents', print: 'Print', regenHint: 'Review and edit the text below before saving or printing.',
+    aiFail: 'AI generation failed', arabicLbl: 'Arabic', englishLbl: 'English',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -270,6 +278,14 @@ const T = {
     shiftsLbl: 'الورديات', graceMin: 'سماح (د)', minOt: 'أدنى إضافي (د)', startTime: 'البداية', endTime: 'النهاية',
     shift: 'الوردية', deviceCode: 'كود جهاز البصمة', selectEmployee: 'الموظف',
     geoDenied: 'إذن الموقع مطلوب — فعّله لهذا الموقع من إعدادات المتصفح.',
+    jobs: 'الوظائف', addRole: 'إضافة وظيفة', duties: 'المهام ونطاق العمل', requirementsLbl: 'المتطلبات',
+    salaryNote: 'الراتب', commissionNote: 'العمولة', benefitsLbl: 'المزايا', scheduleNote: 'جدول العمل الافتراضي',
+    papersLbl: 'الأوراق المطلوبة للتعيين', addPaper: 'إضافة مستند',
+    genJd: 'توصيف وظيفي', genOffer: 'خطاب عرض عمل', candidateName: 'اسم المرشح',
+    customNotes: 'شروط خاصة / جدول مختلف (اختياري)',
+    generating: 'جاري الإنشاء بالذكاء الاصطناعي…', generate: '✨ إنشاء بالذكاء الاصطناعي', docLang: 'اللغة', bothLangs: 'عربي + إنجليزي',
+    savedDocs: 'المستندات المحفوظة', print: 'طباعة', regenHint: 'راجع النص وعدّله قبل الحفظ أو الطباعة.',
+    aiFail: 'فشل الإنشاء بالذكاء الاصطناعي', arabicLbl: 'العربية', englishLbl: 'الإنجليزية',
   },
 };
 
@@ -321,6 +337,45 @@ const getGps = () => new Promise((resolve, reject) => {
     (e) => reject(e), { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
   );
 });
+
+/** Minimal Markdown -> HTML for AI-generated documents (headings, bullets,
+    bold, hr). Input is escaped first, so generated text can't inject HTML. */
+function mdToHtml(md) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const lines = String(md || '').split('\n');
+  let html = '', inList = false;
+  const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^\s*[-*]\s+/.test(line)) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += '<li>' + inline(line.replace(/^\s*[-*]\s+/, '')) + '</li>';
+    } else if (/^###\s+/.test(line)) { closeList(); html += '<h3>' + inline(line.slice(4)) + '</h3>'; }
+    else if (/^##\s+/.test(line)) { closeList(); html += '<h2>' + inline(line.slice(3)) + '</h2>'; }
+    else if (/^#\s+/.test(line)) { closeList(); html += '<h1>' + inline(line.slice(2)) + '</h1>'; }
+    else if (/^\s*---+\s*$/.test(line)) { closeList(); html += '<hr/>'; }
+    else if (line.trim() === '') { closeList(); }
+    else { closeList(); html += '<p>' + inline(line) + '</p>'; }
+  }
+  closeList();
+  return html;
+}
+
+/** Open a print-ready window for a generated document. */
+function printDoc(title, md, dirRtl) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write('<!doctype html><html dir="' + (dirRtl ? 'rtl' : 'ltr') + '"><head><meta charset="utf-8"><title>' + title + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">' +
+    '<style>body{font-family:Cairo,Inter,sans-serif;max-width:800px;margin:32px auto;padding:0 28px;color:#111;line-height:1.7}' +
+    'h1{font-size:22px;color:#12405c;border-bottom:3px solid #1d6fa3;padding-bottom:10px}h2{font-size:17px;color:#1a4a60;margin-top:22px}' +
+    'h3{font-size:15px;color:#1a4a60}li{margin:4px 0}hr{margin:26px 0;border:none;border-top:1.5px solid #cbd5e1}' +
+    '.lg{height:52px;margin-bottom:14px}@media print{body{margin:0 auto}}</style></head><body>' +
+    '<img class="lg" src="' + LOGO_LOCKUP + '"/>' + mdToHtml(md) +
+    '<script>window.onload=function(){window.print()}<\/script></body></html>');
+  w.document.close();
+}
 
 const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -532,6 +587,7 @@ const NAV = [
   { key: 'dashboard', icon: '🏠', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'attendance', icon: '🕐', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
+  { key: 'jobs',      icon: '💼', roles: ['ceo', 'hr'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
   { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'audit',     icon: '📋', roles: ['ceo', 'hr', 'accountant'] },
@@ -1668,6 +1724,235 @@ function LockTab({ me, data, toast, audit }) {
 }
 
 /* =====================================================================
+   7d. Jobs -- AI job descriptions & offers
+   ===================================================================== */
+function JobsPage({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const [roles, setRoles] = useState(null);
+  const [docs, setDocs] = useState([]);
+  const [form, setForm] = useState(null);       // role add/edit
+  const [gen, setGen] = useState(null);         // {role, kind, language, candidate_name, custom_notes, result, busy}
+  const [viewDoc, setViewDoc] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const [r, d] = await Promise.all([
+        sb.from('job_roles').select('*').order('title_en'),
+        sb.from('job_documents').select('*').order('created_at', { ascending: false }),
+      ]);
+      setRoles(r.data || []);
+      setDocs(d.data || []);
+    })();
+  }, []);
+
+  const rTitle = (r) => (lang === 'ar' ? r.title_ar : r.title_en);
+  const deptName = (id) => { const d = data.departments.find((x) => x.id === id); return d ? (lang === 'ar' ? d.name_ar : d.name_en) : '—'; };
+
+  async function saveRole() {
+    const payload = {
+      title_en: form.title_en, title_ar: form.title_ar,
+      department_id: form.department_id || null,
+      duties: form.duties, requirements: form.requirements,
+      salary_note: form.salary_note, commission_note: form.commission_note,
+      benefits: form.benefits, schedule_note: form.schedule_note,
+      papers: (form.papers || []).filter((p) => p.trim()),
+      is_active: form.is_active !== false,
+    };
+    let res;
+    if (form.id) res = await sb.from('job_roles').update(payload).eq('id', form.id).select().single();
+    else res = await sb.from('job_roles').insert(payload).select().single();
+    if (res.error) return toast(res.error.message, 'error');
+    const row = res.data;
+    setRoles((prev) => (form.id ? prev.map((x) => (x.id === row.id ? row : x)) : [...prev, row]));
+    audit(form.id ? 'update' : 'insert', 'job_roles', row.id, form.id ? form : null, row);
+    setForm(null);
+    toast(t.saved);
+  }
+
+  async function generate() {
+    setGen((g) => ({ ...g, busy: true }));
+    const { data: res, error } = await sb.functions.invoke('generate-jd', {
+      body: {
+        role: gen.role, kind: gen.kind, language: gen.language,
+        candidate_name: gen.candidate_name || null, custom_notes: gen.custom_notes || null,
+        company: data.settings.company || {},
+      },
+    });
+    if (error) {
+      let msg = error.message;
+      try { const body = await error.context.json(); if (body.error) msg = body.error; } catch (e) {}
+      setGen((g) => ({ ...g, busy: false }));
+      return toast(t.aiFail + ': ' + msg, 'error');
+    }
+    setGen((g) => ({ ...g, busy: false, result: res.content_md }));
+  }
+
+  async function saveDoc() {
+    const { data: row, error } = await sb.from('job_documents').insert({
+      role_id: gen.role.id, doc_kind: gen.kind, language: gen.language,
+      candidate_name: gen.candidate_name || null, custom_notes: gen.custom_notes || null,
+      content_md: gen.result, created_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setDocs((prev) => [row, ...prev]);
+    audit('insert', 'job_documents', row.id, null, { role: gen.role.title_en, kind: gen.kind });
+    setGen(null);
+    toast(t.saved);
+  }
+
+  async function removeDoc(d) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('job_documents').delete().eq('id', d.id);
+    if (error) return toast(error.message, 'error');
+    setDocs((prev) => prev.filter((x) => x.id !== d.id));
+    setViewDoc(null);
+    audit('delete', 'job_documents', d.id, d, null);
+  }
+
+  const blankRole = () => ({ title_en: '', title_ar: '', department_id: '', duties: '', requirements: '', salary_note: '', commission_note: '', benefits: '', schedule_note: '', papers: [], is_active: true });
+  const openGen = (role, kind) => setGen({ role, kind, language: 'both', candidate_name: '', custom_notes: '', result: null, busy: false });
+  const docTitle = (d) => { const r = (roles || []).find((x) => x.id === d.role_id); return (d.doc_kind === 'offer' ? t.genOffer : t.genJd) + ' — ' + (r ? rTitle(r) : '') + (d.candidate_name ? ' — ' + d.candidate_name : ''); };
+  const Ta = (p) => <textarea {...p} className={cx(inputCls, 'min-h-[90px]', p.className)} />;
+
+  return (
+    <>
+      <div className="flex justify-end"><Btn onClick={() => setForm(blankRole())}>+ {t.addRole}</Btn></div>
+
+      <Card title={t.jobs}>
+        {roles === null ? <Empty text={t.loading} /> : roles.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {roles.map((r) => (
+              <li key={r.id} className="py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-800">{rTitle(r)}</p>
+                    <p className="truncate text-xs text-slate-500">{deptName(r.department_id)} · {r.schedule_note || '—'}</p>
+                  </div>
+                  <Btn variant="ghost" size="sm" onClick={() => setForm({ ...r, papers: r.papers || [] })}>{t.edit}</Btn>
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <Btn variant="soft" size="sm" className="flex-1" onClick={() => openGen(r, 'jd')}>📄 {t.genJd}</Btn>
+                  <Btn variant="soft" size="sm" className="flex-1" onClick={() => openGen(r, 'offer')}>✉️ {t.genOffer}</Btn>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card title={t.savedDocs}>
+        {docs.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {docs.map((d) => (
+              <li key={d.id} className="flex cursor-pointer items-center justify-between gap-2 py-2.5" onClick={() => setViewDoc(d)}>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{docTitle(d)}</p>
+                  <p className="text-xs text-slate-500">{localDay(d.created_at)} · {d.language === 'both' ? t.bothLangs : d.language === 'ar' ? t.arabicLbl : t.englishLbl}</p>
+                </div>
+                <Badge tone={d.doc_kind === 'offer' ? 'amber' : 'teal'}>{d.doc_kind === 'offer' ? '✉️' : '📄'}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* ---------- role form ---------- */}
+      <Modal open={!!form} onClose={() => setForm(null)} title={form && form.id ? t.edit : t.addRole}
+        footer={<><Btn className="flex-1" onClick={saveRole}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
+        {form && (
+          <>
+            <Field label={t.nameAr}><Input value={form.title_ar} onChange={(e) => setForm({ ...form, title_ar: e.target.value })} /></Field>
+            <Field label={t.nameEn}><Input value={form.title_en} onChange={(e) => setForm({ ...form, title_en: e.target.value })} /></Field>
+            <Field label={t.department}>
+              <Select value={form.department_id || ''} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
+                <option value="">—</option>
+                {data.departments.map((d) => <option key={d.id} value={d.id}>{lang === 'ar' ? d.name_ar : d.name_en}</option>)}
+              </Select>
+            </Field>
+            <Field label={t.duties}><Ta value={form.duties || ''} onChange={(e) => setForm({ ...form, duties: e.target.value })} /></Field>
+            <Field label={t.requirementsLbl}><Ta value={form.requirements || ''} onChange={(e) => setForm({ ...form, requirements: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.salaryNote}><Input value={form.salary_note || ''} onChange={(e) => setForm({ ...form, salary_note: e.target.value })} /></Field>
+              <Field label={t.commissionNote}><Input value={form.commission_note || ''} onChange={(e) => setForm({ ...form, commission_note: e.target.value })} /></Field>
+            </div>
+            <Field label={t.benefitsLbl}><Input value={form.benefits || ''} onChange={(e) => setForm({ ...form, benefits: e.target.value })} /></Field>
+            <Field label={t.scheduleNote}><Input value={form.schedule_note || ''} onChange={(e) => setForm({ ...form, schedule_note: e.target.value })} /></Field>
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600">{t.papersLbl}</span>
+                <Btn variant="soft" size="sm" onClick={() => setForm({ ...form, papers: [...(form.papers || []), ''] })}>+ {t.addPaper}</Btn>
+              </div>
+              {(form.papers || []).map((p, i) => (
+                <div key={i} className="mb-2 flex items-center gap-2">
+                  <Input value={p} onChange={(e) => setForm({ ...form, papers: form.papers.map((x, idx) => (idx === i ? e.target.value : x)) })} />
+                  <button onClick={() => setForm({ ...form, papers: form.papers.filter((_, idx) => idx !== i) })}
+                    className="rounded-lg px-2 py-2 text-lg leading-none text-rose-500 hover:bg-rose-50">&times;</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* ---------- generate modal ---------- */}
+      <Modal open={!!gen} onClose={() => setGen(null)}
+        title={gen ? (gen.kind === 'offer' ? '✉️ ' + t.genOffer : '📄 ' + t.genJd) + ' — ' + rTitle(gen.role) : ''}
+        footer={gen && gen.result ? (
+          <>
+            <Btn className="flex-1" onClick={saveDoc}>{t.save}</Btn>
+            <Btn variant="soft" className="flex-1" onClick={() => printDoc(rTitle(gen.role), gen.result, gen.language !== 'en')}>🖨️ {t.print}</Btn>
+            <Btn variant="outline" onClick={() => setGen(null)}>{t.cancel}</Btn>
+          </>
+        ) : null}>
+        {gen && !gen.result && (
+          <>
+            <Field label={t.docLang}>
+              <Select value={gen.language} onChange={(e) => setGen({ ...gen, language: e.target.value })}>
+                <option value="both">{t.bothLangs}</option>
+                <option value="ar">{t.arabicLbl}</option>
+                <option value="en">{t.englishLbl}</option>
+              </Select>
+            </Field>
+            {gen.kind === 'offer' && (
+              <Field label={t.candidateName}><Input value={gen.candidate_name} onChange={(e) => setGen({ ...gen, candidate_name: e.target.value })} /></Field>
+            )}
+            <Field label={t.customNotes}>
+              <textarea className={cx(inputCls, 'min-h-[90px]')} value={gen.custom_notes} onChange={(e) => setGen({ ...gen, custom_notes: e.target.value })} />
+            </Field>
+            <Btn size="lg" disabled={gen.busy} onClick={generate}>{gen.busy ? t.generating : t.generate}</Btn>
+          </>
+        )}
+        {gen && gen.result && (
+          <>
+            <p className="text-xs text-slate-500">{t.regenHint}</p>
+            <textarea className={cx(inputCls, 'min-h-[160px] font-mono text-xs')} dir="auto" value={gen.result}
+              onChange={(e) => setGen({ ...gen, result: e.target.value })} />
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 p-4 text-sm [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:font-bold [&_li]:ms-4 [&_li]:list-disc [&_p]:my-1"
+              dir="auto" dangerouslySetInnerHTML={{ __html: mdToHtml(gen.result) }} />
+            <Btn variant="soft" size="sm" disabled={gen.busy} onClick={generate}>{gen.busy ? t.generating : '🔁 ' + t.generate}</Btn>
+          </>
+        )}
+      </Modal>
+
+      {/* ---------- saved doc viewer ---------- */}
+      <Modal open={!!viewDoc} onClose={() => setViewDoc(null)} title={viewDoc ? docTitle(viewDoc) : ''}
+        footer={viewDoc ? (
+          <>
+            <Btn variant="soft" className="flex-1" onClick={() => printDoc(docTitle(viewDoc), viewDoc.content_md, viewDoc.language !== 'en')}>🖨️ {t.print}</Btn>
+            <Btn variant="ghost" className="text-rose-600" onClick={() => removeDoc(viewDoc)}>{t.del}</Btn>
+            <Btn variant="outline" className="flex-1" onClick={() => setViewDoc(null)}>{t.close}</Btn>
+          </>
+        ) : null}>
+        {viewDoc && (
+          <div className="text-sm [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:font-bold [&_li]:ms-4 [&_li]:list-disc [&_p]:my-1"
+            dir="auto" dangerouslySetInnerHTML={{ __html: mdToHtml(viewDoc.content_md) }} />
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -2367,6 +2652,7 @@ function App() {
           : page === 'dashboard' ? <Dashboard {...shared} />
           : page === 'attendance' ? <AttendancePage {...shared} />
           : page === 'employees' ? <EmployeesPage {...shared} />
+          : page === 'jobs' ? <JobsPage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
           : page === 'settings' ? <SettingsPage {...shared} />
           : page === 'audit' ? <AuditPage />
