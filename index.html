@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.7';
+const APP_VERSION = 'v1.8';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -208,6 +208,21 @@ const T = {
     creditHint: 'Positive adds days, negative removes (carry-over, correction, encashment).',
     annualShort: 'Annual', casualShort: 'Casual', sickShort: 'Sick', unpaidShort: 'Unpaid',
     zeroDays: 'The selected dates contain no working days.',
+    payroll: 'Payroll', newRun: 'New payroll run', period: 'Period',
+    prStatus: { draft: 'Draft', review: 'In review', approved: 'Approved & locked' },
+    generateRun: 'Generate', submitReview: 'Submit for review', approveRun: 'Approve & lock',
+    backToDraft: 'Return to draft', recalc: 'Recalculate', delRun: 'Delete draft',
+    payslip: 'Payslip', bankSheet: 'Bank sheet', totalNet: 'Total net',
+    basicLbl: 'Basic salary', allowLbl: 'Allowances', otLbl: 'Overtime',
+    earningsLbl: 'Earnings', dedLbl: 'Deductions', deductionsTotal: 'Total deductions',
+    lateDedLbl: 'Lateness', unpaidDedLbl: 'Unpaid leave', sickDedLbl: 'Sick leave adjustment',
+    insEmp: 'Social insurance (employee)', insEr: 'Social insurance (employer)',
+    taxLbl: 'Income tax', netLbl: 'NET PAY', grossLbl: 'Gross',
+    otherEarn: 'Other earnings', otherDed: 'Other deductions',
+    monthNotLocked: '⚠️ Attendance for this month is not locked yet — numbers may still change.',
+    runExists: 'A run for this branch and month already exists.',
+    noEmployees: 'No active employees in this branch.',
+    minutesLbl: 'min', daysUnit: 'days', payslipTitle: 'Payslip',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -312,6 +327,21 @@ const T = {
     creditHint: 'موجب يضيف أياماً وسالب يخصم (ترحيل رصيد، تصحيح، بدل نقدي).',
     annualShort: 'سنوية', casualShort: 'عارضة', sickShort: 'مرضية', unpaidShort: 'بدون مرتب',
     zeroDays: 'التواريخ المختارة لا تحتوي أيام عمل.',
+    payroll: 'الرواتب', newRun: 'مسير رواتب جديد', period: 'الفترة',
+    prStatus: { draft: 'مسودة', review: 'قيد المراجعة', approved: 'معتمد ومقفل' },
+    generateRun: 'إنشاء', submitReview: 'إرسال للمراجعة', approveRun: 'اعتماد وقفل',
+    backToDraft: 'إعادة للمسودة', recalc: 'إعادة الحساب', delRun: 'حذف المسودة',
+    payslip: 'قسيمة الراتب', bankSheet: 'كشف البنك', totalNet: 'إجمالي الصافي',
+    basicLbl: 'الراتب الأساسي', allowLbl: 'البدلات', otLbl: 'الإضافي',
+    earningsLbl: 'المستحقات', dedLbl: 'الخصومات', deductionsTotal: 'إجمالي الخصومات',
+    lateDedLbl: 'التأخير', unpaidDedLbl: 'إجازة بدون مرتب', sickDedLbl: 'تسوية الإجازة المرضية',
+    insEmp: 'التأمينات (حصة الموظف)', insEr: 'التأمينات (حصة صاحب العمل)',
+    taxLbl: 'ضريبة الدخل', netLbl: 'صافي الراتب', grossLbl: 'الإجمالي',
+    otherEarn: 'مستحقات أخرى', otherDed: 'خصومات أخرى',
+    monthNotLocked: '⚠️ حضور هذا الشهر غير مقفل بعد — الأرقام قد تتغير.',
+    runExists: 'يوجد مسير لهذا الفرع والشهر بالفعل.',
+    noEmployees: 'لا يوجد موظفون نشطون في هذا الفرع.',
+    minutesLbl: 'د', daysUnit: 'يوم', payslipTitle: 'قسيمة راتب',
   },
 };
 
@@ -439,6 +469,166 @@ function annualEntitlement(emp, year) {
 }
 
 const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+
+/** Full payroll computation for one employee for one month.
+    Every input is data the user can edit in Settings — nothing hardcoded. */
+function computePayrollItem(emp, ctx) {
+  const ww = ctx.workWeek || {};
+  const dpm = ww.standard_days_per_month || 30;
+  const hpd = ww.standard_hours_per_day || 8;
+  const basic = Number(emp.basic_salary) || 0;
+  const allowances = emp.allowances || [];
+  const allowTotal = allowances.reduce((s, a) => s + (Number(a.amount) || 0), 0);
+  const monthly = basic + allowTotal;
+  const dayRate = monthly / dpm;
+  const hourRate = dayRate / hpd;
+  const weekend = emp.weekend_days || ctx.companyWeekend;
+  const shift = ctx.shifts.find((s) => s.id === emp.shift_id) || ctx.shifts[0];
+
+  /* ---- attendance: late minutes + overtime minutes ---- */
+  let late = 0, ot = 0;
+  const byDay = {};
+  for (const p of ctx.punches) (byDay[localDay(p.punch_time)] = byDay[localDay(p.punch_time)] || []).push(p);
+  for (const [date, list] of Object.entries(byDay)) {
+    if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
+    list.sort((a, b) => a.punch_time.localeCompare(b.punch_time));
+    const ins = list.filter((p) => p.direction === 'in');
+    const outs = list.filter((p) => p.direction === 'out');
+    const firstIn = ins[0] || list[0];
+    const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
+    if (shift && firstIn) late += Math.max(0, minutesOf(firstIn.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes));
+    if (shift && lastOut) {
+      const over = minutesOf(lastOut.punch_time) - timeToMin(shift.end_time);
+      if (over >= shift.min_overtime_minutes) ot += over;
+    }
+  }
+
+  /* ---- approved leave inside the month ---- */
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const mFirst = ctx.year + '-' + pad2(ctx.month) + '-01';
+  const mLast = ctx.year + '-' + pad2(ctx.month) + '-' + pad2(new Date(ctx.year, ctx.month, 0).getDate());
+  let unpaidDays = 0, sickDays = 0, sickDed = 0;
+  for (const lr of ctx.leaves) {
+    if (lr.employee_id !== emp.id || lr.status !== 'approved') continue;
+    const ty = ctx.leaveTypes.find((x) => x.id === lr.leave_type_id);
+    if (!ty) continue;
+    const s = lr.start_date > mFirst ? lr.start_date : mFirst;
+    const e = lr.end_date < mLast ? lr.end_date : mLast;
+    if (s > e) continue;
+    const days = countWorkingDays(s, e, weekend, ctx.holidays, emp.branch_id);
+    if (ty.code === 'unpaid' || !ty.is_paid) unpaidDays += days;
+    else if (Number(ty.pay_percent) < 100) {
+      sickDays += days;
+      sickDed += days * dayRate * (1 - Number(ty.pay_percent) / 100);
+    }
+  }
+
+  const policy = ctx.policy || {};
+  const otAmount = r2((ot / 60) * hourRate * (policy.ot_multiplier || 1.35));
+  const lateDed = r2((late / 60) * hourRate * (policy.late_multiplier || 1));
+  const unpaidDed = r2(unpaidDays * dayRate);
+
+  /* ---- social insurance on the insurance base, clamped ---- */
+  const ins = ctx.insurance || {};
+  const rawBase = Number(emp.insurance_base) || 0;
+  const insBase = rawBase > 0
+    ? Math.min(Math.max(rawBase, Number(ins.min_insurance_wage) || 0), Number(ins.max_insurance_wage) || rawBase)
+    : 0;
+  const insEmployee = r2(insBase * (Number(ins.employee_rate) || 0));
+  const insEmployer = r2(insBase * (Number(ins.employer_rate) || 0));
+
+  /* ---- income tax: annualized, per the editable brackets ---- */
+  const gross = r2(monthly + otAmount);
+  const exemption = Number((ctx.taxSettings || {}).personal_exemption_annual) || 0;
+  const annualTaxable = Math.max(0, (gross - insEmployee) * 12 - exemption);
+  const tax = r2(calcAnnualTax(annualTaxable, ctx.taxBrackets) / 12);
+
+  const totalDed = r2(lateDed + unpaidDed + sickDed + insEmployee + tax);
+  return {
+    basic_salary: r2(basic), allowances, allowances_total: r2(allowTotal),
+    ot_minutes: Math.round(ot), ot_amount: otAmount,
+    other_earnings: 0, other_earnings_note: null,
+    late_minutes: Math.round(late), late_deduction: lateDed,
+    unpaid_days: unpaidDays, unpaid_deduction: unpaidDed,
+    sick_days: sickDays, sick_deduction: r2(sickDed),
+    other_deductions: 0, other_deductions_note: null,
+    insurance_base: r2(insBase), insurance_employee: insEmployee, insurance_employer: insEmployer,
+    income_tax: tax, gross_pay: gross, total_deductions: totalDed, net_pay: r2(gross - totalDed),
+  };
+}
+
+/** Re-derive tax/totals after HR edits other earnings/deductions on an item. */
+function recomputePayrollItem(item, ctx) {
+  const gross = r2(item.basic_salary + item.allowances_total + item.ot_amount + (Number(item.other_earnings) || 0));
+  const exemption = Number((ctx.taxSettings || {}).personal_exemption_annual) || 0;
+  const annualTaxable = Math.max(0, (gross - item.insurance_employee) * 12 - exemption);
+  const tax = r2(calcAnnualTax(annualTaxable, ctx.taxBrackets) / 12);
+  const totalDed = r2(item.late_deduction + item.unpaid_deduction + item.sick_deduction
+    + item.insurance_employee + tax + (Number(item.other_deductions) || 0));
+  return { ...item, gross_pay: gross, income_tax: tax, total_deductions: totalDed, net_pay: r2(gross - totalDed) };
+}
+
+/** Excel-friendly CSV download (UTF-8 BOM so Arabic opens correctly). */
+function downloadCsv(filename, rows) {
+  const csv = '﻿' + rows.map((r) => r.map((c) => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/** Print a bilingual payslip for one payroll item. */
+function printPayslip(item, emp, run, company, t) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const cur = (company || {}).currency || 'EGP';
+  const m = (v) => (Number(v) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+  const earnRows = [
+    ['الراتب الأساسي / Basic salary', item.basic_salary],
+    ...(item.allowances || []).map((a) => [(a.name_ar || a.name_en || 'بدل') + ' / ' + (a.name_en || a.name_ar || 'Allowance'), a.amount]),
+    ...(item.ot_amount > 0 ? [['أجر إضافي / Overtime (' + item.ot_minutes + ' د/min)', item.ot_amount]] : []),
+    ...(Number(item.other_earnings) > 0 ? [[(item.other_earnings_note || 'مستحقات أخرى / Other earnings'), item.other_earnings]] : []),
+  ];
+  const dedRows = [
+    ...(item.late_deduction > 0 ? [['خصم تأخير / Lateness (' + item.late_minutes + ' د/min)', item.late_deduction]] : []),
+    ...(item.unpaid_deduction > 0 ? [['إجازة بدون مرتب / Unpaid leave (' + Number(item.unpaid_days) + ')', item.unpaid_deduction]] : []),
+    ...(item.sick_deduction > 0 ? [['تسوية مرضية / Sick adjustment (' + Number(item.sick_days) + ')', item.sick_deduction]] : []),
+    ['التأمينات الاجتماعية / Social insurance', item.insurance_employee],
+    ['ضريبة الدخل / Income tax', item.income_tax],
+    ...(Number(item.other_deductions) > 0 ? [[(item.other_deductions_note || 'خصومات أخرى / Other deductions'), item.other_deductions]] : []),
+  ];
+  const tbl = (title, rows, total, totalLbl) =>
+    '<table><thead><tr><th colspan="2">' + title + '</th></tr></thead><tbody>' +
+    rows.map((r) => '<tr><td>' + r[0] + '</td><td class="n">' + m(r[1]) + '</td></tr>').join('') +
+    '<tr class="tot"><td>' + totalLbl + '</td><td class="n">' + m(total) + '</td></tr></tbody></table>';
+  w.document.write('<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>Payslip</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">' +
+    '<style>body{font-family:Cairo,sans-serif;max-width:760px;margin:24px auto;padding:0 20px;color:#111;font-size:13px}' +
+    'header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1d6fa3;padding-bottom:10px;margin-bottom:14px}' +
+    'h1{font-size:18px;color:#12405c;margin:0}img{height:44px}' +
+    '.meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:14px}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#eef6fa;color:#12405c;padding:6px 10px;text-align:start}' +
+    'td{padding:5px 10px;border-bottom:1px solid #e2e8f0}.n{text-align:left;direction:ltr;font-weight:600}' +
+    '.tot td{font-weight:700;background:#f8fafc}' +
+    '.net{background:#1d6fa3;color:#fff;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;font-size:16px;font-weight:700}' +
+    '.sig{display:flex;justify-content:space-between;margin-top:34px;color:#475569}</style></head><body>' +
+    '<header><div><h1>' + ((company || {}).name_ar || '') + ' — ' + ((company || {}).name_en || '') + '</h1>' +
+    '<div>قسيمة راتب / Payslip — ' + run.month + '/' + run.year + '</div></div><img src="' + LOGO_LOCKUP + '"/></header>' +
+    '<div class="meta">' +
+    '<div><b>الموظف / Employee:</b> ' + (emp.full_name_ar || '') + ' — ' + (emp.full_name_en || '') + '</div>' +
+    '<div><b>الكود / Code:</b> ' + emp.employee_code + '</div>' +
+    '<div><b>الوظيفة / Title:</b> ' + (emp.job_title_ar || emp.job_title_en || '—') + '</div>' +
+    '<div><b>العملة / Currency:</b> ' + cur + '</div></div>' +
+    tbl('المستحقات / Earnings', earnRows, item.gross_pay, 'إجمالي المستحقات / Gross') +
+    tbl('الخصومات / Deductions', dedRows, item.total_deductions, 'إجمالي الخصومات / Total deductions') +
+    '<div class="net"><span>صافي الراتب / NET PAY</span><span class="n">' + m(item.net_pay) + ' ' + cur + '</span></div>' +
+    '<div class="sig"><span>توقيع الموظف / Employee signature: ______________</span><span>الإدارة / Management: ______________</span></div>' +
+    '<script>window.onload=function(){window.print()}<\/script></body></html>');
+  w.document.close();
+}
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const minutesOf = (ts) => { const d = new Date(ts); return d.getHours() * 60 + d.getMinutes(); };
 const timeToMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
@@ -649,6 +839,7 @@ const NAV = [
   { key: 'attendance', icon: '🕐', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'leave',      icon: '🌴', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
+  { key: 'payroll',   icon: '💰', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'jobs',      icon: '💼', roles: ['ceo', 'hr'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
   { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
@@ -781,8 +972,8 @@ function Dashboard({ me, data }) {
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 4 جاهزة: الإجازات بسلسلة الموافقات والأرصدة حسب قانون العمل. التالي: الرواتب.'
-            : 'Module 4 is live: leave requests, approval chain and balances per labor law. Next up: payroll.'}
+            ? 'الوحدة 5 جاهزة: مسيرات الرواتب بالضرائب والتأمينات وقسائم الرواتب. التالي: السلف والقروض.'
+            : 'Module 5 is live: payroll runs with tax, insurance and payslips. Next up: loans &amp; advances.'}
         </p>
       </Card>
     </>
@@ -2340,6 +2531,331 @@ function LeavePage({ me, data, toast, audit }) {
 }
 
 /* =====================================================================
+   7f. Payroll
+   ===================================================================== */
+function PayrollPage({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const canEdit = ['ceo', 'accountant'].includes(me.role);
+  const isCeo = me.role === 'ceo';
+  const now = new Date();
+  const [runs, setRuns] = useState(null);
+  const [open, setOpen] = useState(null);       // run being viewed
+  const [items, setItems] = useState(null);
+  const [monthLocked, setMonthLocked] = useState(true);
+  const [newRun, setNewRun] = useState(null);   // {branch_id, year, month, busy}
+  const [editItem, setEditItem] = useState(null);
+
+  useEffect(() => {
+    sb.from('payroll_runs').select('*').order('year', { ascending: false }).order('month', { ascending: false })
+      .then(({ data: d }) => setRuns(d || []));
+  }, []);
+
+  useEffect(() => {
+    if (!open) { setItems(null); return; }
+    let gone = false;
+    (async () => {
+      const [it, lk] = await Promise.all([
+        sb.from('payroll_items').select('*').eq('run_id', open.id),
+        sb.from('attendance_locks').select('id').eq('branch_id', open.branch_id).eq('year', open.year).eq('month', open.month).maybeSingle(),
+      ]);
+      if (gone) return;
+      setItems((it.data || []).sort((a, b) => b.net_pay - a.net_pay));
+      setMonthLocked(!!lk.data);
+    })();
+    return () => { gone = true; };
+  }, [open && open.id]);
+
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const empById = (id) => data.employees.find((e) => e.id === id);
+  const branchName = (id) => { const b = data.branches.find((x) => x.id === id); return b ? (lang === 'ar' ? b.name_ar : b.name_en) : '—'; };
+  const prTone = (s) => s === 'approved' ? 'green' : s === 'review' ? 'amber' : 'slate';
+
+  /** Everything the calculator needs, from already-loaded app data. */
+  function baseCtx(year, month) {
+    return {
+      year, month,
+      shifts: data.shifts, holidays: data.holidays,
+      companyWeekend: (data.settings.work_week || {}).weekend_days || [5, 6],
+      workWeek: data.settings.work_week || {},
+      policy: data.settings.payroll_policy || {},
+      insurance: data.insurance, taxBrackets: data.taxBrackets, taxSettings: data.taxSettings,
+    };
+  }
+
+  async function generate() {
+    const { branch_id, year, month } = newRun;
+    if (!branch_id) return toast(t.branch, 'error');
+    if ((runs || []).some((r) => r.branch_id === branch_id && r.year === Number(year) && r.month === Number(month)))
+      return toast(t.runExists, 'error');
+    const emps = data.employees.filter((e) => e.status === 'active' && e.branch_id === branch_id);
+    if (!emps.length) return toast(t.noEmployees, 'error');
+    setNewRun((n) => ({ ...n, busy: true }));
+
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const from = year + '-' + pad2(month) + '-01';
+    const nextM = month === 12 ? (Number(year) + 1) + '-01-01' : year + '-' + pad2(Number(month) + 1) + '-01';
+    const [pu, lv, ty] = await Promise.all([
+      sb.from('attendance_punches').select('employee_id, punch_time, direction')
+        .gte('punch_time', new Date(from + 'T00:00:00').toISOString())
+        .lt('punch_time', new Date(nextM + 'T00:00:00').toISOString()),
+      sb.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', year + '-' + pad2(month) + '-31').gte('end_date', from),
+      sb.from('leave_types').select('*'),
+    ]);
+
+    const ctx = { ...baseCtx(Number(year), Number(month)), leaves: lv.data || [], leaveTypes: ty.data || [] };
+    const { data: run, error: runErr } = await sb.from('payroll_runs')
+      .insert({ year: Number(year), month: Number(month), branch_id, created_by: me.id }).select().single();
+    if (runErr) { setNewRun((n) => ({ ...n, busy: false })); return toast(runErr.message, 'error'); }
+
+    const rows = emps.map((emp) => ({
+      run_id: run.id, employee_id: emp.id,
+      ...computePayrollItem(emp, { ...ctx, punches: (pu.data || []).filter((p) => p.employee_id === emp.id) }),
+    }));
+    const { data: saved, error: itemErr } = await sb.from('payroll_items').insert(rows).select();
+    if (itemErr) {
+      await sb.from('payroll_runs').delete().eq('id', run.id);
+      setNewRun((n) => ({ ...n, busy: false }));
+      return toast(itemErr.message, 'error');
+    }
+    setRuns((prev) => [run, ...prev]);
+    audit('insert', 'payroll_runs', run.id, null, { ...run, employees: saved.length });
+    setNewRun(null);
+    setOpen(run);
+    toast(t.saved);
+  }
+
+  async function recalc() {
+    if (!window.confirm(t.recalc + '?')) return;
+    await sb.from('payroll_items').delete().eq('run_id', open.id);
+    const emps = data.employees.filter((e) => e.status === 'active' && e.branch_id === open.branch_id);
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const from = open.year + '-' + pad2(open.month) + '-01';
+    const nextM = open.month === 12 ? (open.year + 1) + '-01-01' : open.year + '-' + pad2(open.month + 1) + '-01';
+    const [pu, lv, ty] = await Promise.all([
+      sb.from('attendance_punches').select('employee_id, punch_time, direction')
+        .gte('punch_time', new Date(from + 'T00:00:00').toISOString())
+        .lt('punch_time', new Date(nextM + 'T00:00:00').toISOString()),
+      sb.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', open.year + '-' + pad2(open.month) + '-31').gte('end_date', from),
+      sb.from('leave_types').select('*'),
+    ]);
+    const ctx = { ...baseCtx(open.year, open.month), leaves: lv.data || [], leaveTypes: ty.data || [] };
+    const rows = emps.map((emp) => ({
+      run_id: open.id, employee_id: emp.id,
+      ...computePayrollItem(emp, { ...ctx, punches: (pu.data || []).filter((p) => p.employee_id === emp.id) }),
+    }));
+    const { data: saved, error } = await sb.from('payroll_items').insert(rows).select();
+    if (error) return toast(error.message, 'error');
+    setItems(saved.sort((a, b) => b.net_pay - a.net_pay));
+    audit('update', 'payroll_runs', open.id, null, { action: 'recalculated' });
+    toast(t.saved);
+  }
+
+  async function setStatus(status) {
+    const patch = { status };
+    if (status === 'review') { patch.submitted_by = me.id; patch.submitted_at = new Date().toISOString(); }
+    if (status === 'approved') { patch.approved_by = me.id; patch.approved_at = new Date().toISOString(); }
+    const { data: row, error } = await sb.from('payroll_runs').update(patch).eq('id', open.id).select().single();
+    if (error) return toast(error.message, 'error');
+    setRuns((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+    setOpen(row);
+    audit(status === 'approved' ? 'approve' : 'update', 'payroll_runs', row.id, open, row);
+    toast(t.saved);
+  }
+
+  async function removeRun(r) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('payroll_runs').delete().eq('id', r.id);
+    if (error) return toast(error.message, 'error');
+    setRuns((prev) => prev.filter((x) => x.id !== r.id));
+    setOpen(null);
+    audit('delete', 'payroll_runs', r.id, r, null);
+  }
+
+  async function saveItemEdit() {
+    const ctx = baseCtx(open.year, open.month);
+    const next = recomputePayrollItem({
+      ...editItem,
+      other_earnings: r2(editItem.other_earnings), other_deductions: r2(editItem.other_deductions),
+    }, ctx);
+    const { data: row, error } = await sb.from('payroll_items').update({
+      other_earnings: next.other_earnings, other_earnings_note: editItem.other_earnings_note || null,
+      other_deductions: next.other_deductions, other_deductions_note: editItem.other_deductions_note || null,
+      gross_pay: next.gross_pay, income_tax: next.income_tax,
+      total_deductions: next.total_deductions, net_pay: next.net_pay,
+    }).eq('id', editItem.id).select().single();
+    if (error) return toast(error.message.includes('PAYROLL_LOCKED') ? t.prStatus.approved : error.message, 'error');
+    setItems((prev) => prev.map((i) => (i.id === row.id ? row : i)));
+    audit('update', 'payroll_items', row.id, editItem, row);
+    setEditItem(null);
+    toast(t.saved);
+  }
+
+  function exportBank() {
+    const rows = [[t.empCode, t.selectEmployee, t.bankName, t.bankAccount, t.netLbl]];
+    for (const i of items) {
+      const emp = empById(i.employee_id);
+      rows.push([emp ? emp.employee_code : '', eName(emp), emp && emp.bank_name || '', emp && emp.bank_account || '', i.net_pay]);
+    }
+    rows.push(['', '', '', t.totalNet, r2(items.reduce((s, i) => s + Number(i.net_pay), 0))]);
+    downloadCsv('bank-transfer-' + open.month + '-' + open.year + '.csv', rows);
+  }
+
+  const totalNet = items ? r2(items.reduce((s, i) => s + Number(i.net_pay), 0)) : 0;
+
+  /* ---------------- run detail view ---------------- */
+  if (open) {
+    const editable = canEdit && open.status !== 'approved';
+    return (
+      <>
+        <div className="flex items-center justify-between gap-2">
+          <Btn variant="ghost" size="sm" onClick={() => setOpen(null)}>← {t.payroll}</Btn>
+          <Badge tone={prTone(open.status)}>{t.prStatus[open.status]}</Badge>
+        </div>
+        <Card title={branchName(open.branch_id) + ' · ' + open.month + '/' + open.year}>
+          {!monthLocked && <p className="mb-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">{t.monthNotLocked}</p>}
+          <div className="mb-3 grid grid-cols-2 gap-3 text-center">
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{t.employees}</p><p className="text-lg font-bold">{items ? items.length : '…'}</p></div>
+            <div className="rounded-xl bg-brand-50 p-3"><p className="text-xs text-slate-500">{t.totalNet}</p><p className="text-lg font-bold text-brand-800">{money(totalNet)}</p></div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {editable && open.status === 'draft' && <Btn size="sm" onClick={() => setStatus('review')}>{t.submitReview}</Btn>}
+            {isCeo && open.status === 'review' && <Btn size="sm" onClick={() => { if (window.confirm(t.approveRun + '?')) setStatus('approved'); }}>✅ {t.approveRun}</Btn>}
+            {canEdit && open.status === 'review' && <Btn size="sm" variant="outline" onClick={() => setStatus('draft')}>{t.backToDraft}</Btn>}
+            {editable && open.status === 'draft' && <Btn size="sm" variant="soft" onClick={recalc}>{t.recalc}</Btn>}
+            {editable && open.status === 'draft' && <Btn size="sm" variant="ghost" className="text-rose-600" onClick={() => removeRun(open)}>{t.delRun}</Btn>}
+            {items && items.length > 0 && <Btn size="sm" variant="soft" onClick={exportBank}>⬇️ {t.bankSheet}</Btn>}
+          </div>
+        </Card>
+
+        <Card title={t.employees}>
+          {items === null ? <Empty text={t.loading} /> : items.length === 0 ? <Empty text={t.noData} /> : (
+            <ul className="divide-y divide-slate-100">
+              {items.map((i) => {
+                const emp = empById(i.employee_id);
+                return (
+                  <li key={i.id} className="flex cursor-pointer items-center justify-between gap-2 py-3" onClick={() => setEditItem({ ...i })}>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800">{eName(emp)}</p>
+                      <p className="text-xs text-slate-500">{t.grossLbl} {money(i.gross_pay)} · {t.dedLbl} {money(i.total_deductions)}</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-brand-800">{money(i.net_pay)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+
+        {/* item breakdown / edit */}
+        <Modal open={!!editItem} onClose={() => setEditItem(null)} title={editItem ? eName(empById(editItem.employee_id)) : ''}
+          footer={editItem ? (
+            <>
+              {editable && <Btn className="flex-1" onClick={saveItemEdit}>{t.save}</Btn>}
+              <Btn variant="soft" className="flex-1" onClick={() => printPayslip(editItem, empById(editItem.employee_id), open, data.settings.company, t)}>🖨️ {t.payslip}</Btn>
+              <Btn variant="outline" onClick={() => setEditItem(null)}>{t.close}</Btn>
+            </>
+          ) : null}>
+          {editItem && (
+            <>
+              <div className="space-y-1 text-sm">
+                {[
+                  [t.basicLbl, editItem.basic_salary], [t.allowLbl, editItem.allowances_total],
+                  [t.otLbl + ' (' + editItem.ot_minutes + ' ' + t.minutesLbl + ')', editItem.ot_amount],
+                  [t.lateDedLbl + ' (' + editItem.late_minutes + ' ' + t.minutesLbl + ')', -editItem.late_deduction],
+                  [t.unpaidDedLbl + ' (' + Number(editItem.unpaid_days) + ' ' + t.daysUnit + ')', -editItem.unpaid_deduction],
+                  [t.sickDedLbl + ' (' + Number(editItem.sick_days) + ' ' + t.daysUnit + ')', -editItem.sick_deduction],
+                  [t.insEmp, -editItem.insurance_employee],
+                  [t.taxLbl, -editItem.income_tax],
+                ].filter(([, v]) => Number(v) !== 0).map(([k, v], i) => (
+                  <div key={i} className="flex justify-between">
+                    <span className="text-slate-500">{k}</span>
+                    <b className={Number(v) < 0 ? 'text-rose-600' : ''}>{money(Math.abs(Number(v)))}{Number(v) < 0 ? ' -' : ''}</b>
+                  </div>
+                ))}
+                <div className="flex justify-between border-t border-slate-200 pt-1 text-xs text-slate-400">
+                  <span>{t.insEr}</span><span>{money(editItem.insurance_employer)}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={t.otherEarn}>
+                  <Input type="number" inputMode="decimal" disabled={!editable} value={editItem.other_earnings}
+                    onChange={(e) => setEditItem({ ...editItem, other_earnings: e.target.value })} />
+                </Field>
+                <Field label={t.otherDed}>
+                  <Input type="number" inputMode="decimal" disabled={!editable} value={editItem.other_deductions}
+                    onChange={(e) => setEditItem({ ...editItem, other_deductions: e.target.value })} />
+                </Field>
+                <Field label={t.notes}>
+                  <Input disabled={!editable} value={editItem.other_earnings_note || ''} onChange={(e) => setEditItem({ ...editItem, other_earnings_note: e.target.value })} />
+                </Field>
+                <Field label={t.notes}>
+                  <Input disabled={!editable} value={editItem.other_deductions_note || ''} onChange={(e) => setEditItem({ ...editItem, other_deductions_note: e.target.value })} />
+                </Field>
+              </div>
+              <div className="flex justify-between rounded-xl bg-brand-700 px-4 py-3 font-bold text-white">
+                <span>{t.netLbl}</span><span>{money(editItem.net_pay)}</span>
+              </div>
+            </>
+          )}
+        </Modal>
+      </>
+    );
+  }
+
+  /* ---------------- runs list ---------------- */
+  return (
+    <>
+      {canEdit && (
+        <Btn size="lg" onClick={() => setNewRun({ branch_id: '', year: now.getFullYear(), month: now.getMonth() === 0 ? 12 : now.getMonth(), busy: false })}>
+          + {t.newRun}
+        </Btn>
+      )}
+      <Card title={t.payroll}>
+        {runs === null ? <Empty text={t.loading} /> : runs.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {runs.map((r) => (
+              <li key={r.id} className="flex cursor-pointer items-center justify-between gap-2 py-3" onClick={() => setOpen(r)}>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{branchName(r.branch_id)} · {r.month}/{r.year}</p>
+                  <p className="text-xs text-slate-500">{localDay(r.created_at)}</p>
+                </div>
+                <Badge tone={prTone(r.status)}>{t.prStatus[r.status]}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Modal open={!!newRun} onClose={() => setNewRun(null)} title={t.newRun}
+        footer={<><Btn className="flex-1" disabled={newRun && newRun.busy} onClick={generate}>{newRun && newRun.busy ? t.loading : t.generateRun}</Btn><Btn variant="outline" className="flex-1" onClick={() => setNewRun(null)}>{t.cancel}</Btn></>}>
+        {newRun && (
+          <>
+            <Field label={t.branch}>
+              <Select value={newRun.branch_id} onChange={(e) => setNewRun({ ...newRun, branch_id: e.target.value })}>
+                <option value="">—</option>
+                {data.branches.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.monthLbl}>
+                <Select value={newRun.month} onChange={(e) => setNewRun({ ...newRun, month: Number(e.target.value) })}>
+                  {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.yearLbl}>
+                <Select value={newRun.year} onChange={(e) => setNewRun({ ...newRun, year: Number(e.target.value) })}>
+                  {[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y} value={y}>{y}</option>)}
+                </Select>
+              </Field>
+            </div>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -3053,6 +3569,7 @@ function App() {
           : page === 'attendance' ? <AttendancePage {...shared} />
           : page === 'leave' ? <LeavePage {...shared} />
           : page === 'employees' ? <EmployeesPage {...shared} />
+          : page === 'payroll' ? <PayrollPage {...shared} />
           : page === 'jobs' ? <JobsPage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
           : page === 'settings' ? <SettingsPage {...shared} />
