@@ -1,5 +1,4 @@
 @echo off
-rem Home Vacation HR - runs the ZKTeco bridge once.
-rem Task Scheduler calls this every 5 minutes (see README.md).
+rem Home Vacation HR - runs the ZKTeco bridge once (Task Scheduler calls this every 5 minutes)
 cd /d "%~dp0"
-python bridge.py >> bridge_run.log 2>&1
+"C:\Users\Essam\AppData\Local\Programs\Python\Python312\python.exe" bridge.py >> bridge_run.log 2>&1

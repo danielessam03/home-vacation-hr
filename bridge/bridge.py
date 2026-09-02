@@ -15,7 +15,7 @@ Setup once:
 import json
 import os
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 
 import requests
 from zk import ZK
@@ -26,6 +26,7 @@ from zk import ZK
 # ----------------------------------------------------------------------
 DEVICE_IP = "192.168.1.201"          # TX628 IP on your office network
 DEVICE_PORT = 4370
+DEVICE_PASSWORD = 0                  # COMM key set on the device (0 = none)
 FUNCTION_URL = "https://plwyzkqlbzcikmuurjqg.supabase.co/functions/v1/punch"
 PUNCH_SECRET = "PUT_A_LONG_RANDOM_SECRET_HERE"   # must equal the PUNCH_SECRET edge-function secret
 
@@ -37,10 +38,10 @@ if os.path.exists(_cfg_path):
         _cfg = json.load(_f)
     DEVICE_IP = _cfg.get("device_ip", DEVICE_IP)
     DEVICE_PORT = int(_cfg.get("device_port", DEVICE_PORT))
+    DEVICE_PASSWORD = int(_cfg.get("device_password", DEVICE_PASSWORD))
     FUNCTION_URL = _cfg.get("function_url", FUNCTION_URL)
     PUNCH_SECRET = _cfg.get("punch_secret", PUNCH_SECRET)
     DEVICE_ID = _cfg.get("device_id", DEVICE_ID)
-TIMEZONE_OFFSET_HOURS = 3            # device clock is Egypt local time (UTC+3 in summer 2026)
 STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge_state.json")
 LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge.log")
 BATCH_SIZE = 500
@@ -74,7 +75,7 @@ def main() -> int:
     state = load_state()
     last_seen = datetime.fromisoformat(state["last_punch"])
 
-    zk = ZK(DEVICE_IP, port=DEVICE_PORT, timeout=15)
+    zk = ZK(DEVICE_IP, port=DEVICE_PORT, timeout=15, password=DEVICE_PASSWORD)
     conn = None
     try:
         conn = zk.connect()
@@ -92,7 +93,6 @@ def main() -> int:
                 pass
 
     # keep only punches newer than what we already sent
-    tz = timezone(timedelta(hours=TIMEZONE_OFFSET_HOURS))
     fresh = [r for r in records if r.timestamp > last_seen]
     if not fresh:
         log(f"device ok, {len(records)} records on device, nothing new")
@@ -101,7 +101,8 @@ def main() -> int:
     punches = [
         {
             "employee_device_code": str(r.user_id),
-            "punch_time": r.timestamp.replace(tzinfo=tz).isoformat(),
+            # device clock is local time; astimezone() stamps this PC/device timezone
+            "punch_time": r.timestamp.astimezone().isoformat(),
             # TX628 punch codes: 0=check-in, 1=check-out (others -> unknown)
             "direction": {0: "in", 1: "out"}.get(getattr(r, "punch", None), "unknown"),
             "device_id": DEVICE_ID,
