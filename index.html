@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.6';
+const APP_VERSION = 'v1.7';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -195,6 +195,19 @@ const T = {
     generating: 'Generating with AI…', generate: '✨ Generate with AI', docLang: 'Language', bothLangs: 'Arabic + English',
     savedDocs: 'Saved documents', print: 'Print', regenHint: 'Review and edit the text below before saving or printing.',
     aiFail: 'AI generation failed', arabicLbl: 'Arabic', englishLbl: 'English',
+    leave: 'Leave', myLeave: 'My leave', newRequest: 'New request',
+    balanceLbl: 'Balance', entitlement: 'Entitlement', taken: 'Taken', remaining: 'Remaining',
+    approvals: 'Approvals', balances: 'Balances', leaveType: 'Leave type',
+    workingDays: 'Working days', reasonLbl: 'Reason',
+    lvStatus: { pending: 'Pending manager', manager_approved: 'Pending HR', approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled' },
+    approve: 'Approve', reject: 'Reject', confirmHr: 'Final approve', cancelReq: 'Cancel request', noteOpt: 'Note (optional)',
+    notEnoughBalance: 'Not enough balance', overlapErr: 'Overlaps an existing request',
+    casualHint: 'Casual leave is deducted from the annual balance (max 7 days/year).',
+    needSixMonths: 'Less than 6 months of service — annual leave is not due yet (labor law).',
+    adjustBalance: 'Adjust balance', daysLbl: 'Days',
+    creditHint: 'Positive adds days, negative removes (carry-over, correction, encashment).',
+    annualShort: 'Annual', casualShort: 'Casual', sickShort: 'Sick', unpaidShort: 'Unpaid',
+    zeroDays: 'The selected dates contain no working days.',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -286,6 +299,19 @@ const T = {
     generating: 'جاري الإنشاء بالذكاء الاصطناعي…', generate: '✨ إنشاء بالذكاء الاصطناعي', docLang: 'اللغة', bothLangs: 'عربي + إنجليزي',
     savedDocs: 'المستندات المحفوظة', print: 'طباعة', regenHint: 'راجع النص وعدّله قبل الحفظ أو الطباعة.',
     aiFail: 'فشل الإنشاء بالذكاء الاصطناعي', arabicLbl: 'العربية', englishLbl: 'الإنجليزية',
+    leave: 'الإجازات', myLeave: 'إجازاتي', newRequest: 'طلب جديد',
+    balanceLbl: 'الرصيد', entitlement: 'الاستحقاق', taken: 'المستخدم', remaining: 'المتبقي',
+    approvals: 'الموافقات', balances: 'الأرصدة', leaveType: 'نوع الإجازة',
+    workingDays: 'أيام العمل', reasonLbl: 'السبب',
+    lvStatus: { pending: 'بانتظار المدير', manager_approved: 'بانتظار الموارد البشرية', approved: 'معتمدة', rejected: 'مرفوضة', cancelled: 'ملغاة' },
+    approve: 'موافقة', reject: 'رفض', confirmHr: 'اعتماد نهائي', cancelReq: 'إلغاء الطلب', noteOpt: 'ملاحظة (اختياري)',
+    notEnoughBalance: 'الرصيد غير كافٍ', overlapErr: 'يتعارض مع طلب قائم',
+    casualHint: 'الإجازة العارضة تُخصم من رصيد السنوية (بحد أقصى 7 أيام سنوياً).',
+    needSixMonths: 'أقل من 6 أشهر خدمة — لم تُستحق الإجازة السنوية بعد (قانون العمل).',
+    adjustBalance: 'تعديل رصيد', daysLbl: 'أيام',
+    creditHint: 'موجب يضيف أياماً وسالب يخصم (ترحيل رصيد، تصحيح، بدل نقدي).',
+    annualShort: 'سنوية', casualShort: 'عارضة', sickShort: 'مرضية', unpaidShort: 'بدون مرتب',
+    zeroDays: 'التواريخ المختارة لا تحتوي أيام عمل.',
   },
 };
 
@@ -375,6 +401,41 @@ function printDoc(title, md, dirRtl) {
     '<img class="lg" src="' + LOGO_LOCKUP + '"/>' + mdToHtml(md) +
     '<script>window.onload=function(){window.print()}<\/script></body></html>');
   w.document.close();
+}
+
+/** Working days between two dates inclusive, skipping the employee's
+    weekend and official holidays (company-wide or their branch). */
+function countWorkingDays(startStr, endStr, weekendDays, holidays, branchId) {
+  const start = new Date(startStr + 'T00:00:00'), end = new Date(endStr + 'T00:00:00');
+  if (end < start) return 0;
+  let n = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    if (weekendDays.includes(d.getDay())) continue;
+    const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (holidays.some((h) => h.holiday_date === iso && (!h.branch_id || h.branch_id === branchId))) continue;
+    n++;
+  }
+  return n;
+}
+
+/** Annual entitlement per Egyptian labor law: 21 days, 30 after 10 years
+    of service or age 50; pro-rated in the hire year; nothing before 6
+    months of service. A per-employee override wins when set. */
+function annualEntitlement(emp, year) {
+  if (!emp.hire_date) return { days: 0, dueYet: false };
+  const hire = new Date(emp.hire_date + 'T00:00:00');
+  const now = new Date();
+  const serviceMonths = (now - hire) / (30.44 * 86400000);
+  if (serviceMonths < 6) return { days: 0, dueYet: false };
+  const serviceYears = (now - hire) / (365.25 * 86400000);
+  let age = 0;
+  if (emp.birth_date) age = (now - new Date(emp.birth_date + 'T00:00:00')) / (365.25 * 86400000);
+  let base = emp.annual_days_override != null ? Number(emp.annual_days_override)
+    : (serviceYears >= 10 || age >= 50 ? 30 : 21);
+  if (hire.getFullYear() === year) {
+    base = Math.round(base * (12 - hire.getMonth()) / 12 * 2) / 2;
+  }
+  return { days: base, dueYet: true };
 }
 
 const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -586,6 +647,7 @@ function AuthScreen({ toast }) {
 const NAV = [
   { key: 'dashboard', icon: '🏠', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'attendance', icon: '🕐', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
+  { key: 'leave',      icon: '🌴', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
   { key: 'jobs',      icon: '💼', roles: ['ceo', 'hr'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
@@ -719,8 +781,8 @@ function Dashboard({ me, data }) {
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 3 جاهزة: الحضور بالموقع الجغرافي والمشاوير والورديات والقفل الشهري. التالي: الإجازات.'
-            : 'Module 3 is live: GPS attendance, car trips, shifts and monthly locks. Next up: leave management.'}
+            ? 'الوحدة 4 جاهزة: الإجازات بسلسلة الموافقات والأرصدة حسب قانون العمل. التالي: الرواتب.'
+            : 'Module 4 is live: leave requests, approval chain and balances per labor law. Next up: payroll.'}
         </p>
       </Card>
     </>
@@ -1953,6 +2015,331 @@ function JobsPage({ me, data, toast, audit }) {
 }
 
 /* =====================================================================
+   7e. Leave management
+   ===================================================================== */
+function LeavePage({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const isHr = ['ceo', 'hr'].includes(me.role);
+  const admin = me.role !== 'staff';
+  const myEmp = data.employees.find((e) => e.user_id === me.id);
+  const year = new Date().getFullYear();
+
+  const [types, setTypes] = useState([]);
+  const [reqs, setReqs] = useState(null);
+  const [adjs, setAdjs] = useState([]);
+  const [form, setForm] = useState(null);
+  const [action, setAction] = useState(null);   // {req, kind: approve|reject|confirm, note}
+  const [adjForm, setAdjForm] = useState(null);
+
+  const tabs = [
+    ...(myEmp ? [{ k: 'mine', label: t.myLeave }] : []),
+    ...(admin ? [{ k: 'approvals', label: t.approvals }] : []),
+    ...(['ceo', 'hr', 'accountant'].includes(me.role) ? [{ k: 'balances', label: t.balances }] : []),
+  ];
+  const [tab, setTab] = useState(tabs.length ? tabs[0].k : 'mine');
+
+  useEffect(() => {
+    (async () => {
+      const [ty, rq, ad] = await Promise.all([
+        sb.from('leave_types').select('*').eq('is_active', true).order('sort'),
+        sb.from('leave_requests').select('*').gte('start_date', year + '-01-01').order('created_at', { ascending: false }),
+        sb.from('leave_adjustments').select('*').eq('year', year),
+      ]);
+      setTypes(ty.data || []);
+      setReqs(rq.data || []);
+      setAdjs(ad.data || []);
+    })();
+  }, []);
+
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const tyName = (ty) => ty ? (lang === 'ar' ? ty.name_ar : ty.name_en) : '—';
+  const tyById = (id) => types.find((x) => x.id === id);
+  const tyByCode = (c) => types.find((x) => x.code === c);
+  const companyWeekend = (data.settings.work_week || {}).weekend_days || [5, 6];
+  const empWeekend = (emp) => (emp && emp.weekend_days) || companyWeekend;
+
+  /** Balance summary for one employee for the current year. */
+  function balance(emp) {
+    const ent = annualEntitlement(emp, year);
+    const taken = (code) => (reqs || [])
+      .filter((r) => r.employee_id === emp.id && r.status === 'approved' && tyById(r.leave_type_id) && tyById(r.leave_type_id).code === code)
+      .reduce((s, r) => s + Number(r.days), 0);
+    const adj = (code) => adjs
+      .filter((a) => a.employee_id === emp.id && tyById(a.leave_type_id) && tyById(a.leave_type_id).code === code)
+      .reduce((s, a) => s + Number(a.days), 0);
+    const annualTaken = taken('annual'), casualTaken = taken('casual');
+    return {
+      ent, annualTaken, casualTaken,
+      annualRemaining: ent.days + adj('annual') - annualTaken - casualTaken,
+      casualRemaining: Math.min(7 + adj('casual') - casualTaken, ent.days + adj('annual') - annualTaken - casualTaken),
+      sickTaken: taken('sick'), unpaidTaken: taken('unpaid'), maternityTaken: taken('maternity'),
+    };
+  }
+
+  /* ---------- create request ---------- */
+  function openForm() {
+    setForm({ employee_id: myEmp ? myEmp.id : '', leave_type_id: (tyByCode('annual') || types[0] || {}).id || '', start_date: todayISO(), end_date: todayISO(), reason: '' });
+  }
+
+  const formEmp = form ? data.employees.find((e) => e.id === form.employee_id) : null;
+  const formDays = form && formEmp ? countWorkingDays(form.start_date, form.end_date, empWeekend(formEmp), data.holidays, formEmp.branch_id) : 0;
+
+  async function submitRequest() {
+    const emp = formEmp;
+    const ty = tyById(form.leave_type_id);
+    if (!emp || !ty) return;
+    if (formDays <= 0) return toast(t.zeroDays, 'error');
+    const overlap = (reqs || []).some((r) => r.employee_id === emp.id && !['rejected', 'cancelled'].includes(r.status)
+      && r.start_date <= form.end_date && r.end_date >= form.start_date);
+    if (overlap) return toast(t.overlapErr, 'error');
+    const b = balance(emp);
+    if (ty.code === 'annual' || ty.code === 'casual') {
+      if (!b.ent.dueYet) return toast(t.needSixMonths, 'error');
+      const room = ty.code === 'annual' ? b.annualRemaining : b.casualRemaining;
+      if (formDays > room) return toast(t.notEnoughBalance + ' (' + t.remaining + ': ' + room + ')', 'error');
+    }
+    if (ty.max_days_per_year && ['sick', 'maternity'].includes(ty.code)) {
+      const used = ty.code === 'sick' ? b.sickTaken : b.maternityTaken;
+      if (used + formDays > Number(ty.max_days_per_year)) return toast(t.notEnoughBalance, 'error');
+    }
+    const { data: row, error } = await sb.from('leave_requests').insert({
+      employee_id: emp.id, leave_type_id: ty.id,
+      start_date: form.start_date, end_date: form.end_date,
+      days: formDays, reason: form.reason || null,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setReqs((prev) => [row, ...prev]);
+    audit('insert', 'leave_requests', row.id, null, row);
+    setForm(null);
+    toast(t.saved);
+  }
+
+  /* ---------- approvals ---------- */
+  async function act() {
+    const { req, kind, note } = action;
+    const patch = {};
+    if (kind === 'reject') {
+      patch.status = 'rejected';
+      if (isHr || req.status === 'manager_approved') { patch.hr_action_by = me.id; patch.hr_action_at = new Date().toISOString(); patch.hr_note = note || null; }
+      else { patch.manager_action_by = me.id; patch.manager_action_at = new Date().toISOString(); patch.manager_note = note || null; }
+    } else if (kind === 'manager') {
+      patch.status = 'manager_approved';
+      patch.manager_action_by = me.id; patch.manager_action_at = new Date().toISOString(); patch.manager_note = note || null;
+    } else if (kind === 'hr') {
+      patch.status = 'approved';
+      patch.hr_action_by = me.id; patch.hr_action_at = new Date().toISOString(); patch.hr_note = note || null;
+      if (!req.manager_action_by) { patch.manager_action_by = me.id; patch.manager_action_at = new Date().toISOString(); }
+    } else if (kind === 'cancel') {
+      patch.status = 'cancelled';
+    }
+    const { data: row, error } = await sb.from('leave_requests').update(patch).eq('id', req.id).select().single();
+    if (error) return toast(error.message, 'error');
+    setReqs((prev) => prev.map((r) => (r.id === row.id ? row : r)));
+    audit(kind === 'cancel' ? 'cancel' : kind === 'reject' ? 'reject' : 'approve', 'leave_requests', row.id, req, row);
+    setAction(null);
+    toast(t.saved);
+  }
+
+  async function saveAdj() {
+    const { data: row, error } = await sb.from('leave_adjustments').insert({
+      employee_id: adjForm.employee_id, leave_type_id: adjForm.leave_type_id, year,
+      days: Number(adjForm.days), reason: adjForm.reason, created_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setAdjs((prev) => [...prev, row]);
+    audit('insert', 'leave_adjustments', row.id, null, row);
+    setAdjForm(null);
+    toast(t.saved);
+  }
+
+  const lvTone = (s) => s === 'approved' ? 'green' : s === 'rejected' ? 'red' : s === 'cancelled' ? 'slate' : 'amber';
+
+  function ReqRow({ r, showName }) {
+    const emp = data.employees.find((e) => e.id === r.employee_id);
+    const ty = tyById(r.leave_type_id);
+    const canManagerAct = r.status === 'pending' && !isHr && admin && emp && myEmp && emp.manager_id === myEmp.id;
+    const canHrAct = isHr && ['pending', 'manager_approved'].includes(r.status);
+    const canCancel = myEmp && r.employee_id === myEmp.id && ['pending', 'manager_approved'].includes(r.status);
+    return (
+      <li className="space-y-2 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-800">{showName ? eName(emp) + ' · ' : ''}{tyName(ty)}</p>
+            <p className="text-xs text-slate-500">{r.start_date} ← {r.end_date} · {Number(r.days)} {t.daysLbl}{r.reason ? ' · ' + r.reason : ''}</p>
+          </div>
+          <Badge tone={lvTone(r.status)}>{t.lvStatus[r.status]}</Badge>
+        </div>
+        {(canManagerAct || canHrAct || canCancel) && (
+          <div className="flex gap-2">
+            {canManagerAct && <><Btn size="sm" className="flex-1" onClick={() => setAction({ req: r, kind: 'manager', note: '' })}>{t.approve}</Btn>
+              <Btn size="sm" variant="danger" className="flex-1" onClick={() => setAction({ req: r, kind: 'reject', note: '' })}>{t.reject}</Btn></>}
+            {canHrAct && <><Btn size="sm" className="flex-1" onClick={() => setAction({ req: r, kind: 'hr', note: '' })}>{r.status === 'pending' ? t.approve : t.confirmHr}</Btn>
+              <Btn size="sm" variant="danger" className="flex-1" onClick={() => setAction({ req: r, kind: 'reject', note: '' })}>{t.reject}</Btn></>}
+            {canCancel && !canHrAct && <Btn size="sm" variant="outline" className="flex-1" onClick={() => setAction({ req: r, kind: 'cancel', note: '' })}>{t.cancelReq}</Btn>}
+          </div>
+        )}
+      </li>
+    );
+  }
+
+  const myReqs = myEmp && reqs ? reqs.filter((r) => r.employee_id === myEmp.id) : [];
+  const pendingForMe = reqs ? reqs.filter((r) => {
+    if (isHr) return ['pending', 'manager_approved'].includes(r.status);
+    if (!admin || !myEmp) return false;
+    const emp = data.employees.find((e) => e.id === r.employee_id);
+    return r.status === 'pending' && emp && emp.manager_id === myEmp.id;
+  }) : [];
+  const myBal = myEmp ? balance(myEmp) : null;
+
+  if (!tabs.length) return <Card><Empty text={t.noEmpLink} /></Card>;
+
+  return (
+    <>
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        {tabs.map((x) => (
+          <button key={x.k} onClick={() => setTab(x.k)}
+            className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
+            {x.label}{x.k === 'approvals' && pendingForMe.length > 0 ? ' (' + pendingForMe.length + ')' : ''}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'mine' && myEmp && (
+        <>
+          {myBal && (
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                [t.annualShort, myBal.ent.dueYet ? myBal.annualRemaining : '—', '🌴'],
+                [t.casualShort, myBal.ent.dueYet ? myBal.casualRemaining : '—', '⚡'],
+                [t.sickShort, myBal.sickTaken, '🤒'],
+                [t.unpaidShort, myBal.unpaidTaken, '⏸️'],
+              ].map(([l, v, i], idx) => (
+                <div key={idx} className="rounded-2xl border border-slate-200 bg-white p-2.5 text-center">
+                  <div>{i}</div>
+                  <div className="text-lg font-bold text-slate-800">{v}</div>
+                  <div className="text-[10px] text-slate-500">{l}{idx < 2 ? ' · ' + t.remaining : ' · ' + t.taken}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {myBal && !myBal.ent.dueYet && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">{t.needSixMonths}</p>}
+          <Btn size="lg" onClick={openForm}>+ {t.newRequest}</Btn>
+          <Card title={t.myLeave + ' — ' + year}>
+            {reqs === null ? <Empty text={t.loading} /> : myReqs.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">{myReqs.map((r) => <ReqRow key={r.id} r={r} showName={false} />)}</ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {tab === 'approvals' && (
+        <>
+          {isHr && <Btn onClick={openForm}>+ {t.newRequest}</Btn>}
+          <Card title={t.approvals}>
+            {reqs === null ? <Empty text={t.loading} /> : pendingForMe.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">{pendingForMe.map((r) => <ReqRow key={r.id} r={r} showName={true} />)}</ul>
+            )}
+          </Card>
+          <Card title={t.leave + ' — ' + year}>
+            {reqs === null ? <Empty text={t.loading} /> : reqs.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">{reqs.slice(0, 30).map((r) => <ReqRow key={r.id} r={r} showName={true} />)}</ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {tab === 'balances' && (
+        <Card title={t.balances + ' — ' + year}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead><tr>
+                {[t.selectEmployee, t.entitlement, t.taken, t.remaining, t.casualShort + ' /7', t.sickShort, t.unpaidShort, ''].map((h, i) =>
+                  <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {data.employees.filter((e) => e.status === 'active').map((e) => {
+                  const b = balance(e);
+                  return (
+                    <tr key={e.id} className="border-t border-slate-100">
+                      <td className="max-w-[140px] truncate py-2 font-semibold text-slate-800">{eName(e)}</td>
+                      <td>{b.ent.dueYet ? b.ent.days : '—'}</td>
+                      <td>{b.annualTaken + b.casualTaken}</td>
+                      <td className={b.annualRemaining < 0 ? 'font-bold text-rose-600' : 'font-semibold'}>{b.ent.dueYet ? b.annualRemaining : '—'}</td>
+                      <td>{b.casualTaken}</td>
+                      <td>{b.sickTaken}</td>
+                      <td>{b.unpaidTaken}</td>
+                      <td>{isHr && <Btn variant="ghost" size="sm" onClick={() => setAdjForm({ employee_id: e.id, leave_type_id: (tyByCode('annual') || {}).id, days: '', reason: '' })}>±</Btn>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* ---------- new request ---------- */}
+      <Modal open={!!form} onClose={() => setForm(null)} title={t.newRequest}
+        footer={<><Btn className="flex-1" onClick={submitRequest}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
+        {form && (
+          <>
+            {isHr && (
+              <Field label={t.selectEmployee}>
+                <Select value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
+                  <option value="">—</option>
+                  {data.employees.filter((e) => e.status === 'active').map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+                </Select>
+              </Field>
+            )}
+            <Field label={t.leaveType}>
+              <Select value={form.leave_type_id} onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}>
+                {types.filter((ty) => ty.for_gender === 'any' || !formEmp || !formEmp.gender || ty.for_gender === formEmp.gender)
+                  .map((ty) => <option key={ty.id} value={ty.id}>{tyName(ty)}</option>)}
+              </Select>
+            </Field>
+            {(tyById(form.leave_type_id) || {}).code === 'casual' && <p className="text-xs text-amber-700">{t.casualHint}</p>}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.from}><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value, end_date: e.target.value > form.end_date ? e.target.value : form.end_date })} /></Field>
+              <Field label={t.to}><Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} /></Field>
+            </div>
+            <p className="rounded-xl bg-slate-50 p-3 text-center text-sm font-semibold text-slate-700">{t.workingDays}: {formDays}</p>
+            <Field label={t.reasonLbl}><Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+
+      {/* ---------- approve / reject / cancel ---------- */}
+      <Modal open={!!action} onClose={() => setAction(null)}
+        title={action ? (action.kind === 'reject' ? t.reject : action.kind === 'cancel' ? t.cancelReq : t.approve) : ''}
+        footer={<><Btn className="flex-1" variant={action && action.kind === 'reject' ? 'danger' : 'primary'} onClick={act}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setAction(null)}>{t.cancel}</Btn></>}>
+        {action && action.kind !== 'cancel' && (
+          <Field label={t.noteOpt}><Input value={action.note} onChange={(e) => setAction({ ...action, note: e.target.value })} /></Field>
+        )}
+        {action && action.kind === 'cancel' && <p className="text-sm text-slate-600">{t.confirmDel}</p>}
+      </Modal>
+
+      {/* ---------- balance adjustment ---------- */}
+      <Modal open={!!adjForm} onClose={() => setAdjForm(null)} title={t.adjustBalance}
+        footer={<><Btn className="flex-1" onClick={saveAdj} disabled={!adjForm || !adjForm.days || !adjForm.reason}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setAdjForm(null)}>{t.cancel}</Btn></>}>
+        {adjForm && (
+          <>
+            <Field label={t.leaveType}>
+              <Select value={adjForm.leave_type_id} onChange={(e) => setAdjForm({ ...adjForm, leave_type_id: e.target.value })}>
+                {types.map((ty) => <option key={ty.id} value={ty.id}>{tyName(ty)}</option>)}
+              </Select>
+            </Field>
+            <Field label={t.daysLbl} hint={t.creditHint}>
+              <Input type="number" step="0.5" inputMode="decimal" value={adjForm.days} onChange={(e) => setAdjForm({ ...adjForm, days: e.target.value })} />
+            </Field>
+            <Field label={t.reasonLbl}><Input value={adjForm.reason} onChange={(e) => setAdjForm({ ...adjForm, reason: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -2664,6 +3051,7 @@ function App() {
           : !allowed ? <Card><Empty text={t.noPermission} /></Card>
           : page === 'dashboard' ? <Dashboard {...shared} />
           : page === 'attendance' ? <AttendancePage {...shared} />
+          : page === 'leave' ? <LeavePage {...shared} />
           : page === 'employees' ? <EmployeesPage {...shared} />
           : page === 'jobs' ? <JobsPage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
