@@ -255,6 +255,13 @@ const T = {
     liabilityDays: 'Days owed', liabilityAmount: 'Liability (EGP)', exportExcel: 'Export to Excel',
     approvedOnly: 'Approved runs only', fromMonth: 'From month', toMonth: 'To month', countLbl: 'Count',
     dayRateLbl: 'Day rate', noRuns: 'No payroll runs in this range.',
+    kpi: 'Sales KPIs', leaderboard: 'Leaderboard', myEntries: 'My results', addEntry: 'Log a result',
+    metricsTab: 'Metrics & points', pointsLbl: 'Points', rankLbl: 'Rank', winner: 'Leader of the month',
+    dealValue: 'Deal value (EGP)', referenceLbl: 'Client / unit', quantityLbl: 'Quantity',
+    kpiStatus: { pending: 'Pending approval', approved: 'Approved', rejected: 'Rejected' },
+    perUnit: 'Points per unit', perMillion: 'Points per 1M EGP value', hasValue: 'Carries deal value',
+    noResults: 'No approved results this month yet — be the first!', yourRank: 'Your rank',
+    salesValue: 'Sales value', totalPoints: 'Total points',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -406,6 +413,13 @@ const T = {
     liabilityDays: 'الأيام المستحقة', liabilityAmount: 'الالتزام (ج.م)', exportExcel: 'تصدير إلى Excel',
     approvedOnly: 'المسيرات المعتمدة فقط', fromMonth: 'من شهر', toMonth: 'إلى شهر', countLbl: 'العدد',
     dayRateLbl: 'أجر اليوم', noRuns: 'لا توجد مسيرات رواتب في هذه الفترة.',
+    kpi: 'مؤشرات المبيعات', leaderboard: 'لوحة المتصدرين', myEntries: 'نتائجي', addEntry: 'تسجيل نتيجة',
+    metricsTab: 'المؤشرات والنقاط', pointsLbl: 'نقاط', rankLbl: 'الترتيب', winner: 'متصدر الشهر',
+    dealValue: 'قيمة الصفقة (ج.م)', referenceLbl: 'العميل / الوحدة', quantityLbl: 'العدد',
+    kpiStatus: { pending: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض' },
+    perUnit: 'نقاط لكل وحدة', perMillion: 'نقاط لكل مليون ج.م', hasValue: 'يحمل قيمة صفقة',
+    noResults: 'لا توجد نتائج معتمدة هذا الشهر بعد — كن الأول!', yourRank: 'ترتيبك',
+    salesValue: 'قيمة المبيعات', totalPoints: 'إجمالي النقاط',
   },
 };
 
@@ -958,6 +972,7 @@ const NAV = [
   { key: 'me',        icon: '🙋', roles: ['ceo', 'hr', 'accountant', 'manager'] },
   { key: 'attendance', icon: '🕐', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'leave',      icon: '🌴', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
+  { key: 'kpi',        icon: '🏆', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
   { key: 'payroll',   icon: '💰', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'loans',     icon: '🏦', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
@@ -3741,6 +3756,250 @@ function ReportsPage({ me, data, toast }) {
 }
 
 /* =====================================================================
+   7k. Sales KPIs & leaderboard
+   ===================================================================== */
+function KpiPage({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const isHr = ['ceo', 'hr'].includes(me.role);
+  const myEmp = data.employees.find((e) => e.user_id === me.id);
+  const now = new Date();
+  const [month, setMonth] = useState({ y: now.getFullYear(), m: now.getMonth() + 1 });
+  const [tab, setTab] = useState('board');
+  const [metrics, setMetrics] = useState([]);
+  const [entries, setEntries] = useState(null);
+  const [form, setForm] = useState(null);
+  const [mForm, setMForm] = useState(null);
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const mFirst = month.y + '-' + pad2(month.m) + '-01';
+  const mLast = month.y + '-' + pad2(month.m) + '-' + pad2(new Date(month.y, month.m, 0).getDate());
+
+  useEffect(() => { sb.from('kpi_metrics').select('*').order('sort').then(({ data: d }) => setMetrics(d || [])); }, []);
+  useEffect(() => {
+    setEntries(null);
+    sb.from('kpi_entries').select('*').gte('entry_date', mFirst).lte('entry_date', mLast).order('entry_date', { ascending: false })
+      .then(({ data: d }) => setEntries(d || []));
+  }, [mFirst]);
+
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const empById = (id) => data.employees.find((e) => e.id === id);
+  const metricById = (id) => metrics.find((x) => x.id === id);
+  const mName = (mt) => mt ? (lang === 'ar' ? mt.name_ar : mt.name_en) : '—';
+  const points = (en) => {
+    const mt = metricById(en.metric_id); if (!mt) return 0;
+    return r2(Number(en.quantity) * Number(mt.points_per_unit) + (Number(en.value_egp) || 0) / 1000000 * Number(mt.value_points_per_million));
+  };
+
+  const board = useMemo(() => {
+    if (!entries) return [];
+    const acc = {};
+    for (const en of entries.filter((x) => x.status === 'approved')) {
+      const a = acc[en.employee_id] = acc[en.employee_id] || { employee_id: en.employee_id, points: 0, value: 0, counts: {} };
+      a.points = r2(a.points + points(en));
+      a.value += Number(en.value_egp) || 0;
+      const mt = metricById(en.metric_id);
+      if (mt) a.counts[mt.code] = (a.counts[mt.code] || 0) + Number(en.quantity);
+    }
+    return Object.values(acc).sort((a, b) => b.points - a.points);
+  }, [entries, metrics]);
+  const myRank = myEmp ? board.findIndex((b) => b.employee_id === myEmp.id) + 1 : 0;
+
+  const canApprove = (en) => {
+    if (isHr) return true;
+    const emp = empById(en.employee_id);
+    return !!(myEmp && emp && emp.manager_id === myEmp.id);
+  };
+  const pending = (entries || []).filter((x) => x.status === 'pending' && canApprove(x) && !(myEmp && x.employee_id === myEmp.id && !isHr));
+
+  async function save() {
+    const mt = metricById(form.metric_id);
+    const { data: row, error } = await sb.from('kpi_entries').insert({
+      employee_id: form.employee_id, metric_id: form.metric_id, entry_date: form.entry_date,
+      quantity: Number(form.quantity) || 1, value_egp: mt && mt.has_value ? (Number(form.value_egp) || null) : null,
+      reference: form.reference || null, notes: form.notes || null, created_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setEntries((prev) => [row, ...(prev || [])]);
+    setForm(null);
+    toast(t.saved);
+  }
+
+  async function decide(en, status) {
+    const { data: row, error } = await sb.from('kpi_entries').update({ status, approved_by: me.id, approved_at: new Date().toISOString() }).eq('id', en.id).select().single();
+    if (error) return toast(error.message, 'error');
+    setEntries((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    audit(status === 'approved' ? 'approve' : 'reject', 'kpi_entries', row.id, en, row);
+    toast(t.saved);
+  }
+
+  async function removeEntry(en) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('kpi_entries').delete().eq('id', en.id);
+    if (error) return toast(error.message, 'error');
+    setEntries((prev) => prev.filter((x) => x.id !== en.id));
+  }
+
+  async function saveMetric() {
+    const payload = { name_en: mForm.name_en, name_ar: mForm.name_ar, points_per_unit: Number(mForm.points_per_unit) || 0,
+      value_points_per_million: Number(mForm.value_points_per_million) || 0, has_value: !!mForm.has_value, is_active: mForm.is_active !== false };
+    let res;
+    if (mForm.id) res = await sb.from('kpi_metrics').update(payload).eq('id', mForm.id).select().single();
+    else res = await sb.from('kpi_metrics').insert({ ...payload, code: (mForm.code || mForm.name_en).toLowerCase().replace(/[^a-z0-9]+/g, '_'), sort: metrics.length + 1 }).select().single();
+    if (res.error) return toast(res.error.message, 'error');
+    setMetrics((prev) => (mForm.id ? prev.map((x) => (x.id === res.data.id ? res.data : x)) : [...prev, res.data]));
+    setMForm(null);
+    toast(t.saved);
+  }
+
+  const tabs = [['board', t.leaderboard], ...(myEmp ? [['mine', t.myEntries]] : []), ...(pending.length || isHr || (myEmp && data.employees.some((e) => e.manager_id === myEmp.id)) ? [['approvals', t.approvals + (pending.length ? ' (' + pending.length + ')' : '')]] : []), ...(isHr ? [['metrics', t.metricsTab]] : [])];
+  const kTone = (s) => s === 'approved' ? 'green' : s === 'rejected' ? 'red' : 'amber';
+  const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+
+  const EntryRow = ({ en, showName, actions }) => (
+    <li className="space-y-2 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-800">{showName ? eName(empById(en.employee_id)) + ' · ' : ''}{mName(metricById(en.metric_id))} × {Number(en.quantity)}</p>
+          <p className="text-xs text-slate-500">{en.entry_date}{en.reference ? ' · ' + en.reference : ''}{en.value_egp ? ' · ' + money(en.value_egp) : ''} · <b>{points(en)} {t.pointsLbl}</b></p>
+        </div>
+        <Badge tone={kTone(en.status)}>{t.kpiStatus[en.status]}</Badge>
+      </div>
+      {actions}
+    </li>
+  );
+
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
+          {tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>{l}</button>)}
+        </div>
+        <Input type="month" className="!w-auto" value={month.y + '-' + pad2(month.m)} onChange={(e) => { const [y, m] = e.target.value.split('-'); if (y && m) setMonth({ y: Number(y), m: Number(m) }); }} />
+      </div>
+
+      {tab === 'board' && (
+        <>
+          {board.length > 0 && (
+            <div className="rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 p-5 text-white shadow">
+              <p className="text-sm opacity-90">🏆 {t.winner} · {month.m}/{month.y}</p>
+              <p className="text-2xl font-bold">{eName(empById(board[0].employee_id))}</p>
+              <p className="text-sm opacity-90">{board[0].points} {t.pointsLbl}{board[0].value ? ' · ' + money(board[0].value) : ''}</p>
+            </div>
+          )}
+          {myEmp && myRank > 0 && <p className="text-center text-sm text-slate-600">{t.yourRank}: <b>#{myRank}</b> · {board[myRank - 1].points} {t.pointsLbl}</p>}
+          <Card title={t.leaderboard}>
+            {entries === null ? <Empty text={t.loading} /> : board.length === 0 ? <Empty text={t.noResults} /> : (
+              <ul className="divide-y divide-slate-100">
+                {board.map((b, i) => (
+                  <li key={b.employee_id} className={cx('flex items-center gap-3 py-3', myEmp && b.employee_id === myEmp.id && 'rounded-lg bg-brand-50 px-2')}>
+                    <span className="w-8 text-center text-lg font-bold">{medal(i)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-800">{eName(empById(b.employee_id))}</p>
+                      <p className="truncate text-xs text-slate-500">{metrics.filter((mt) => b.counts[mt.code]).map((mt) => mName(mt) + ' ' + b.counts[mt.code]).join(' · ')}{b.value ? ' · ' + money(b.value) : ''}</p>
+                    </div>
+                    <span className="shrink-0 text-base font-bold text-brand-800">{b.points}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {tab === 'mine' && myEmp && (
+        <>
+          <Btn size="lg" onClick={() => setForm({ employee_id: myEmp.id, metric_id: (metrics[0] || {}).id || '', entry_date: todayISO(), quantity: 1, value_egp: '', reference: '', notes: '' })}>+ {t.addEntry}</Btn>
+          <Card title={t.myEntries}>
+            {entries === null ? <Empty text={t.loading} /> : entries.filter((x) => x.employee_id === myEmp.id).length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">
+                {entries.filter((x) => x.employee_id === myEmp.id).map((en) => <EntryRow key={en.id} en={en} showName={false}
+                  actions={en.status === 'pending' ? <Btn size="sm" variant="ghost" className="text-rose-600" onClick={() => removeEntry(en)}>{t.del}</Btn> : null} />)}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {tab === 'approvals' && (
+        <>
+          {(isHr || (myEmp && data.employees.some((e) => e.manager_id === myEmp.id))) && (
+            <Btn onClick={() => setForm({ employee_id: '', metric_id: (metrics[0] || {}).id || '', entry_date: todayISO(), quantity: 1, value_egp: '', reference: '', notes: '' })}>+ {t.addEntry}</Btn>
+          )}
+          <Card title={t.approvals}>
+            {entries === null ? <Empty text={t.loading} /> : pending.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">
+                {pending.map((en) => <EntryRow key={en.id} en={en} showName={true}
+                  actions={<div className="flex gap-2"><Btn size="sm" className="flex-1" onClick={() => decide(en, 'approved')}>{t.approve}</Btn><Btn size="sm" variant="danger" className="flex-1" onClick={() => decide(en, 'rejected')}>{t.reject}</Btn></div>} />)}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {tab === 'metrics' && (
+        <Card title={t.metricsTab} action={<Btn size="sm" onClick={() => setMForm({ name_en: '', name_ar: '', code: '', points_per_unit: 1, value_points_per_million: 0, has_value: false, is_active: true })}>+ {t.add}</Btn>}>
+          <ul className="divide-y divide-slate-100">
+            {metrics.map((mt) => (
+              <li key={mt.id} className="flex items-center justify-between gap-2 py-2.5">
+                <div><p className="text-sm font-semibold text-slate-800">{mName(mt)}{!mt.is_active && <Badge tone="red"> {t.inactiveLbl}</Badge>}</p>
+                  <p className="text-xs text-slate-500">{Number(mt.points_per_unit)} {t.perUnit}{mt.has_value ? ' · ' + Number(mt.value_points_per_million) + ' ' + t.perMillion : ''}</p></div>
+                <Btn variant="ghost" size="sm" onClick={() => setMForm({ ...mt })}>{t.edit}</Btn>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <Modal open={!!form} onClose={() => setForm(null)} title={t.addEntry}
+        footer={<><Btn className="flex-1" disabled={!form || !form.employee_id || !form.metric_id} onClick={save}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
+        {form && (
+          <>
+            {(!myEmp || form.employee_id !== myEmp.id) && (
+              <Field label={t.selectEmployee}>
+                <Select value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
+                  <option value="">—</option>
+                  {data.employees.filter((e) => e.status === 'active' && (isHr || (myEmp && e.manager_id === myEmp.id))).map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+                </Select>
+              </Field>
+            )}
+            <Field label={t.kpi}>
+              <Select value={form.metric_id} onChange={(e) => setForm({ ...form, metric_id: e.target.value })}>
+                {metrics.filter((x) => x.is_active).map((mt) => <option key={mt.id} value={mt.id}>{mName(mt)} · {Number(mt.points_per_unit)} {t.pointsLbl}</option>)}
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.date}><Input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} /></Field>
+              <Field label={t.quantityLbl}><Input type="number" inputMode="numeric" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></Field>
+            </div>
+            {(metricById(form.metric_id) || {}).has_value && (
+              <Field label={t.dealValue}><Input type="number" inputMode="decimal" value={form.value_egp} onChange={(e) => setForm({ ...form, value_egp: e.target.value })} /></Field>
+            )}
+            <Field label={t.referenceLbl}><Input value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} /></Field>
+            <Field label={t.notes}><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+
+      <Modal open={!!mForm} onClose={() => setMForm(null)} title={t.metricsTab}
+        footer={<><Btn className="flex-1" disabled={!mForm || !(mForm.name_en || mForm.name_ar)} onClick={saveMetric}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setMForm(null)}>{t.cancel}</Btn></>}>
+        {mForm && (
+          <>
+            <Field label={t.nameAr}><Input value={mForm.name_ar} onChange={(e) => setMForm({ ...mForm, name_ar: e.target.value })} /></Field>
+            <Field label={t.nameEn}><Input value={mForm.name_en} onChange={(e) => setMForm({ ...mForm, name_en: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.perUnit}><Input type="number" step="0.5" value={mForm.points_per_unit} onChange={(e) => setMForm({ ...mForm, points_per_unit: e.target.value })} /></Field>
+              <Field label={t.perMillion}><Input type="number" step="0.5" value={mForm.value_points_per_million} onChange={(e) => setMForm({ ...mForm, value_points_per_million: e.target.value })} /></Field>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 accent-brand-700" checked={!!mForm.has_value} onChange={(e) => setMForm({ ...mForm, has_value: e.target.checked })} />{t.hasValue}</label>
+            <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 accent-brand-700" checked={mForm.is_active !== false} onChange={(e) => setMForm({ ...mForm, is_active: e.target.checked })} />{t.active}</label>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -4527,6 +4786,7 @@ function App() {
           : page === 'me' ? <MyPage {...shared} setPage={setPage} />
           : page === 'attendance' ? <AttendancePage {...shared} />
           : page === 'leave' ? <LeavePage {...shared} />
+          : page === 'kpi' ? <KpiPage {...shared} />
           : page === 'employees' ? <EmployeesPage {...shared} />
           : page === 'payroll' ? <PayrollPage {...shared} />
           : page === 'loans' ? <LoansPage {...shared} />
