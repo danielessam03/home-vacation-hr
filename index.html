@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.0';
+const APP_VERSION = 'v2.1';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -244,6 +244,10 @@ const T = {
     nosiEmployeeNo: 'Employee insurance number', dataSheet: 'Data sheet',
     filterSource: 'Source', srcApp: 'App actions', srcDb: 'Database changes (forensic)', changes: 'Changes',
     before: 'Before', after: 'After', loadMore: 'Load more', allLbl: 'All', noTermination: 'No termination date set',
+    myHr: 'My HR', myPayslips: 'My payslips', myBalance: 'My leave balance', myRequests: 'My requests',
+    myPunches: 'My attendance', myTrips: 'My trips', myDocs: 'My documents', quickActions: 'Quick actions',
+    presentDays: 'Days present', lateTotal: 'Late minutes', noPayslips: 'No approved payslips yet.',
+    goCheckIn: 'Check in / out', goLeave: 'Request leave', goTrip: 'Log a trip',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -384,6 +388,10 @@ const T = {
     nosiEmployeeNo: 'الرقم التأميني للموظف', dataSheet: 'بيان البيانات',
     filterSource: 'المصدر', srcApp: 'إجراءات التطبيق', srcDb: 'تغييرات قاعدة البيانات (تدقيق)', changes: 'التغييرات',
     before: 'قبل', after: 'بعد', loadMore: 'تحميل المزيد', allLbl: 'الكل', noTermination: 'لا يوجد تاريخ انتهاء خدمة',
+    myHr: 'خدمتي', myPayslips: 'قسائم راتبي', myBalance: 'رصيد إجازاتي', myRequests: 'طلباتي',
+    myPunches: 'حضوري', myTrips: 'مشاويري', myDocs: 'مستنداتي', quickActions: 'إجراءات سريعة',
+    presentDays: 'أيام الحضور', lateTotal: 'دقائق التأخير', noPayslips: 'لا توجد قسائم راتب معتمدة بعد.',
+    goCheckIn: 'تسجيل حضور / انصراف', goLeave: 'طلب إجازة', goTrip: 'تسجيل مشوار',
   },
 };
 
@@ -511,6 +519,24 @@ function annualEntitlement(emp, year) {
 }
 
 const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+/** Leave balance summary for one employee for a year -- shared by the
+    leave module and the self-service screen so both agree. */
+function leaveBalance(emp, year, reqs, adjs, types) {
+  const ent = annualEntitlement(emp, year);
+  const code = (id) => { const ty = types.find((x) => x.id === id); return ty ? ty.code : null; };
+  const taken = (c) => reqs.filter((r) => r.employee_id === emp.id && r.status === 'approved' && code(r.leave_type_id) === c)
+    .reduce((s, r) => s + Number(r.days), 0);
+  const adj = (c) => adjs.filter((a) => a.employee_id === emp.id && code(a.leave_type_id) === c)
+    .reduce((s, a) => s + Number(a.days), 0);
+  const annualTaken = taken('annual'), casualTaken = taken('casual');
+  const annualRemaining = ent.days + adj('annual') - annualTaken - casualTaken;
+  return {
+    ent, annualTaken, casualTaken, annualRemaining,
+    casualRemaining: Math.min(7 + adj('casual') - casualTaken, annualRemaining),
+    sickTaken: taken('sick'), unpaidTaken: taken('unpaid'), maternityTaken: taken('maternity'),
+  };
+}
 
 const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
 
@@ -915,6 +941,7 @@ function AuthScreen({ toast }) {
    ===================================================================== */
 const NAV = [
   { key: 'dashboard', icon: '🏠', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
+  { key: 'me',        icon: '🙋', roles: ['ceo', 'hr', 'accountant', 'manager'] },
   { key: 'attendance', icon: '🕐', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'leave',      icon: '🌴', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
@@ -1053,8 +1080,8 @@ function Dashboard({ me, data }) {
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 7 جاهزة: تقويم الإقرارات واستمارات التأمينات وسجل التدقيق الكامل. التالي: الخدمة الذاتية.'
-            : 'Module 7 is live: filing calendar, NOSI forms, full audit trail. Next up: self-service.'}
+            ? 'الوحدة 8 جاهزة: الخدمة الذاتية للموظفين على الهاتف. التالي: التقارير ولوحة المبيعات.'
+            : 'Module 8 is live: employee self-service on the phone. Next up: reports and the sales leaderboard.'}
         </p>
       </Card>
     </>
@@ -2330,23 +2357,7 @@ function LeavePage({ me, data, toast, audit }) {
   const companyWeekend = (data.settings.work_week || {}).weekend_days || [5, 6];
   const empWeekend = (emp) => (emp && emp.weekend_days) || companyWeekend;
 
-  /** Balance summary for one employee for the current year. */
-  function balance(emp) {
-    const ent = annualEntitlement(emp, year);
-    const taken = (code) => (reqs || [])
-      .filter((r) => r.employee_id === emp.id && r.status === 'approved' && tyById(r.leave_type_id) && tyById(r.leave_type_id).code === code)
-      .reduce((s, r) => s + Number(r.days), 0);
-    const adj = (code) => adjs
-      .filter((a) => a.employee_id === emp.id && tyById(a.leave_type_id) && tyById(a.leave_type_id).code === code)
-      .reduce((s, a) => s + Number(a.days), 0);
-    const annualTaken = taken('annual'), casualTaken = taken('casual');
-    return {
-      ent, annualTaken, casualTaken,
-      annualRemaining: ent.days + adj('annual') - annualTaken - casualTaken,
-      casualRemaining: Math.min(7 + adj('casual') - casualTaken, ent.days + adj('annual') - annualTaken - casualTaken),
-      sickTaken: taken('sick'), unpaidTaken: taken('unpaid'), maternityTaken: taken('maternity'),
-    };
-  }
+  const balance = (emp) => leaveBalance(emp, year, reqs || [], adjs, types);
 
   /* ---------- create request ---------- */
   function openForm() {
@@ -3324,6 +3335,171 @@ function CompliancePage({ me, data, toast, audit }) {
 }
 
 /* =====================================================================
+   7i. Self-service -- "My HR"
+   ===================================================================== */
+function MyPage({ me, data, toast, setPage }) {
+  const { lang, t } = useL();
+  const myEmp = data.employees.find((e) => e.user_id === me.id);
+  const year = new Date().getFullYear();
+  const [d, setD] = useState(null);
+  const [slip, setSlip] = useState(null);
+
+  useEffect(() => {
+    if (!myEmp) return;
+    const mStart = new Date(); mStart.setDate(1); mStart.setHours(0, 0, 0, 0);
+    (async () => {
+      const [items, runs, reqs, adjs, types, punches, trips, loans, docs] = await Promise.all([
+        sb.from('payroll_items').select('*').eq('employee_id', myEmp.id),
+        sb.from('payroll_runs').select('*').eq('status', 'approved').order('year', { ascending: false }).order('month', { ascending: false }),
+        sb.from('leave_requests').select('*').eq('employee_id', myEmp.id).gte('start_date', year + '-01-01').order('created_at', { ascending: false }),
+        sb.from('leave_adjustments').select('*').eq('employee_id', myEmp.id).eq('year', year),
+        sb.from('leave_types').select('*'),
+        sb.from('attendance_punches').select('*').eq('employee_id', myEmp.id).gte('punch_time', mStart.toISOString()).order('punch_time', { ascending: false }),
+        sb.from('trips').select('*').eq('employee_id', myEmp.id).gte('started_at', mStart.toISOString()),
+        sb.from('loans').select('*').eq('employee_id', myEmp.id).eq('status', 'active'),
+        sb.from('employee_documents').select('*').eq('employee_id', myEmp.id).order('created_at', { ascending: false }),
+      ]);
+      setD({
+        items: items.data || [], runs: runs.data || [], reqs: reqs.data || [], adjs: adjs.data || [], types: types.data || [],
+        punches: punches.data || [], trips: trips.data || [], loans: loans.data || [], docs: docs.data || [],
+      });
+    })();
+  }, [myEmp && myEmp.id]);
+
+  if (!myEmp) return <Card><Empty text={t.noEmpLink} /></Card>;
+  const name = (lang === 'ar' ? myEmp.full_name_ar : myEmp.full_name_en) || myEmp.full_name_en;
+  const branch = data.branches.find((b) => b.id === myEmp.branch_id);
+  const bal = d ? leaveBalance(myEmp, year, d.reqs, d.adjs, d.types) : null;
+  const tyName = (id) => { const ty = d && d.types.find((x) => x.id === id); return ty ? (lang === 'ar' ? ty.name_ar : ty.name_en) : '—'; };
+  const lvTone = (s) => s === 'approved' ? 'green' : s === 'rejected' ? 'red' : s === 'cancelled' ? 'slate' : 'amber';
+  const slips = d ? d.runs.map((r) => ({ run: r, item: d.items.find((i) => i.run_id === r.id) })).filter((x) => x.item) : [];
+  const presentDays = d ? new Set(d.punches.map((p) => localDay(p.punch_time))).size : 0;
+  const shift = data.shifts.find((s) => s.id === myEmp.shift_id) || data.shifts[0];
+  const lateTotal = d && shift ? Object.values(d.punches.reduce((acc, p) => { (acc[localDay(p.punch_time)] = acc[localDay(p.punch_time)] || []).push(p); return acc; }, {}))
+    .reduce((s, list) => { const first = list[list.length - 1]; return s + Math.max(0, minutesOf(first.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes)); }, 0) : 0;
+  const km = d ? d.trips.reduce((s, x) => s + (x.manual_km != null ? Number(x.manual_km) : Number(x.distance_km) || 0), 0) : 0;
+
+  async function openDoc(doc) {
+    const { data: s, error } = await sb.storage.from('employee-docs').createSignedUrl(doc.file_path, 300);
+    if (error) return toast(error.message, 'error');
+    window.open(s.signedUrl, '_blank');
+  }
+
+  return (
+    <>
+      <div className="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
+        <p className="text-sm text-brand-200">{t.welcome}</p>
+        <p className="text-xl font-bold">{name}</p>
+        <p className="mt-1 text-sm text-brand-200">{(lang === 'ar' ? myEmp.job_title_ar : myEmp.job_title_en) || '—'} · {branch ? (lang === 'ar' ? branch.name_ar : branch.name_en) : '—'} · {myEmp.employee_code}</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance')}>🕐<span>{t.goCheckIn}</span></Btn>
+        <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('leave')}>🌴<span>{t.goLeave}</span></Btn>
+        <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance')}>🚗<span>{t.goTrip}</span></Btn>
+      </div>
+
+      {!d ? <Empty text={t.loading} /> : (
+        <>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              [t.annualShort, bal.ent.dueYet ? bal.annualRemaining : '—', '🌴'],
+              [t.casualShort, bal.ent.dueYet ? bal.casualRemaining : '—', '⚡'],
+              [t.presentDays, presentDays, '🕐'],
+              [t.lateTotal, lateTotal, '⏰'],
+            ].map(([l, v, i], idx) => (
+              <div key={idx} className="rounded-2xl border border-slate-200 bg-white p-2.5 text-center">
+                <div>{i}</div><div className="text-lg font-bold text-slate-800">{v}</div><div className="text-[10px] leading-tight text-slate-500">{l}</div>
+              </div>
+            ))}
+          </div>
+
+          <Card title={t.myPayslips}>
+            {slips.length === 0 ? <Empty text={t.noPayslips} /> : (
+              <ul className="divide-y divide-slate-100">
+                {slips.map(({ run, item }) => (
+                  <li key={item.id} className="flex cursor-pointer items-center justify-between py-3" onClick={() => setSlip({ run, item })}>
+                    <span className="text-sm font-semibold text-slate-800">{run.month}/{run.year}</span>
+                    <span className="text-sm font-bold text-brand-800">{money(item.net_pay)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={t.myRequests}>
+            {d.reqs.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">
+                {d.reqs.slice(0, 8).map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2 py-2.5">
+                    <div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-800">{tyName(r.leave_type_id)}</p>
+                      <p className="text-xs text-slate-500">{r.start_date} ← {r.end_date} · {Number(r.days)} {t.daysLbl}</p></div>
+                    <Badge tone={lvTone(r.status)}>{t.lvStatus[r.status]}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={t.myPunches + ' — ' + t.thisMonth}>
+            {d.punches.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">
+                {d.punches.slice(0, 10).map((p) => (
+                  <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-slate-700">{localDay(p.punch_time)} · {fmtTime(p.punch_time)}</span>
+                    <span className="text-xs text-slate-500">{p.direction === 'in' ? t.dirIn : p.direction === 'out' ? t.dirOut : '—'} · {p.source}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          {(d.trips.length > 0 || d.loans.length > 0) && (
+            <div className="grid grid-cols-2 gap-3">
+              <Card title={t.myTrips}><p className="text-center text-2xl font-bold text-slate-800">{km.toFixed(1)} <span className="text-sm text-slate-500">{t.km}</span></p><p className="text-center text-xs text-slate-500">{d.trips.length} · {t.thisMonth}</p></Card>
+              <Card title={t.myLoans}>
+                {d.loans.length === 0 ? <Empty text={t.noData} /> : d.loans.map((l) => (
+                  <p key={l.id} className="text-sm"><b>{money(r2(Number(l.principal) - Number(l.paid_total)))}</b> <span className="text-xs text-slate-500">{t.remaining} · {money(l.installment_amount)}/{t.monthLbl}</span></p>
+                ))}
+              </Card>
+            </div>
+          )}
+
+          {d.docs.length > 0 && (
+            <Card title={t.myDocs}>
+              <ul className="divide-y divide-slate-100">
+                {d.docs.map((x) => (
+                  <li key={x.id} className="flex items-center justify-between py-2.5 text-sm">
+                    <span className="truncate font-semibold text-slate-800">{x.title} <span className="text-xs font-normal text-slate-500">· {t.docTypes[x.doc_type]}</span></span>
+                    <Btn variant="ghost" size="sm" onClick={() => openDoc(x)}>{t.download}</Btn>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </>
+      )}
+
+      <Modal open={!!slip} onClose={() => setSlip(null)} title={slip ? t.payslip + ' ' + slip.run.month + '/' + slip.run.year : ''}
+        footer={slip ? <><Btn variant="soft" className="flex-1" onClick={() => printPayslip(slip.item, myEmp, slip.run, data.settings.company, t)}>🖨️ {t.print}</Btn><Btn variant="outline" className="flex-1" onClick={() => setSlip(null)}>{t.close}</Btn></> : null}>
+        {slip && (
+          <div className="space-y-1 text-sm">
+            {[
+              [t.basicLbl, slip.item.basic_salary], [t.allowLbl, slip.item.allowances_total], [t.otLbl, slip.item.ot_amount], [t.otherEarn, slip.item.other_earnings],
+              [t.lateDedLbl, -slip.item.late_deduction], [t.unpaidDedLbl, -slip.item.unpaid_deduction], [t.sickDedLbl, -slip.item.sick_deduction],
+              [t.insEmp, -slip.item.insurance_employee], [t.taxLbl, -slip.item.income_tax], [t.loanDedLbl, -(slip.item.loan_deduction || 0)], [t.otherDed, -slip.item.other_deductions],
+            ].filter(([, v]) => Number(v) !== 0).map(([k, v], i) => (
+              <div key={i} className="flex justify-between"><span className="text-slate-500">{k}</span><b className={Number(v) < 0 ? 'text-rose-600' : ''}>{money(Math.abs(Number(v)))}{Number(v) < 0 ? ' -' : ''}</b></div>
+            ))}
+            <div className="mt-2 flex justify-between rounded-xl bg-brand-700 px-4 py-3 font-bold text-white"><span>{t.netLbl}</span><span>{money(slip.item.net_pay)}</span></div>
+          </div>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -4106,7 +4282,8 @@ function App() {
       <Shell me={me} page={page} setPage={setPage} onSignOut={() => sb.auth.signOut()}>
         {!ready ? <Empty text={t.loading} />
           : !allowed ? <Card><Empty text={t.noPermission} /></Card>
-          : page === 'dashboard' ? <Dashboard {...shared} />
+          : page === 'dashboard' ? (me.role === 'staff' ? <MyPage {...shared} setPage={setPage} /> : <Dashboard {...shared} />)
+          : page === 'me' ? <MyPage {...shared} setPage={setPage} />
           : page === 'attendance' ? <AttendancePage {...shared} />
           : page === 'leave' ? <LeavePage {...shared} />
           : page === 'employees' ? <EmployeesPage {...shared} />
