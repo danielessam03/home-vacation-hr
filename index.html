@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.3';
+const APP_VERSION = 'v2.4';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -192,9 +192,9 @@ const T = {
     papersLbl: 'Required hiring papers', addPaper: 'Add paper',
     genJd: 'Job description', genOffer: 'Offer letter', candidateName: 'Candidate name',
     customNotes: 'Custom terms / different schedule (optional)',
-    generating: 'Generating with AI…', generate: '✨ Generate with AI', docLang: 'Language', bothLangs: 'Arabic + English',
+    generating: 'Generating…', generate: '✨ Generate document', docLang: 'Language', bothLangs: 'Arabic + English',
     savedDocs: 'Saved documents', print: 'Print', regenHint: 'Review and edit the text below before saving or printing.',
-    aiFail: 'AI generation failed', arabicLbl: 'Arabic', englishLbl: 'English',
+    aiFail: 'Generation failed', arabicLbl: 'Arabic', englishLbl: 'English',
     leave: 'Leave', myLeave: 'My leave', newRequest: 'New request',
     balanceLbl: 'Balance', entitlement: 'Entitlement', taken: 'Taken', remaining: 'Remaining',
     approvals: 'Approvals', balances: 'Balances', leaveType: 'Leave type',
@@ -350,9 +350,9 @@ const T = {
     papersLbl: 'الأوراق المطلوبة للتعيين', addPaper: 'إضافة مستند',
     genJd: 'توصيف وظيفي', genOffer: 'خطاب عرض عمل', candidateName: 'اسم المرشح',
     customNotes: 'شروط خاصة / جدول مختلف (اختياري)',
-    generating: 'جاري الإنشاء بالذكاء الاصطناعي…', generate: '✨ إنشاء بالذكاء الاصطناعي', docLang: 'اللغة', bothLangs: 'عربي + إنجليزي',
+    generating: 'جاري الإنشاء…', generate: '✨ إنشاء المستند', docLang: 'اللغة', bothLangs: 'عربي + إنجليزي',
     savedDocs: 'المستندات المحفوظة', print: 'طباعة', regenHint: 'راجع النص وعدّله قبل الحفظ أو الطباعة.',
-    aiFail: 'فشل الإنشاء بالذكاء الاصطناعي', arabicLbl: 'العربية', englishLbl: 'الإنجليزية',
+    aiFail: 'فشل الإنشاء', arabicLbl: 'العربية', englishLbl: 'الإنجليزية',
     leave: 'الإجازات', myLeave: 'إجازاتي', newRequest: 'طلب جديد',
     balanceLbl: 'الرصيد', entitlement: 'الاستحقاق', taken: 'المستخدم', remaining: 'المتبقي',
     approvals: 'الموافقات', balances: 'الأرصدة', leaveType: 'نوع الإجازة',
@@ -471,6 +471,299 @@ const getGps = () => new Promise((resolve, reject) => {
     (e) => reject(e), { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
   );
 });
+
+/* JD-ENGINE-START */
+/* Built-in bilingual job-description & offer-letter engine.
+   Deterministic, free, offline: assembles professional documents from the
+   role record, Egyptian labor-law rules and any custom terms. */
+const JD = (() => {
+  const DAY_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const DAY_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+  /** Free text -> clean bullet items (splits on newlines, ; ؛ and sentence ends). */
+  const items = (txt) => String(txt || '')
+    .split(/\r?\n|[;؛]|\.\s+(?=[A-Za-z؀-ۿ])/)
+    .map((s) => s.replace(/^[\s\-•*\d.)]+/, '').replace(/[.\s]+$/, '').trim())
+    .filter((s) => s.length > 1);
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const lower1 = (s) => /^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+  const list = (arr) => arr.map((x) => '- ' + x).join('\n');
+  const isLeader = (r) => /team leader|manager|head|supervisor|director/i.test(r.title_en || '') || /قائد|مدير|رئيس|مشرف/.test(r.title_ar || '');
+
+  const DEPT = {
+    'Sales': {
+      reportsEn: 'Sales Team Leader', reportsAr: 'قائد فريق المبيعات',
+      kpiEn: ['New listings acquired per month', 'Client viewings conducted', 'Offers submitted and deals closed', 'Sales value against monthly target', 'Lead follow-up discipline in the Engaz CRM'],
+      kpiAr: ['عدد الوحدات الجديدة المضافة شهرياً', 'عدد معاينات العملاء المنفذة', 'العروض المقدمة والصفقات المغلقة', 'قيمة المبيعات مقارنة بالمستهدف الشهري', 'الانضباط في متابعة العملاء المحتملين على نظام إنجاز CRM'],
+      leaderKpiEn: ['Team sales value against the monthly target', 'Pipeline health and conversion rate', 'Coaching sessions and team leaderboard progress', 'Timely attendance and leave approvals for the team', 'Weekly pipeline reporting to management'],
+      leaderKpiAr: ['قيمة مبيعات الفريق مقارنة بالمستهدف الشهري', 'صحة خط المبيعات ومعدل التحويل', 'جلسات التدريب وتقدم الفريق على لوحة المتصدرين', 'اعتماد حضور وإجازات الفريق في مواعيدها', 'التقرير الأسبوعي لخط المبيعات إلى الإدارة'],
+    },
+    'Marketing': { reportsEn: 'Marketing Manager', reportsAr: 'مدير التسويق',
+      kpiEn: ['Listings published within 24 hours of receipt', 'Accuracy of prices, photos and descriptions', 'Portal and social page response times', 'CRM record completeness'],
+      kpiAr: ['نشر الوحدات خلال 24 ساعة من استلامها', 'دقة الأسعار والصور والأوصاف', 'سرعة الرد على البوابات وصفحات التواصل', 'اكتمال سجلات نظام CRM'] },
+    'Finance': { reportsEn: 'Finance Manager / Company Accountant', reportsAr: 'المدير المالي / محاسب الشركة',
+      kpiEn: ['Monthly close completed on schedule', 'Accuracy of bank reconciliations', 'Tax and social-insurance filings submitted before deadlines', 'Receivables collection rate'],
+      kpiAr: ['إقفال الشهر في الموعد المحدد', 'دقة التسويات البنكية', 'تقديم الإقرارات الضريبية والتأمينية قبل مواعيدها', 'معدل تحصيل المستحقات'] },
+    'HR & Admin': { reportsEn: 'General Manager', reportsAr: 'المدير العام',
+      kpiEn: ['Employee files complete and up to date', 'Government paperwork processed on time', 'Office requests handled the same day', 'Contract and document renewals before expiry'],
+      kpiAr: ['اكتمال ملفات الموظفين وتحديثها', 'إنجاز الأوراق الحكومية في مواعيدها', 'إنجاز طلبات المكتب في نفس اليوم', 'تجديد العقود والمستندات قبل انتهائها'] },
+    'Operations': { reportsEn: 'Operations Manager', reportsAr: 'مدير العمليات',
+      kpiEn: ['Response time to maintenance requests', 'First-visit fix rate', 'Routine inspections completed per schedule', 'Spare-parts and trip logging accuracy'],
+      kpiAr: ['سرعة الاستجابة لطلبات الصيانة', 'نسبة الإصلاح من أول زيارة', 'إنجاز الفحوصات الدورية حسب الجدول', 'دقة تسجيل قطع الغيار والمشاوير'] },
+    'Customer Service': { reportsEn: 'Customer Service Manager', reportsAr: 'مدير خدمة العملاء',
+      kpiEn: ['Response time to client inquiries', 'Client satisfaction feedback', 'Issues resolved within the agreed time', 'Complaint escalation rate'],
+      kpiAr: ['سرعة الرد على استفسارات العملاء', 'تقييمات رضا العملاء', 'حل المشكلات خلال الوقت المتفق عليه', 'معدل تصعيد الشكاوى'] },
+  };
+  const GENERIC = { reportsEn: 'General Manager', reportsAr: 'المدير العام',
+    kpiEn: ['Tasks completed on time and to standard', 'Adherence to company policies and procedures', 'Attendance and punctuality', 'Quality of communication with colleagues and clients'],
+    kpiAr: ['إنجاز المهام في وقتها وبالمستوى المطلوب', 'الالتزام بسياسات الشركة وإجراءاتها', 'الحضور والانضباط في المواعيد', 'جودة التواصل مع الزملاء والعملاء'] };
+
+  /** English rendering of the standard Egyptian hiring papers (keyed by
+      the Arabic text stored on the role); unknown custom papers pass through. */
+  const PAPERS_EN = {
+    'بطاقة الرقم القومي (صورة حديثة سارية)': 'National ID card (recent valid copy)',
+    'شهادة الميلاد (أصل كمبيوتر حديث)': 'Birth certificate (recent computerized original)',
+    'المؤهل الدراسي (أصل)': 'Educational qualification (original)',
+    'شهادة أداء / إعفاء الخدمة العسكرية (للذكور)': 'Military service completion / exemption certificate (males)',
+    'صحيفة الحالة الجنائية "فيش وتشبيه" حديثة موجهة لجهة العمل': 'Recent criminal record certificate addressed to the employer',
+    '6 صور شخصية حديثة': '6 recent passport-size photos',
+    'كعب عمل / شهادة قيد من مكتب العمل': 'Labor office registration certificate (ka\'b amal)',
+    'برنت تأمينات اجتماعية (إفادة بمدد الاشتراك السابقة)': 'Social insurance statement of previous contribution periods',
+    'شهادة صحية / كشف طبي حسب طبيعة العمل': 'Health certificate / medical check as required by the job',
+    'إيصال مرافق حديث لإثبات محل الإقامة': 'Recent utility bill as proof of address',
+  };
+  const papersEn = (arr) => arr.map((p) => PAPERS_EN[String(p).trim()] || p);
+
+  const CONTRACT = {
+    en: { indefinite: 'Indefinite-term employment contract', fixed_term: 'Fixed-term employment contract', part_time: 'Part-time employment contract', probation: 'Probationary contract' },
+    ar: { indefinite: 'عقد عمل غير محدد المدة', fixed_term: 'عقد عمل محدد المدة', part_time: 'عقد عمل بدوام جزئي', probation: 'عقد فترة اختبار' },
+  };
+
+  function ctx(input) {
+    const role = input.role || {};
+    const company = input.company || {};
+    const dept = DEPT[role.dept_en || ''] || GENERIC;
+    const leader = isLeader(role);
+    const weekend = input.weekendDays || [5, 6];
+    const restEn = weekend.map((d) => DAY_EN[d]).join(' and ');
+    const restAr = weekend.map((d) => DAY_AR[d]).join(' و');
+    const workDays = 7 - weekend.length;
+    const today = input.today || new Date().toISOString().slice(0, 10);
+    const isHrg = /hurghada/i.test(company.city || '') || !company.city;
+    return {
+      role, company, dept, leader, today,
+      nameEn: company.name_en || 'Home Vacation', nameAr: company.name_ar || 'هوم فاكيشن',
+      locEn: isHrg ? 'Hurghada, Red Sea, Egypt' : [company.city, company.country].filter(Boolean).join(', '),
+      locAr: isHrg ? 'الغردقة، البحر الأحمر، مصر' : [company.city, company.country].filter(Boolean).join('، '),
+      deptEn: role.dept_en || '—', deptAr: role.dept_ar || role.dept_en || '—',
+      reportsEn: leader && role.dept_en === 'Sales' ? 'General Manager' : dept.reportsEn,
+      reportsAr: leader && role.dept_en === 'Sales' ? 'المدير العام' : dept.reportsAr,
+      kpiEn: leader && dept.leaderKpiEn ? dept.leaderKpiEn : dept.kpiEn,
+      kpiAr: leader && dept.leaderKpiAr ? dept.leaderKpiAr : dept.kpiAr,
+      schedEn: role.schedule_note || (workDays + ' days per week, ' + restEn + ' off'),
+      schedAr: role.schedule_note_ar || role.schedule_note || (workDays + ' أيام أسبوعياً، ' + restAr + ' إجازة'),
+      dutiesEn: items(role.duties), dutiesAr: items(role.duties_ar || role.duties),
+      reqEn: items(role.requirements), reqAr: items(role.requirements_ar || role.requirements),
+      papers: Array.isArray(role.papers) ? role.papers.filter(Boolean) : [],
+      salary: role.salary_note || '', commission: role.commission_note || '', benefits: role.benefits || '',
+      contract: input.contract_type || 'indefinite',
+      custom: items(input.custom_notes), customRaw: String(input.custom_notes || '').trim(),
+      candidate: String(input.candidate_name || '').trim(),
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  function jdEn(c) {
+    const r = c.role;
+    const summary = c.dutiesEn.length
+      ? `The ${r.title_en} is responsible for ${lower1(c.dutiesEn[0])}${c.dutiesEn.length > 1 ? ', among other responsibilities listed below' : ''}. `
+      : '';
+    return [
+      `# Job Description: ${r.title_en}`,
+      `**Company:** ${c.nameEn}  `,
+      `**Department:** ${c.deptEn}  `,
+      `**Location:** ${c.locEn}  `,
+      `**Reports to:** ${c.reportsEn}  `,
+      `**Work schedule:** ${c.schedEn}`,
+      '',
+      '## Position Summary',
+      `${summary}The role is based in ${c.locEn} and reports to the ${c.reportsEn}. The position holder represents ${c.nameEn} to clients and partners and is expected to work to the highest professional standards of the Egyptian real-estate market.`,
+      '',
+      '## Key Responsibilities',
+      list([...c.dutiesEn.map(cap), 'Record attendance, client visits and business trips in the company HR system', 'Comply with company policies, procedures and the code of conduct']),
+      '',
+      '## Qualifications and Requirements',
+      list([...c.reqEn.map(cap), 'Valid Egyptian national ID and a complete hiring file (see required documents)', 'Professional conduct, reliability and a team-oriented attitude']),
+      '',
+      '## Key Performance Indicators',
+      list(c.kpiEn),
+      '',
+      '## Working Conditions',
+      list([
+        `Work schedule: ${c.schedEn}`,
+        'Working hours: 8 hours per day, within the 48-hour weekly limit set by Egyptian labor law',
+        'Annual leave: 21 working days per year, rising to 30 days after 10 years of service or at age 50; 7 days of casual leave are drawn from the annual balance',
+        'Official public holidays as announced by the government',
+        'Probation period: up to 3 months as permitted by Egyptian labor law',
+      ]),
+      '',
+      '## Compensation and Benefits',
+      list([
+        `Salary: ${c.salary || 'per the company salary scale'}`,
+        ...(c.commission ? [`Commission: ${c.commission}`] : []),
+        ...(c.benefits ? [`Benefits: ${c.benefits}`] : []),
+        'Social insurance: registered with the National Organization for Social Insurance in accordance with Egyptian law',
+      ]),
+      ...(c.custom.length ? ['', '## Special Terms for This Position', 'The following terms apply to this position and override the general terms above where they differ:', list(c.custom)] : []),
+      ...(c.papers.length ? ['', '## Required Hiring Documents', list(papersEn(c.papers))] : []),
+    ].join('\n');
+  }
+
+  function jdAr(c) {
+    const r = c.role;
+    const summary = c.dutiesAr.length
+      ? `يتولى شاغل وظيفة ${r.title_ar} مسؤولية ${c.dutiesAr[0]}${c.dutiesAr.length > 1 ? '، إلى جانب المهام الموضحة أدناه' : ''}. `
+      : '';
+    return [
+      `# التوصيف الوظيفي: ${r.title_ar}`,
+      `**الشركة:** ${c.nameAr}  `,
+      `**القسم:** ${c.deptAr}  `,
+      `**مقر العمل:** ${c.locAr}  `,
+      `**يتبع إلى:** ${c.reportsAr}  `,
+      `**نظام العمل:** ${c.schedAr}`,
+      '',
+      '## ملخص الوظيفة',
+      `${summary}مقر الوظيفة في ${c.locAr} ويتبع شاغلها ${c.reportsAr}. يمثل شاغل الوظيفة شركة ${c.nameAr} أمام العملاء والشركاء، ويُتوقع منه العمل وفق أعلى المعايير المهنية في سوق العقارات المصري.`,
+      '',
+      '## المهام والمسؤوليات الرئيسية',
+      list([...c.dutiesAr, 'تسجيل الحضور ومعاينات العملاء ومشاوير العمل في نظام الموارد البشرية بالشركة', 'الالتزام بسياسات الشركة وإجراءاتها وقواعد السلوك المهني']),
+      '',
+      '## المؤهلات والمتطلبات',
+      list([...c.reqAr, 'بطاقة رقم قومي سارية وملف تعيين مكتمل (انظر المستندات المطلوبة)', 'السلوك المهني والالتزام وروح العمل الجماعي']),
+      '',
+      '## مؤشرات الأداء الرئيسية',
+      list(c.kpiAr),
+      '',
+      '## ظروف العمل',
+      list([
+        `نظام العمل: ${c.schedAr}`,
+        'ساعات العمل: 8 ساعات يومياً في حدود 48 ساعة أسبوعياً وفقاً لقانون العمل المصري',
+        'الإجازة السنوية: 21 يوم عمل سنوياً، تزيد إلى 30 يوماً بعد 10 سنوات خدمة أو عند بلوغ سن الخمسين؛ وتُخصم الإجازة العارضة (7 أيام) من الرصيد السنوي',
+        'الإجازات الرسمية وفقاً لما تعلنه الحكومة',
+        'فترة الاختبار: بحد أقصى 3 أشهر وفقاً لقانون العمل المصري',
+      ]),
+      '',
+      '## الراتب والمزايا',
+      list([
+        `الراتب: ${c.salary || 'وفقاً لهيكل الأجور المعتمد بالشركة'}`,
+        ...(c.commission ? [`العمولة: ${c.commission}`] : []),
+        ...(c.benefits ? [`المزايا: ${c.benefits}`] : []),
+        'التأمينات الاجتماعية: يتم التأمين على الموظف لدى الهيئة القومية للتأمين الاجتماعي وفقاً للقانون',
+      ]),
+      ...(c.custom.length ? ['', '## شروط خاصة بهذا المنصب', 'تسري الشروط التالية على هذا المنصب وتحل محل الشروط العامة أعلاه عند التعارض:', list(c.custom)] : []),
+      ...(c.papers.length ? ['', '## المستندات المطلوبة للتعيين', list(c.papers)] : []),
+    ].join('\n');
+  }
+
+  /* ------------------------------------------------------------------ */
+  function offerEn(c) {
+    const r = c.role;
+    const ref = 'HV-OFR-' + c.today.replace(/-/g, '');
+    return [
+      '# Job Offer Letter',
+      `**Date:** ${c.today}  `,
+      `**Reference:** ${ref}`,
+      '',
+      `To: **${c.candidate || '______________________'}**`,
+      '',
+      'Dear Candidate,',
+      '',
+      `${c.nameEn} is pleased to offer you the position of **${r.title_en}** in the ${c.deptEn} department, based in ${c.locEn} and reporting to the ${c.reportsEn}. Your expected start date is ______________ (to be agreed upon acceptance).`,
+      '',
+      '## Terms of Employment',
+      list([
+        `Position: ${r.title_en}`,
+        `Department: ${c.deptEn}`,
+        `Contract type: ${CONTRACT.en[c.contract] || CONTRACT.en.indefinite}`,
+        'Probation period: 3 months from the start date, in accordance with Egyptian labor law',
+        `Work schedule: ${c.schedEn}`,
+        `Basic salary: ${c.salary || 'per the company salary scale, as agreed'}`,
+        ...(c.commission ? [`Commission: ${c.commission}`] : []),
+        ...(c.benefits ? [`Benefits: ${c.benefits}`] : []),
+        'Annual leave: 21 working days per year (30 after 10 years of service or at age 50), plus official public holidays',
+        'Social insurance: you will be registered with the National Organization for Social Insurance from your start date',
+      ]),
+      ...(c.custom.length ? ['', '## Special Terms', 'The following terms are specific to this offer and prevail over the general terms above:', list(c.custom)] : []),
+      ...(c.papers.length ? ['', '## Documents Required Before Your Start Date', list(papersEn(c.papers))] : []),
+      '',
+      '## Validity',
+      `This offer is valid for 7 days from the date above. Please confirm your acceptance by signing below and returning a copy to the HR department.`,
+      '',
+      '## Acceptance',
+      'I, the undersigned, accept the position and the terms stated in this offer letter.',
+      '',
+      'Candidate name: ______________________  Signature: ______________  Date: ____________',
+      '',
+      `For ${c.nameEn}: ______________________  Signature: ______________  Date: ____________`,
+    ].join('\n');
+  }
+
+  function offerAr(c) {
+    const r = c.role;
+    const ref = 'HV-OFR-' + c.today.replace(/-/g, '');
+    return [
+      '# خطاب عرض عمل',
+      `**التاريخ:** ${c.today}  `,
+      `**المرجع:** ${ref}`,
+      '',
+      `السيد/ة: **${c.candidate || '______________________'}**`,
+      '',
+      'تحية طيبة وبعد،',
+      '',
+      `يسر شركة ${c.nameAr} أن تتقدم لكم بعرض للعمل في وظيفة **${r.title_ar}** بقسم ${c.deptAr}، ومقر العمل ${c.locAr}، وتتبعون في عملكم ${c.reportsAr}. على أن تكون مباشرة العمل اعتباراً من ______________ (يُحدد عند القبول).`,
+      '',
+      '## شروط التعيين',
+      list([
+        `المسمى الوظيفي: ${r.title_ar}`,
+        `القسم: ${c.deptAr}`,
+        `نوع العقد: ${CONTRACT.ar[c.contract] || CONTRACT.ar.indefinite}`,
+        'فترة الاختبار: 3 أشهر من تاريخ المباشرة وفقاً لقانون العمل المصري',
+        `نظام العمل: ${c.schedAr}`,
+        `الراتب الأساسي: ${c.salary || 'وفقاً لهيكل الأجور المعتمد بالشركة حسب الاتفاق'}`,
+        ...(c.commission ? [`العمولة: ${c.commission}`] : []),
+        ...(c.benefits ? [`المزايا: ${c.benefits}`] : []),
+        'الإجازة السنوية: 21 يوم عمل سنوياً (30 يوماً بعد 10 سنوات خدمة أو عند بلوغ سن الخمسين) بالإضافة إلى الإجازات الرسمية',
+        'التأمينات الاجتماعية: يتم التأمين عليكم لدى الهيئة القومية للتأمين الاجتماعي من تاريخ المباشرة',
+      ]),
+      ...(c.custom.length ? ['', '## شروط خاصة', 'تسري الشروط التالية على هذا العرض تحديداً وتحل محل الشروط العامة أعلاه:', list(c.custom)] : []),
+      ...(c.papers.length ? ['', '## المستندات المطلوبة قبل المباشرة', list(c.papers)] : []),
+      '',
+      '## سريان العرض',
+      'هذا العرض ساري لمدة 7 أيام من تاريخه. يرجى تأكيد القبول بالتوقيع أدناه وإعادة نسخة إلى إدارة الموارد البشرية.',
+      '',
+      '## الإقرار والقبول',
+      'أقر أنا الموقع أدناه بقبول الوظيفة والشروط الواردة في خطاب العرض هذا.',
+      '',
+      'اسم المرشح: ______________________  التوقيع: ______________  التاريخ: ____________',
+      '',
+      `عن شركة ${c.nameAr}: ______________________  التوقيع: ______________  التاريخ: ____________`,
+    ].join('\n');
+  }
+
+  /** Main entry: returns Markdown. */
+  function build(input) {
+    const c = ctx(input);
+    const kind = input.kind === 'offer' ? 'offer' : 'jd';
+    const ar = kind === 'offer' ? offerAr(c) : jdAr(c);
+    const en = kind === 'offer' ? offerEn(c) : jdEn(c);
+    if (input.language === 'ar') return ar;
+    if (input.language === 'en') return en;
+    return ar + '\n\n---\n\n' + en;
+  }
+
+  return { build, items };
+})();
+/* JD-ENGINE-END */
 
 /** Minimal Markdown -> HTML for AI-generated documents (headings, bullets,
     bold, hr). Input is escaped first, so generated text can't inject HTML. */
@@ -2144,8 +2437,9 @@ function JobsPage({ me, data, toast, audit }) {
       title_en: form.title_en, title_ar: form.title_ar,
       department_id: form.department_id || null,
       duties: form.duties, requirements: form.requirements,
+      duties_ar: form.duties_ar || null, requirements_ar: form.requirements_ar || null,
       salary_note: form.salary_note, commission_note: form.commission_note,
-      benefits: form.benefits, schedule_note: form.schedule_note,
+      benefits: form.benefits, schedule_note: form.schedule_note, schedule_note_ar: form.schedule_note_ar || null,
       papers: (form.papers || []).filter((p) => p.trim()),
       is_active: form.is_active !== false,
     };
@@ -2160,22 +2454,18 @@ function JobsPage({ me, data, toast, audit }) {
     toast(t.saved);
   }
 
-  async function generate() {
-    setGen((g) => ({ ...g, busy: true }));
-    const { data: res, error } = await sb.functions.invoke('generate-jd', {
-      body: {
-        role: gen.role, kind: gen.kind, language: gen.language,
-        candidate_name: gen.candidate_name || null, custom_notes: gen.custom_notes || null,
-        company: data.settings.company || {},
-      },
+  /* Built-in engine: free, instant, offline. No external AI service. */
+  function generate() {
+    const dept = data.departments.find((d) => d.id === gen.role.department_id);
+    const md = JD.build({
+      role: { ...gen.role, dept_en: dept ? dept.name_en : '', dept_ar: dept ? dept.name_ar : '' },
+      kind: gen.kind, language: gen.language,
+      candidate_name: gen.candidate_name || '', custom_notes: gen.custom_notes || '',
+      company: data.settings.company || {},
+      weekendDays: (data.settings.work_week || {}).weekend_days || [5, 6],
+      today: todayISO(),
     });
-    if (error) {
-      let msg = error.message;
-      try { const body = await error.context.json(); if (body.error) msg = body.error; } catch (e) {}
-      setGen((g) => ({ ...g, busy: false }));
-      return toast(t.aiFail + ': ' + msg, 'error');
-    }
-    setGen((g) => ({ ...g, busy: false, result: res.content_md }));
+    setGen((g) => ({ ...g, busy: false, result: md }));
   }
 
   async function saveDoc() {
@@ -2260,14 +2550,19 @@ function JobsPage({ me, data, toast, audit }) {
                 {data.departments.map((d) => <option key={d.id} value={d.id}>{lang === 'ar' ? d.name_ar : d.name_en}</option>)}
               </Select>
             </Field>
-            <Field label={t.duties}><Ta value={form.duties || ''} onChange={(e) => setForm({ ...form, duties: e.target.value })} /></Field>
-            <Field label={t.requirementsLbl}><Ta value={form.requirements || ''} onChange={(e) => setForm({ ...form, requirements: e.target.value })} /></Field>
+            <Field label={t.duties + ' (ع)'}><Ta dir="rtl" value={form.duties_ar || ''} onChange={(e) => setForm({ ...form, duties_ar: e.target.value })} /></Field>
+            <Field label={t.duties + ' (EN)'}><Ta dir="ltr" value={form.duties || ''} onChange={(e) => setForm({ ...form, duties: e.target.value })} /></Field>
+            <Field label={t.requirementsLbl + ' (ع)'}><Ta dir="rtl" value={form.requirements_ar || ''} onChange={(e) => setForm({ ...form, requirements_ar: e.target.value })} /></Field>
+            <Field label={t.requirementsLbl + ' (EN)'}><Ta dir="ltr" value={form.requirements || ''} onChange={(e) => setForm({ ...form, requirements: e.target.value })} /></Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t.salaryNote}><Input value={form.salary_note || ''} onChange={(e) => setForm({ ...form, salary_note: e.target.value })} /></Field>
               <Field label={t.commissionNote}><Input value={form.commission_note || ''} onChange={(e) => setForm({ ...form, commission_note: e.target.value })} /></Field>
             </div>
             <Field label={t.benefitsLbl}><Input value={form.benefits || ''} onChange={(e) => setForm({ ...form, benefits: e.target.value })} /></Field>
-            <Field label={t.scheduleNote}><Input value={form.schedule_note || ''} onChange={(e) => setForm({ ...form, schedule_note: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.scheduleNote + ' (ع)'}><Input dir="rtl" value={form.schedule_note_ar || ''} onChange={(e) => setForm({ ...form, schedule_note_ar: e.target.value })} /></Field>
+              <Field label={t.scheduleNote + ' (EN)'}><Input dir="ltr" value={form.schedule_note || ''} onChange={(e) => setForm({ ...form, schedule_note: e.target.value })} /></Field>
+            </div>
             <div>
               <div className="mb-1 flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-600">{t.papersLbl}</span>
