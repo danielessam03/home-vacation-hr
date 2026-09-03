@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.8';
+const APP_VERSION = 'v1.9';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -223,6 +223,14 @@ const T = {
     runExists: 'A run for this branch and month already exists.',
     noEmployees: 'No active employees in this branch.',
     minutesLbl: 'min', daysUnit: 'days', payslipTitle: 'Payslip',
+    loans: 'Loans & advances', myLoans: 'My loans', newLoan: 'New loan / advance',
+    loanTypes: { loan: 'Loan', advance: 'Salary advance' },
+    principal: 'Amount', installments: 'Installments', installmentAmt: 'Monthly installment',
+    startFrom: 'First deduction', paidLbl: 'Paid',
+    loanStatus: { active: 'Active', settled: 'Settled', cancelled: 'Cancelled' },
+    addPayment: 'Record payment', payments: 'Payments',
+    paymentKind: { payroll: 'Payroll', manual: 'Manual / cash' },
+    cancelLoan: 'Cancel loan', loanDedLbl: 'Loan installment',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -342,6 +350,14 @@ const T = {
     runExists: 'يوجد مسير لهذا الفرع والشهر بالفعل.',
     noEmployees: 'لا يوجد موظفون نشطون في هذا الفرع.',
     minutesLbl: 'د', daysUnit: 'يوم', payslipTitle: 'قسيمة راتب',
+    loans: 'السلف والقروض', myLoans: 'سلفي', newLoan: 'سلفة / قرض جديد',
+    loanTypes: { loan: 'قرض', advance: 'سلفة على الراتب' },
+    principal: 'المبلغ', installments: 'عدد الأقساط', installmentAmt: 'القسط الشهري',
+    startFrom: 'أول خصم', paidLbl: 'المسدد',
+    loanStatus: { active: 'نشط', settled: 'مسدد بالكامل', cancelled: 'ملغي' },
+    addPayment: 'تسجيل سداد', payments: 'السدادات',
+    paymentKind: { payroll: 'من الراتب', manual: 'يدوي / نقدي' },
+    cancelLoan: 'إلغاء', loanDedLbl: 'قسط سلفة / قرض',
   },
 };
 
@@ -545,8 +561,23 @@ function computePayrollItem(emp, ctx) {
   const annualTaxable = Math.max(0, (gross - insEmployee) * 12 - exemption);
   const tax = r2(calcAnnualTax(annualTaxable, ctx.taxBrackets) / 12);
 
-  const totalDed = r2(lateDed + unpaidDed + sickDed + insEmployee + tax);
+  /* ---- loan / advance installments due this month ---- */
+  let loanDed = 0;
+  const loanDetails = [];
+  for (const ln of (ctx.loans || [])) {
+    if (ln.employee_id !== emp.id || ln.status !== 'active') continue;
+    if (ln.start_year > ctx.year || (ln.start_year === ctx.year && ln.start_month > ctx.month)) continue;
+    const remaining = r2(Number(ln.principal) - Number(ln.paid_total || 0));
+    if (remaining <= 0) continue;
+    const amt = r2(Math.min(Number(ln.installment_amount), remaining));
+    loanDed += amt;
+    loanDetails.push({ loan_id: ln.id, amount: amt });
+  }
+  loanDed = r2(loanDed);
+
+  const totalDed = r2(lateDed + unpaidDed + sickDed + insEmployee + tax + loanDed);
   return {
+    loan_deduction: loanDed, loan_details: loanDetails,
     basic_salary: r2(basic), allowances, allowances_total: r2(allowTotal),
     ot_minutes: Math.round(ot), ot_amount: otAmount,
     other_earnings: 0, other_earnings_note: null,
@@ -566,7 +597,7 @@ function recomputePayrollItem(item, ctx) {
   const annualTaxable = Math.max(0, (gross - item.insurance_employee) * 12 - exemption);
   const tax = r2(calcAnnualTax(annualTaxable, ctx.taxBrackets) / 12);
   const totalDed = r2(item.late_deduction + item.unpaid_deduction + item.sick_deduction
-    + item.insurance_employee + tax + (Number(item.other_deductions) || 0));
+    + item.insurance_employee + tax + (Number(item.loan_deduction) || 0) + (Number(item.other_deductions) || 0));
   return { ...item, gross_pay: gross, income_tax: tax, total_deductions: totalDed, net_pay: r2(gross - totalDed) };
 }
 
@@ -598,6 +629,7 @@ function printPayslip(item, emp, run, company, t) {
     ...(item.sick_deduction > 0 ? [['تسوية مرضية / Sick adjustment (' + Number(item.sick_days) + ')', item.sick_deduction]] : []),
     ['التأمينات الاجتماعية / Social insurance', item.insurance_employee],
     ['ضريبة الدخل / Income tax', item.income_tax],
+    ...(Number(item.loan_deduction) > 0 ? [['قسط سلفة / Loan installment', item.loan_deduction]] : []),
     ...(Number(item.other_deductions) > 0 ? [[(item.other_deductions_note || 'خصومات أخرى / Other deductions'), item.other_deductions]] : []),
   ];
   const tbl = (title, rows, total, totalLbl) =>
@@ -840,6 +872,7 @@ const NAV = [
   { key: 'leave',      icon: '🌴', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
   { key: 'payroll',   icon: '💰', roles: ['ceo', 'hr', 'accountant'] },
+  { key: 'loans',     icon: '🏦', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'jobs',      icon: '💼', roles: ['ceo', 'hr'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
   { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
@@ -972,8 +1005,8 @@ function Dashboard({ me, data }) {
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 5 جاهزة: مسيرات الرواتب بالضرائب والتأمينات وقسائم الرواتب. التالي: السلف والقروض.'
-            : 'Module 5 is live: payroll runs with tax, insurance and payslips. Next up: loans &amp; advances.'}
+            ? 'الوحدة 6 جاهزة: السلف والقروض تُخصم تلقائياً من الراتب. التالي: الامتثال والتأمينات.'
+            : 'Module 6 is live: loans and advances auto-deducted in payroll. Next up: compliance (NOSI forms, audit).'}
         </p>
       </Card>
     </>
@@ -2594,15 +2627,16 @@ function PayrollPage({ me, data, toast, audit }) {
     const pad2 = (n) => String(n).padStart(2, '0');
     const from = year + '-' + pad2(month) + '-01';
     const nextM = month === 12 ? (Number(year) + 1) + '-01-01' : year + '-' + pad2(Number(month) + 1) + '-01';
-    const [pu, lv, ty] = await Promise.all([
+    const [pu, lv, ty, ln] = await Promise.all([
       sb.from('attendance_punches').select('employee_id, punch_time, direction')
         .gte('punch_time', new Date(from + 'T00:00:00').toISOString())
         .lt('punch_time', new Date(nextM + 'T00:00:00').toISOString()),
       sb.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', year + '-' + pad2(month) + '-31').gte('end_date', from),
       sb.from('leave_types').select('*'),
+      sb.from('loans').select('*').eq('status', 'active'),
     ]);
 
-    const ctx = { ...baseCtx(Number(year), Number(month)), leaves: lv.data || [], leaveTypes: ty.data || [] };
+    const ctx = { ...baseCtx(Number(year), Number(month)), leaves: lv.data || [], leaveTypes: ty.data || [], loans: ln.data || [] };
     const { data: run, error: runErr } = await sb.from('payroll_runs')
       .insert({ year: Number(year), month: Number(month), branch_id, created_by: me.id }).select().single();
     if (runErr) { setNewRun((n) => ({ ...n, busy: false })); return toast(runErr.message, 'error'); }
@@ -2631,14 +2665,15 @@ function PayrollPage({ me, data, toast, audit }) {
     const pad2 = (n) => String(n).padStart(2, '0');
     const from = open.year + '-' + pad2(open.month) + '-01';
     const nextM = open.month === 12 ? (open.year + 1) + '-01-01' : open.year + '-' + pad2(open.month + 1) + '-01';
-    const [pu, lv, ty] = await Promise.all([
+    const [pu, lv, ty, ln] = await Promise.all([
       sb.from('attendance_punches').select('employee_id, punch_time, direction')
         .gte('punch_time', new Date(from + 'T00:00:00').toISOString())
         .lt('punch_time', new Date(nextM + 'T00:00:00').toISOString()),
       sb.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', open.year + '-' + pad2(open.month) + '-31').gte('end_date', from),
       sb.from('leave_types').select('*'),
+      sb.from('loans').select('*').eq('status', 'active'),
     ]);
-    const ctx = { ...baseCtx(open.year, open.month), leaves: lv.data || [], leaveTypes: ty.data || [] };
+    const ctx = { ...baseCtx(open.year, open.month), leaves: lv.data || [], leaveTypes: ty.data || [], loans: ln.data || [] };
     const rows = emps.map((emp) => ({
       run_id: open.id, employee_id: emp.id,
       ...computePayrollItem(emp, { ...ctx, punches: (pu.data || []).filter((p) => p.employee_id === emp.id) }),
@@ -2659,6 +2694,20 @@ function PayrollPage({ me, data, toast, audit }) {
     setRuns((prev) => prev.map((r) => (r.id === row.id ? row : r)));
     setOpen(row);
     audit(status === 'approved' ? 'approve' : 'update', 'payroll_runs', row.id, open, row);
+
+    // Approval is the moment loan installments become real payments.
+    // The unique (loan, payroll item) index makes this safe to repeat.
+    if (status === 'approved' && items) {
+      const pays = [];
+      for (const i of items) for (const d of (i.loan_details || [])) {
+        pays.push({ loan_id: d.loan_id, employee_id: i.employee_id, payroll_item_id: i.id,
+          year: row.year, month: row.month, amount: d.amount, kind: 'payroll', created_by: me.id });
+      }
+      if (pays.length) {
+        const { error: pErr } = await sb.from('loan_payments').upsert(pays, { onConflict: 'loan_id,payroll_item_id', ignoreDuplicates: true });
+        if (pErr) toast(pErr.message, 'error');
+      }
+    }
     toast(t.saved);
   }
 
@@ -2766,6 +2815,7 @@ function PayrollPage({ me, data, toast, audit }) {
                   [t.sickDedLbl + ' (' + Number(editItem.sick_days) + ' ' + t.daysUnit + ')', -editItem.sick_deduction],
                   [t.insEmp, -editItem.insurance_employee],
                   [t.taxLbl, -editItem.income_tax],
+                  [t.loanDedLbl, -(editItem.loan_deduction || 0)],
                 ].filter(([, v]) => Number(v) !== 0).map(([k, v], i) => (
                   <div key={i} className="flex justify-between">
                     <span className="text-slate-500">{k}</span>
@@ -2848,6 +2898,191 @@ function PayrollPage({ me, data, toast, audit }) {
                 </Select>
               </Field>
             </div>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
+   7g. Loans & advances
+   ===================================================================== */
+function LoansPage({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const canEdit = ['ceo', 'hr', 'accountant'].includes(me.role);
+  const myEmp = data.employees.find((e) => e.user_id === me.id);
+  const now = new Date();
+  const [loans, setLoans] = useState(null);
+  const [view, setView] = useState(null);
+  const [pays, setPays] = useState(null);
+  const [form, setForm] = useState(null);
+  const [payForm, setPayForm] = useState(null);
+
+  useEffect(() => {
+    sb.from('loans').select('*').order('created_at', { ascending: false }).then(({ data: d }) => setLoans(d || []));
+  }, []);
+
+  useEffect(() => {
+    if (!view) { setPays(null); return; }
+    sb.from('loan_payments').select('*').eq('loan_id', view.id).order('year').order('month')
+      .then(({ data: d }) => setPays(d || []));
+  }, [view && view.id]);
+
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const empById = (id) => data.employees.find((e) => e.id === id);
+  const remaining = (l) => r2(Number(l.principal) - Number(l.paid_total || 0));
+  const tone = (s) => s === 'active' ? 'amber' : s === 'settled' ? 'green' : 'slate';
+
+  async function saveLoan() {
+    if (!form.employee_id || !(Number(form.principal) > 0) || !(Number(form.installment_amount) > 0)) return toast(t.principal, 'error');
+    const { data: row, error } = await sb.from('loans').insert({
+      employee_id: form.employee_id, loan_type: form.loan_type,
+      principal: r2(form.principal), installments_count: Number(form.installments_count) || 1,
+      installment_amount: r2(form.installment_amount),
+      start_year: Number(form.start_year), start_month: Number(form.start_month),
+      reason: form.reason || null, created_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setLoans((prev) => [row, ...prev]);
+    audit('insert', 'loans', row.id, null, row);
+    setForm(null);
+    toast(t.saved);
+  }
+
+  async function savePayment() {
+    const amt = r2(payForm.amount);
+    if (!(amt > 0)) return toast(t.principal, 'error');
+    const { data: row, error } = await sb.from('loan_payments').insert({
+      loan_id: view.id, employee_id: view.employee_id, year: Number(payForm.year), month: Number(payForm.month),
+      amount: amt, kind: 'manual', note: payForm.note || null, created_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setPays((prev) => [...(prev || []), row]);
+    // the DB trigger updated paid_total/status; reflect it locally
+    const { data: fresh } = await sb.from('loans').select('*').eq('id', view.id).single();
+    if (fresh) { setView(fresh); setLoans((prev) => prev.map((l) => (l.id === fresh.id ? fresh : l))); }
+    audit('insert', 'loan_payments', row.id, null, row);
+    setPayForm(null);
+    toast(t.saved);
+  }
+
+  async function cancelLoan() {
+    if (!window.confirm(t.cancelLoan + '?')) return;
+    const { data: row, error } = await sb.from('loans').update({ status: 'cancelled' }).eq('id', view.id).select().single();
+    if (error) return toast(error.message, 'error');
+    setLoans((prev) => prev.map((l) => (l.id === row.id ? row : l)));
+    setView(row);
+    audit('cancel', 'loans', row.id, view, row);
+  }
+
+  const list = loans ? (canEdit ? loans : loans.filter((l) => myEmp && l.employee_id === myEmp.id)) : null;
+  const setInst = (f) => ({ ...f, installment_amount: f.principal && f.installments_count ? r2(Number(f.principal) / Number(f.installments_count)) : '' });
+
+  return (
+    <>
+      {canEdit && (
+        <Btn size="lg" onClick={() => setForm({ employee_id: '', loan_type: 'advance', principal: '', installments_count: 1, installment_amount: '', start_year: now.getFullYear(), start_month: now.getMonth() + 1, reason: '' })}>
+          + {t.newLoan}
+        </Btn>
+      )}
+      <Card title={canEdit ? t.loans : t.myLoans}>
+        {list === null ? <Empty text={t.loading} /> : list.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {list.map((l) => (
+              <li key={l.id} className="flex cursor-pointer items-center justify-between gap-2 py-3" onClick={() => setView(l)}>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{canEdit ? eName(empById(l.employee_id)) + ' · ' : ''}{t.loanTypes[l.loan_type]}</p>
+                  <p className="text-xs text-slate-500">{money(l.principal)} · {t.paidLbl} {money(l.paid_total)} · {t.remaining} <b>{money(remaining(l))}</b></p>
+                </div>
+                <Badge tone={tone(l.status)}>{t.loanStatus[l.status]}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Modal open={!!view} onClose={() => setView(null)} title={view ? eName(empById(view.employee_id)) + ' · ' + t.loanTypes[view.loan_type] : ''}
+        footer={view && canEdit && view.status === 'active' ? (
+          <>
+            <Btn className="flex-1" onClick={() => setPayForm({ year: now.getFullYear(), month: now.getMonth() + 1, amount: remaining(view), note: '' })}>{t.addPayment}</Btn>
+            <Btn variant="ghost" className="text-rose-600" onClick={cancelLoan}>{t.cancelLoan}</Btn>
+          </>
+        ) : null}>
+        {view && (
+          <>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {[[t.principal, money(view.principal)], [t.installmentAmt, money(view.installment_amount)],
+                [t.installments, view.installments_count], [t.startFrom, view.start_month + '/' + view.start_year],
+                [t.paidLbl, money(view.paid_total)], [t.remaining, money(remaining(view))]].map(([k, v], i) => (
+                <div key={i}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-semibold text-slate-800">{v}</dd></div>
+              ))}
+            </div>
+            {view.reason && <p className="text-xs text-slate-500">{view.reason}</p>}
+            <p className="text-xs font-semibold text-slate-600">{t.payments}</p>
+            {pays === null ? <Empty text={t.loading} /> : pays.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100 text-sm">
+                {pays.map((p) => (
+                  <li key={p.id} className="flex justify-between py-2">
+                    <span className="text-slate-600">{p.month}/{p.year} · {t.paymentKind[p.kind]}{p.note ? ' · ' + p.note : ''}</span>
+                    <b>{money(p.amount)}</b>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </Modal>
+
+      <Modal open={!!form} onClose={() => setForm(null)} title={t.newLoan}
+        footer={<><Btn className="flex-1" onClick={saveLoan}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
+        {form && (
+          <>
+            <Field label={t.selectEmployee}>
+              <Select value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
+                <option value="">—</option>
+                {data.employees.filter((e) => e.status === 'active').map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.loanTypes.loan + ' / ' + t.loanTypes.advance}>
+                <Select value={form.loan_type} onChange={(e) => setForm({ ...form, loan_type: e.target.value })}>
+                  {Object.keys(t.loanTypes).map((k) => <option key={k} value={k}>{t.loanTypes[k]}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.principal}><Input type="number" inputMode="decimal" value={form.principal} onChange={(e) => setForm(setInst({ ...form, principal: e.target.value }))} /></Field>
+              <Field label={t.installments}><Input type="number" inputMode="numeric" min="1" value={form.installments_count} onChange={(e) => setForm(setInst({ ...form, installments_count: e.target.value }))} /></Field>
+              <Field label={t.installmentAmt}><Input type="number" inputMode="decimal" value={form.installment_amount} onChange={(e) => setForm({ ...form, installment_amount: e.target.value })} /></Field>
+              <Field label={t.startFrom + ' — ' + t.monthLbl}>
+                <Select value={form.start_month} onChange={(e) => setForm({ ...form, start_month: e.target.value })}>
+                  {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.yearLbl}>
+                <Select value={form.start_year} onChange={(e) => setForm({ ...form, start_year: e.target.value })}>
+                  {[now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y} value={y}>{y}</option>)}
+                </Select>
+              </Field>
+            </div>
+            <Field label={t.reasonLbl}><Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+
+      <Modal open={!!payForm} onClose={() => setPayForm(null)} title={t.addPayment}
+        footer={<><Btn className="flex-1" onClick={savePayment}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setPayForm(null)}>{t.cancel}</Btn></>}>
+        {payForm && (
+          <>
+            <Field label={t.principal}><Input type="number" inputMode="decimal" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.monthLbl}>
+                <Select value={payForm.month} onChange={(e) => setPayForm({ ...payForm, month: e.target.value })}>
+                  {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.yearLbl}><Input type="number" value={payForm.year} onChange={(e) => setPayForm({ ...payForm, year: e.target.value })} /></Field>
+            </div>
+            <Field label={t.notes}><Input value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} /></Field>
           </>
         )}
       </Modal>
@@ -3570,6 +3805,7 @@ function App() {
           : page === 'leave' ? <LeavePage {...shared} />
           : page === 'employees' ? <EmployeesPage {...shared} />
           : page === 'payroll' ? <PayrollPage {...shared} />
+          : page === 'loans' ? <LoansPage {...shared} />
           : page === 'jobs' ? <JobsPage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
           : page === 'settings' ? <SettingsPage {...shared} />
