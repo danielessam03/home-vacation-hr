@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.1';
+const APP_VERSION = 'v2.2';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -248,6 +248,13 @@ const T = {
     myPunches: 'My attendance', myTrips: 'My trips', myDocs: 'My documents', quickActions: 'Quick actions',
     presentDays: 'Days present', lateTotal: 'Late minutes', noPayslips: 'No approved payslips yet.',
     goCheckIn: 'Check in / out', goLeave: 'Request leave', goTrip: 'Log a trip',
+    reports: 'Reports', rptPayroll: 'Payroll cost', rptHeadcount: 'Headcount', rptOvertime: 'Overtime & lateness',
+    rptLeave: 'Leave liability', rptAttendance: 'Attendance',
+    byBranch: 'By branch', byDepartment: 'By department', byGender: 'By gender', byContract: 'By contract type',
+    hires: 'Hires', exits: 'Exits', totalCost: 'Total company cost', employerIns: 'Employer insurance',
+    liabilityDays: 'Days owed', liabilityAmount: 'Liability (EGP)', exportExcel: 'Export to Excel',
+    approvedOnly: 'Approved runs only', fromMonth: 'From month', toMonth: 'To month', countLbl: 'Count',
+    dayRateLbl: 'Day rate', noRuns: 'No payroll runs in this range.',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -392,6 +399,13 @@ const T = {
     myPunches: 'حضوري', myTrips: 'مشاويري', myDocs: 'مستنداتي', quickActions: 'إجراءات سريعة',
     presentDays: 'أيام الحضور', lateTotal: 'دقائق التأخير', noPayslips: 'لا توجد قسائم راتب معتمدة بعد.',
     goCheckIn: 'تسجيل حضور / انصراف', goLeave: 'طلب إجازة', goTrip: 'تسجيل مشوار',
+    reports: 'التقارير', rptPayroll: 'تكلفة الرواتب', rptHeadcount: 'عدد الموظفين', rptOvertime: 'الإضافي والتأخير',
+    rptLeave: 'التزامات الإجازات', rptAttendance: 'الحضور',
+    byBranch: 'حسب الفرع', byDepartment: 'حسب القسم', byGender: 'حسب النوع', byContract: 'حسب نوع العقد',
+    hires: 'تعيينات', exits: 'انتهاء خدمة', totalCost: 'إجمالي تكلفة الشركة', employerIns: 'تأمينات صاحب العمل',
+    liabilityDays: 'الأيام المستحقة', liabilityAmount: 'الالتزام (ج.م)', exportExcel: 'تصدير إلى Excel',
+    approvedOnly: 'المسيرات المعتمدة فقط', fromMonth: 'من شهر', toMonth: 'إلى شهر', countLbl: 'العدد',
+    dayRateLbl: 'أجر اليوم', noRuns: 'لا توجد مسيرات رواتب في هذه الفترة.',
   },
 };
 
@@ -949,6 +963,7 @@ const NAV = [
   { key: 'loans',     icon: '🏦', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'jobs',      icon: '💼', roles: ['ceo', 'hr'] },
   { key: 'compliance', icon: '📑', roles: ['ceo', 'hr', 'accountant'] },
+  { key: 'reports',   icon: '📊', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
   { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'audit',     icon: '📋', roles: ['ceo', 'hr', 'accountant'] },
@@ -1080,8 +1095,8 @@ function Dashboard({ me, data }) {
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 8 جاهزة: الخدمة الذاتية للموظفين على الهاتف. التالي: التقارير ولوحة المبيعات.'
-            : 'Module 8 is live: employee self-service on the phone. Next up: reports and the sales leaderboard.'}
+            ? 'الوحدة 9 جاهزة: التقارير مع التصدير إلى Excel. التالي: لوحة مؤشرات المبيعات.'
+            : 'Module 9 is live: reports with Excel export. Next up: the sales KPI leaderboard.'}
         </p>
       </Card>
     </>
@@ -3500,6 +3515,232 @@ function MyPage({ me, data, toast, setPage }) {
 }
 
 /* =====================================================================
+   7j. Reports
+   ===================================================================== */
+function ReportsPage({ me, data, toast }) {
+  const { lang, t } = useL();
+  const now = new Date();
+  const ym = (y, m) => y * 100 + m;
+  const [tab, setTab] = useState('payroll');
+  const [range, setRange] = useState({ fy: now.getFullYear(), fm: 1, ty: now.getFullYear(), tm: now.getMonth() + 1, from: todayISO().slice(0, 8) + '01', to: todayISO(), approvedOnly: true });
+  const [pr, setPr] = useState(null);      // {runs, items}
+  const [att, setAtt] = useState(null);    // punches
+  const [lv, setLv] = useState(null);      // {reqs, adjs, types}
+
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const empById = (id) => data.employees.find((e) => e.id === id);
+  const branchName = (id) => { const b = data.branches.find((x) => x.id === id); return b ? (lang === 'ar' ? b.name_ar : b.name_en) : '—'; };
+  const deptName = (id) => { const d = data.departments.find((x) => x.id === id); return d ? (lang === 'ar' ? d.name_ar : d.name_en) : '—'; };
+  const active = data.employees.filter((e) => e.status === 'active');
+
+  /* ---- data loading per tab ---- */
+  useEffect(() => {
+    if (tab !== 'payroll' && tab !== 'overtime') return;
+    setPr(null);
+    (async () => {
+      let q = sb.from('payroll_runs').select('*');
+      if (range.approvedOnly) q = q.eq('status', 'approved');
+      const { data: runs } = await q;
+      const inRange = (runs || []).filter((r) => ym(r.year, r.month) >= ym(range.fy, range.fm) && ym(r.year, r.month) <= ym(range.ty, range.tm));
+      const ids = inRange.map((r) => r.id);
+      const { data: items } = ids.length ? await sb.from('payroll_items').select('*').in('run_id', ids) : { data: [] };
+      setPr({ runs: inRange, items: items || [] });
+    })();
+  }, [tab, range.fy, range.fm, range.ty, range.tm, range.approvedOnly]);
+
+  useEffect(() => {
+    if (tab !== 'attendance') return;
+    setAtt(null);
+    const end = new Date(range.to + 'T00:00:00'); end.setDate(end.getDate() + 1);
+    sb.from('attendance_punches').select('employee_id, punch_time, direction')
+      .gte('punch_time', new Date(range.from + 'T00:00:00').toISOString()).lt('punch_time', end.toISOString()).order('punch_time')
+      .then(({ data: d }) => setAtt(d || []));
+  }, [tab, range.from, range.to]);
+
+  useEffect(() => {
+    if (tab !== 'leave') return;
+    setLv(null);
+    const year = now.getFullYear();
+    Promise.all([
+      sb.from('leave_requests').select('*').gte('start_date', year + '-01-01'),
+      sb.from('leave_adjustments').select('*').eq('year', year),
+      sb.from('leave_types').select('*'),
+    ]).then(([r, a, ty]) => setLv({ reqs: r.data || [], adjs: a.data || [], types: ty.data || [] }));
+  }, [tab]);
+
+  /* ---- aggregations ---- */
+  const groupSum = (rows, keyFn, fields) => {
+    const out = {};
+    for (const r of rows) {
+      const k = keyFn(r);
+      out[k] = out[k] || { key: k, count: 0, ...Object.fromEntries(fields.map((f) => [f, 0])) };
+      out[k].count++;
+      for (const f of fields) out[k][f] += Number(r[f]) || 0;
+    }
+    return Object.values(out);
+  };
+  const payrollRows = pr ? pr.items.map((i) => {
+    const run = pr.runs.find((r) => r.id === i.run_id), emp = empById(i.employee_id) || {};
+    return { ...i, branch_id: run ? run.branch_id : null, department_id: emp.department_id, cost: Number(i.gross_pay) + Number(i.insurance_employer) };
+  }) : [];
+  const costFields = ['gross_pay', 'total_deductions', 'net_pay', 'insurance_employer', 'cost'];
+
+  const attRows = useMemo(() => {
+    if (!att) return [];
+    const weekendC = (data.settings.work_week || {}).weekend_days || [5, 6];
+    const byEmp = {};
+    for (const p of att) { if (!p.employee_id) continue; const k = p.employee_id + '|' + localDay(p.punch_time); (byEmp[k] = byEmp[k] || []).push(p); }
+    const out = {};
+    for (const [k, list] of Object.entries(byEmp)) {
+      const [empId, date] = k.split('|');
+      const emp = empById(empId); if (!emp) continue;
+      const weekend = emp.weekend_days || weekendC;
+      if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
+      const shift = data.shifts.find((s) => s.id === emp.shift_id) || data.shifts[0];
+      const ins = list.filter((p) => p.direction === 'in'), outs = list.filter((p) => p.direction === 'out');
+      const firstIn = ins[0] || list[0];
+      const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
+      const o = out[empId] = out[empId] || { emp, days: 0, late: 0, ot: 0, missing: 0 };
+      o.days++;
+      if (shift && firstIn) o.late += Math.max(0, minutesOf(firstIn.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes));
+      if (shift && lastOut) { const over = minutesOf(lastOut.punch_time) - timeToMin(shift.end_time); if (over >= shift.min_overtime_minutes) o.ot += over; }
+      if (!lastOut) o.missing++;
+    }
+    return Object.values(out).sort((a, b) => b.days - a.days);
+  }, [att, data.employees, data.shifts]);
+
+  const leaveRows = lv ? active.map((e) => {
+    const b = leaveBalance(e, now.getFullYear(), lv.reqs, lv.adjs, lv.types);
+    const monthly = (Number(e.basic_salary) || 0) + (e.allowances || []).reduce((s, a) => s + (Number(a.amount) || 0), 0);
+    const dayRate = monthly / ((data.settings.work_week || {}).standard_days_per_month || 30);
+    const days = b.ent.dueYet ? Math.max(0, b.annualRemaining) : 0;
+    return { emp: e, days, dayRate: r2(dayRate), amount: r2(days * dayRate) };
+  }).filter((r) => r.days > 0).sort((a, b) => b.amount - a.amount) : [];
+
+  const Bar = ({ v, max }) => <div className="h-2 rounded bg-brand-100"><div className="h-2 rounded bg-brand-600" style={{ width: (max ? Math.round(v / max * 100) : 0) + '%' }} /></div>;
+  const Tbl = ({ head, rows }) => (
+    <div className="overflow-x-auto"><table className="w-full min-w-[520px] text-sm">
+      <thead><tr>{head.map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
+      <tbody>{rows.map((r, i) => <tr key={i} className={cx('border-t border-slate-100', r._total && 'bg-slate-50 font-bold')}>{r.cells.map((c, j) => <td key={j} className="py-2 pe-2">{c}</td>)}</tr>)}</tbody>
+    </table></div>
+  );
+  const totalRow = (rows, fields) => ({ _total: true, ...Object.fromEntries(['count', ...fields].map((f) => [f, rows.reduce((s, r) => s + (Number(r[f]) || 0), 0)])) });
+
+  const exportRows = (head, rows) => downloadCsv(tab + '-' + todayISO() + '.csv', [head, ...rows]);
+
+  const MonthRange = () => (
+    <div className="grid grid-cols-4 gap-2">
+      <Select value={range.fm} onChange={(e) => setRange({ ...range, fm: Number(e.target.value) })}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{t.fromMonth} {i + 1}</option>)}</Select>
+      <Select value={range.fy} onChange={(e) => setRange({ ...range, fy: Number(e.target.value) })}>{[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y} value={y}>{y}</option>)}</Select>
+      <Select value={range.tm} onChange={(e) => setRange({ ...range, tm: Number(e.target.value) })}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{t.toMonth} {i + 1}</option>)}</Select>
+      <Select value={range.ty} onChange={(e) => setRange({ ...range, ty: Number(e.target.value) })}>{[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y} value={y}>{y}</option>)}</Select>
+      <label className="col-span-4 flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" className="h-4 w-4 accent-brand-700" checked={range.approvedOnly} onChange={(e) => setRange({ ...range, approvedOnly: e.target.checked })} />{t.approvedOnly}</label>
+    </div>
+  );
+
+  const tabs = [['payroll', t.rptPayroll], ['headcount', t.rptHeadcount], ['overtime', t.rptOvertime], ['leave', t.rptLeave], ['attendance', t.rptAttendance]];
+
+  return (
+    <>
+      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+        {tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>{l}</button>)}
+      </div>
+
+      {tab === 'payroll' && (
+        <>
+          <MonthRange />
+          {pr === null ? <Empty text={t.loading} /> : payrollRows.length === 0 ? <Card><Empty text={t.noRuns} /></Card> : (
+            <>
+              {[['byBranch', (r) => r.branch_id, branchName], ['byDepartment', (r) => r.department_id, deptName]].map(([title, keyFn, nameFn]) => {
+                const g = groupSum(payrollRows, keyFn, costFields).sort((a, b) => b.cost - a.cost);
+                const max = Math.max(...g.map((x) => x.cost));
+                const tot = totalRow(g, costFields);
+                const head = [t[title], t.countLbl, t.grossLbl, t.dedLbl, t.netLbl, t.employerIns, t.totalCost];
+                const rowsCsv = [...g.map((x) => [nameFn(x.key), x.count, r2(x.gross_pay), r2(x.total_deductions), r2(x.net_pay), r2(x.insurance_employer), r2(x.cost)]), [t.totalCost, tot.count, r2(tot.gross_pay), r2(tot.total_deductions), r2(tot.net_pay), r2(tot.insurance_employer), r2(tot.cost)]];
+                return (
+                  <Card key={title} title={t.rptPayroll + ' — ' + t[title]} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, rowsCsv)}>⬇️ {t.exportExcel}</Btn>}>
+                    <div className="mb-3 space-y-2">{g.map((x) => <div key={x.key}><div className="flex justify-between text-xs"><span className="font-semibold text-slate-700">{nameFn(x.key)}</span><span>{money(x.cost)}</span></div><Bar v={x.cost} max={max} /></div>)}</div>
+                    <Tbl head={head} rows={[...g.map((x) => ({ cells: [nameFn(x.key), x.count, money(x.gross_pay), money(x.total_deductions), money(x.net_pay), money(x.insurance_employer), money(x.cost)] })), { _total: true, cells: [t.totalCost, tot.count, money(tot.gross_pay), money(tot.total_deductions), money(tot.net_pay), money(tot.insurance_employer), money(tot.cost)] }]} />
+                  </Card>
+                );
+              })}
+            </>
+          )}
+        </>
+      )}
+
+      {tab === 'headcount' && (
+        <>
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="rounded-2xl border border-slate-200 bg-white p-3"><p className="text-xs text-slate-500">{t.activeEmployees}</p><p className="text-2xl font-bold">{active.length}</p></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-3"><p className="text-xs text-slate-500">{t.hires} / {t.exits} · {now.getFullYear()}</p>
+              <p className="text-2xl font-bold">{data.employees.filter((e) => (e.hire_date || '').startsWith(String(now.getFullYear()))).length} / {data.employees.filter((e) => (e.termination_date || '').startsWith(String(now.getFullYear()))).length}</p></div>
+          </div>
+          {[['byBranch', (e) => branchName(e.branch_id)], ['byDepartment', (e) => deptName(e.department_id)], ['byGender', (e) => e.gender ? t[e.gender] : '—'], ['byContract', (e) => t.contractTypes[e.contract_type]]].map(([title, keyFn]) => {
+            const g = groupSum(active.map((e) => ({ k: keyFn(e) })), (r) => r.k, []).sort((a, b) => b.count - a.count);
+            const max = Math.max(...g.map((x) => x.count), 1);
+            return (
+              <Card key={title} title={t.rptHeadcount + ' — ' + t[title]} action={<Btn size="sm" variant="soft" onClick={() => exportRows([t[title], t.countLbl], g.map((x) => [x.key, x.count]))}>⬇️ {t.exportExcel}</Btn>}>
+                <div className="space-y-2">{g.map((x) => <div key={x.key}><div className="flex justify-between text-xs"><span className="font-semibold text-slate-700">{x.key}</span><span>{x.count}</span></div><Bar v={x.count} max={max} /></div>)}</div>
+              </Card>
+            );
+          })}
+        </>
+      )}
+
+      {tab === 'overtime' && (
+        <>
+          <MonthRange />
+          {pr === null ? <Empty text={t.loading} /> : payrollRows.length === 0 ? <Card><Empty text={t.noRuns} /></Card> : (() => {
+            const g = groupSum(payrollRows, (r) => r.employee_id, ['ot_minutes', 'ot_amount', 'late_minutes', 'late_deduction']).sort((a, b) => b.ot_amount - a.ot_amount);
+            const tot = totalRow(g, ['ot_minutes', 'ot_amount', 'late_minutes', 'late_deduction']);
+            const head = [t.selectEmployee, t.otLbl + ' (' + t.minutesLbl + ')', t.otLbl, t.lateDedLbl + ' (' + t.minutesLbl + ')', t.lateDedLbl];
+            return (
+              <Card title={t.rptOvertime} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, [...g.map((x) => [eName(empById(x.key)), x.ot_minutes, r2(x.ot_amount), x.late_minutes, r2(x.late_deduction)]), ['Total', tot.ot_minutes, r2(tot.ot_amount), tot.late_minutes, r2(tot.late_deduction)]])}>⬇️ {t.exportExcel}</Btn>}>
+                <Tbl head={head} rows={[...g.map((x) => ({ cells: [eName(empById(x.key)), x.ot_minutes, money(x.ot_amount), x.late_minutes, money(x.late_deduction)] })), { _total: true, cells: ['Σ', tot.ot_minutes, money(tot.ot_amount), tot.late_minutes, money(tot.late_deduction)] }]} />
+              </Card>
+            );
+          })()}
+        </>
+      )}
+
+      {tab === 'leave' && (
+        lv === null ? <Empty text={t.loading} /> : (() => {
+          const totDays = leaveRows.reduce((s, r) => s + r.days, 0), totAmt = r2(leaveRows.reduce((s, r) => s + r.amount, 0));
+          const head = [t.selectEmployee, t.branch, t.liabilityDays, t.dayRateLbl, t.liabilityAmount];
+          return (
+            <Card title={t.rptLeave + ' — ' + now.getFullYear()} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, [...leaveRows.map((r) => [eName(r.emp), branchName(r.emp.branch_id), r.days, r.dayRate, r.amount]), ['Total', '', totDays, '', totAmt]])}>⬇️ {t.exportExcel}</Btn>}>
+              <div className="mb-3 grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{t.liabilityDays}</p><p className="text-xl font-bold">{totDays}</p></div>
+                <div className="rounded-xl bg-brand-50 p-3"><p className="text-xs text-slate-500">{t.liabilityAmount}</p><p className="text-xl font-bold text-brand-800">{money(totAmt)}</p></div>
+              </div>
+              {leaveRows.length === 0 ? <Empty text={t.noData} /> : <Tbl head={head} rows={leaveRows.map((r) => ({ cells: [eName(r.emp), branchName(r.emp.branch_id), r.days, money(r.dayRate), money(r.amount)] }))} />}
+            </Card>
+          );
+        })()
+      )}
+
+      {tab === 'attendance' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Input type="date" value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} />
+            <Input type="date" value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} />
+          </div>
+          {att === null ? <Empty text={t.loading} /> : (() => {
+            const head = [t.selectEmployee, t.branch, t.presentDays, t.lateTotal, t.otLbl + ' (' + t.minutesLbl + ')', t.missingOut];
+            return (
+              <Card title={t.rptAttendance + ' · ' + range.from + ' → ' + range.to} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, attRows.map((r) => [eName(r.emp), branchName(r.emp.branch_id), r.days, r.late, r.ot, r.missing]))}>⬇️ {t.exportExcel}</Btn>}>
+                {attRows.length === 0 ? <Empty text={t.noData} /> : <Tbl head={head} rows={attRows.map((r) => ({ cells: [eName(r.emp), branchName(r.emp.branch_id), r.days, r.late, r.ot, r.missing] }))} />}
+              </Card>
+            );
+          })()}
+        </>
+      )}
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -4291,6 +4532,7 @@ function App() {
           : page === 'loans' ? <LoansPage {...shared} />
           : page === 'jobs' ? <JobsPage {...shared} />
           : page === 'compliance' ? <CompliancePage {...shared} />
+          : page === 'reports' ? <ReportsPage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
           : page === 'settings' ? <SettingsPage {...shared} />
           : page === 'audit' ? <AuditPage {...shared} />
