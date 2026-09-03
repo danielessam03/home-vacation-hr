@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.4';
+const APP_VERSION = 'v2.5';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -262,6 +262,19 @@ const T = {
     perUnit: 'Points per unit', perMillion: 'Points per 1M EGP value', hasValue: 'Carries deal value',
     noResults: 'No approved results this month yet — be the first!', yourRank: 'Your rank',
     salesValue: 'Sales value', totalPoints: 'Total points',
+    liveSession: 'Live session', startSession: 'Start live session', endSession: 'End session',
+    working: 'Working', onBreak: 'On break', idleFor: 'Idle for', sessionSince: 'since',
+    stillWorking: 'Are you still working?', stillWorkingHint: 'Confirm with a live selfie within',
+    confirmSelfie: 'I\'m here — take selfie', resumeWork: 'Resume work (selfie)',
+    breakAuto: 'You were put on break automatically (no answer). Take a selfie to resume.',
+    cameraStart: 'Starting camera…', faceLoading: 'Loading face recognition…', noFace: 'No face detected — look at the camera',
+    faceMismatch: 'Face does not match the enrolled employee', faceOk: 'Identity confirmed', notEnrolled: 'No face enrolled yet — ask HR',
+    enrollFace: 'Enroll face', enrollHint: 'Take 3 selfies of the employee, straight on, good light. Used only to verify presence prompts.',
+    capture: 'Capture', samplesTaken: 'samples taken', enrolled: 'Face enrolled',
+    agentToken: 'Laptop agent token', genToken: 'Generate token', tokenHint: 'Paste into agent_config.json on their laptop (see agent/README.md). Regenerating disconnects the old one.',
+    liveBoard: 'Live board', lastActivity: 'Last activity', agentOk: 'Laptop agent', breakTotal: 'Breaks',
+    workedNet: 'Worked (net)', minsAgo: 'min ago', noOpenSession: 'No live session. Start one after checking in.',
+    cameraDenied: 'Camera permission is required for presence checks.',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -420,6 +433,19 @@ const T = {
     perUnit: 'نقاط لكل وحدة', perMillion: 'نقاط لكل مليون ج.م', hasValue: 'يحمل قيمة صفقة',
     noResults: 'لا توجد نتائج معتمدة هذا الشهر بعد — كن الأول!', yourRank: 'ترتيبك',
     salesValue: 'قيمة المبيعات', totalPoints: 'إجمالي النقاط',
+    liveSession: 'جلسة العمل', startSession: 'بدء جلسة العمل', endSession: 'إنهاء الجلسة',
+    working: 'يعمل', onBreak: 'في استراحة', idleFor: 'بدون نشاط منذ', sessionSince: 'منذ',
+    stillWorking: 'هل ما زلت تعمل؟', stillWorkingHint: 'أكّد بصورة سيلفي حية خلال',
+    confirmSelfie: 'أنا هنا — التقاط سيلفي', resumeWork: 'استئناف العمل (سيلفي)',
+    breakAuto: 'تم وضعك في استراحة تلقائياً (لم يتم الرد). التقط سيلفي للاستئناف.',
+    cameraStart: 'جاري تشغيل الكاميرا…', faceLoading: 'جاري تحميل التعرف على الوجه…', noFace: 'لم يتم رصد وجه — انظر إلى الكاميرا',
+    faceMismatch: 'الوجه لا يطابق الموظف المسجل', faceOk: 'تم تأكيد الهوية', notEnrolled: 'لم يتم تسجيل الوجه بعد — تواصل مع الموارد البشرية',
+    enrollFace: 'تسجيل الوجه', enrollHint: 'التقط 3 صور للموظف مواجهة وبإضاءة جيدة. تُستخدم فقط للتحقق من الحضور.',
+    capture: 'التقاط', samplesTaken: 'صور مأخوذة', enrolled: 'تم تسجيل الوجه',
+    agentToken: 'رمز برنامج اللابتوب', genToken: 'إنشاء رمز', tokenHint: 'يوضع في agent_config.json على لابتوب الموظف (انظر agent/README.md). إنشاء رمز جديد يلغي القديم.',
+    liveBoard: 'اللوحة الحية', lastActivity: 'آخر نشاط', agentOk: 'برنامج اللابتوب', breakTotal: 'الاستراحات',
+    workedNet: 'صافي العمل', minsAgo: 'دقيقة مضت', noOpenSession: 'لا توجد جلسة عمل. ابدأ واحدة بعد تسجيل الحضور.',
+    cameraDenied: 'إذن الكاميرا مطلوب للتحقق من الحضور.',
   },
 };
 
@@ -1568,6 +1594,32 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
   const [docForm, setDocForm] = useState({ doc_type: 'other', title: '', expiry_date: '' });
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
+  const [enroll, setEnroll] = useState(null);       // { samples: [] }
+  const [faceInfo, setFaceInfo] = useState(null);    // enrollment row for the viewed employee
+
+  useEffect(() => {
+    if (!view || !canEdit) { setFaceInfo(null); return; }
+    sb.from('face_enrollments').select('samples, enrolled_at').eq('employee_id', view.id).maybeSingle().then(({ data: d }) => setFaceInfo(d || false));
+  }, [view && view.id]);
+
+  async function saveEnrollment() {
+    const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'enroll', employee_id: view.id, descriptors: enroll.samples } });
+    if (error) return toast(error.message, 'error');
+    setFaceInfo({ samples: res.samples, enrolled_at: new Date().toISOString() });
+    audit('update', 'face_enrollments', view.id, null, { samples: res.samples });
+    setEnroll(null);
+    toast(t.enrolled);
+  }
+
+  async function genToken() {
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(24))).map((b) => b.toString(16).padStart(2, '0')).join('');
+    const { data: row, error } = await sb.from('employees').update({ agent_token: token }).eq('id', view.id).select().single();
+    if (error) return toast(error.message, 'error');
+    refresh.employees((prev) => prev.map((e) => (e.id === row.id ? row : e)));
+    setView(row);
+    audit('update', 'employees', row.id, null, { agent_token: 'regenerated' });
+    toast(t.saved);
+  }
 
   const eName = (e) => (lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en;
   const branchName = (id) => { const b = data.branches.find((x) => x.id === id); return b ? (lang === 'ar' ? b.name_ar : b.name_en) : '—'; };
@@ -1751,6 +1803,25 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                 )}
               </dl>
             )}
+            {tab === 'profile' && canEdit && (
+              <div className="space-y-3 rounded-xl bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">🪪 {t.enrollFace}</p>
+                    <p className="text-xs text-slate-500">{faceInfo ? t.enrolled + ' · ' + faceInfo.samples + ' · ' + localDay(faceInfo.enrolled_at) : faceInfo === false ? t.notEnrolled : '…'}</p>
+                  </div>
+                  <Btn size="sm" variant="soft" onClick={() => setEnroll({ samples: [] })}>📸 {t.enrollFace}</Btn>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">💻 {t.agentToken}</p>
+                    <p className="truncate font-mono text-xs text-slate-500" dir="ltr">{view.agent_token || '—'}</p>
+                  </div>
+                  <Btn size="sm" variant="soft" onClick={genToken}>{t.genToken}</Btn>
+                </div>
+                <p className="text-xs text-slate-400">{t.tokenHint}</p>
+              </div>
+            )}
 
             {tab === 'salary' && (
               <div className="space-y-2 text-sm">
@@ -1802,6 +1873,18 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                 )}
               </div>
             )}
+          </>
+        )}
+      </Modal>
+
+      {/* ---------- face enrollment ---------- */}
+      <Modal open={!!enroll} onClose={() => setEnroll(null)} title={'📸 ' + t.enrollFace + (view ? ' — ' + eName(view) : '')}
+        footer={enroll ? <><Btn className="flex-1" disabled={enroll.samples.length < 3} onClick={saveEnrollment}>{t.save} ({enroll.samples.length}/3)</Btn><Btn variant="outline" onClick={() => setEnroll(null)}>{t.cancel}</Btn></> : null}>
+        {enroll && (
+          <>
+            <p className="text-xs text-slate-500">{t.enrollHint}</p>
+            <p className="text-center text-sm font-semibold text-slate-700">{enroll.samples.length} / 3 {t.samplesTaken}</p>
+            <SelfieCapture toast={toast} label={t.capture} onDescriptor={async (d) => setEnroll((e) => ({ samples: [...e.samples, d].slice(0, 3) }))} />
           </>
         )}
       </Modal>
@@ -1945,14 +2028,14 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
 /* =====================================================================
    7c. Attendance + trips
    ===================================================================== */
-function AttendancePage({ me, data, toast, audit }) {
+function AttendancePage({ me, data, toast, audit, live }) {
   const { lang, t } = useL();
   const isHr = ['ceo', 'hr'].includes(me.role);
   const admin = me.role !== 'staff';
   const myEmp = data.employees.find((e) => e.user_id === me.id);
   const tabs = [
     ...(myEmp ? [{ k: 'checkin', label: t.checkIn }, { k: 'trips', label: t.tripsTab }] : []),
-    ...(admin ? [{ k: 'review', label: t.reviewTab }] : []),
+    ...(admin ? [{ k: 'live', label: '🟢 ' + t.liveBoard }, { k: 'review', label: t.reviewTab }] : []),
     ...(!myEmp && !admin ? [] : []),
     ...(isHr ? [{ k: 'lock', label: t.lockTab }] : []),
   ];
@@ -1971,7 +2054,8 @@ function AttendancePage({ me, data, toast, audit }) {
           </button>
         ))}
       </div>
-      {tab === 'checkin' && <CheckInTab me={me} myEmp={myEmp} data={data} toast={toast} />}
+      {tab === 'checkin' && <CheckInTab me={me} myEmp={myEmp} data={data} toast={toast} live={live} />}
+      {tab === 'live' && <LiveBoardTab data={data} />}
       {tab === 'trips' && <TripsTab me={me} myEmp={myEmp} data={data} toast={toast} eName={eName} admin={admin} />}
       {tab === 'review' && <ReviewTab me={me} data={data} toast={toast} audit={audit} eName={eName} isHr={isHr} />}
       {tab === 'lock' && <LockTab me={me} data={data} toast={toast} audit={audit} />}
@@ -1979,10 +2063,12 @@ function AttendancePage({ me, data, toast, audit }) {
   );
 }
 
-function CheckInTab({ me, myEmp, data, toast }) {
+function CheckInTab({ me, myEmp, data, toast, live }) {
   const { t } = useL();
   const [todays, setTodays] = useState(null);
   const [busy, setBusy] = useState(false);
+  const ses = live && live.session;
+  const idleMin = ses ? Math.max(0, Math.round((Date.now() - new Date(ses.last_activity_at).getTime()) / 60000)) : 0;
 
   useEffect(() => {
     const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -2022,6 +2108,8 @@ function CheckInTab({ me, myEmp, data, toast }) {
     if (!geoBranches.length) toast(t.noBranchGeo, 'error');
     else if (!within) toast(t.outsideBranch + ' (' + Math.round(distM) + ' ' + t.mAway + ')', 'error');
     else toast(t.saved);
+    /* a live session follows the punch: opens on check-in, closes on check-out */
+    if (live) { if (nextDir === 'in' && !live.session) live.startSession(); else if (nextDir === 'out' && live.session) live.endSession(); }
   }
 
   return (
@@ -2035,6 +2123,24 @@ function CheckInTab({ me, myEmp, data, toast }) {
           </Btn>
         </div>
       </Card>
+      {live && (
+        <Card title={'🟢 ' + t.liveSession}>
+          {!ses ? (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-500">{t.noOpenSession}</p>
+              <Btn variant="soft" onClick={live.startSession}>▶️ {t.startSession}</Btn>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Badge tone={ses.status === 'break' ? 'red' : idleMin >= 10 ? 'amber' : 'green'}>{ses.status === 'break' ? t.onBreak : t.working}</Badge>
+                <p className="mt-1 text-xs text-slate-500">{t.sessionSince} {fmtTime(ses.started_at)} · {t.idleFor} {idleMin} {t.minutesLbl}{ses.agent_seen_at ? ' · 💻' : ''}</p>
+              </div>
+              <Btn size="sm" variant="outline" onClick={live.endSession}>⏹ {t.endSession}</Btn>
+            </div>
+          )}
+        </Card>
+      )}
       <Card title={t.myDay}>
         {todays === null ? <Empty text={t.loading} /> : todays.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
@@ -4295,6 +4401,257 @@ function KpiPage({ me, data, toast, audit }) {
 }
 
 /* =====================================================================
+   7l. Live sessions -- idle detection, "still working?" prompts,
+       selfie face verification, automatic breaks
+   ===================================================================== */
+const FACE_API_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
+const FACE_MODELS = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
+let faceReady = null;
+/** Lazy-load the in-browser face recognition models (free, runs on-device). */
+function loadFaceApi() {
+  if (faceReady) return faceReady;
+  faceReady = new Promise((resolve, reject) => {
+    if (window.faceapi) return resolve();
+    const s = document.createElement('script');
+    s.src = FACE_API_URL; s.onload = resolve; s.onerror = () => reject(new Error('face model load failed'));
+    document.head.appendChild(s);
+  }).then(() => Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODELS),
+    faceapi.nets.faceLandmark68TinyNet.loadFromUri(FACE_MODELS),
+    faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODELS),
+  ]));
+  faceReady.catch(() => { faceReady = null; });
+  return faceReady;
+}
+async function descriptorFrom(video) {
+  const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+    .withFaceLandmarks(true).withFaceDescriptor();
+  return det ? Array.from(det.descriptor) : null;
+}
+const isPhone = () => /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+/** Front-camera capture that yields a 128-d face descriptor. */
+function SelfieCapture({ onDescriptor, label, toast }) {
+  const { t } = useL();
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [state, setState] = useState('starting');
+  useEffect(() => {
+    let alive = true;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false })
+      .then((s) => {
+        if (!alive) { s.getTracks().forEach((x) => x.stop()); return; }
+        streamRef.current = s;
+        if (videoRef.current) videoRef.current.srcObject = s;
+        setState('ready');
+      })
+      .catch(() => toast(t.cameraDenied, 'error'));
+    return () => { alive = false; if (streamRef.current) streamRef.current.getTracks().forEach((x) => x.stop()); };
+  }, []);
+  async function capture() {
+    setState('busy');
+    try {
+      await loadFaceApi();
+      const d = await descriptorFrom(videoRef.current);
+      if (!d) { toast(t.noFace, 'error'); setState('ready'); return; }
+      await onDescriptor(d);
+    } catch (e) { toast(e.message, 'error'); }
+    setState('ready');
+  }
+  return (
+    <div className="space-y-2">
+      <video ref={videoRef} autoPlay playsInline muted className="aspect-[4/3] w-full rounded-xl bg-black object-cover" style={{ transform: 'scaleX(-1)' }} />
+      <Btn size="lg" disabled={state !== 'ready'} onClick={capture}>
+        📸 {state === 'busy' ? t.faceLoading : state === 'starting' ? t.cameraStart : label}
+      </Btn>
+    </div>
+  );
+}
+
+/** Session state machine shared by every screen. Mounted once in App. */
+function useLiveSession({ me, myEmp, settings, toast, ready }) {
+  const [session, setSession] = useState(null);
+  const [challenge, setChallenge] = useState(null);
+  const lastActRef = useRef(Date.now());
+  const policy = settings.presence_policy || {};
+  const idleMs = (Number(policy.idle_minutes) || 10) * 60000;
+  const timeoutMs = (Number(policy.prompt_timeout_minutes) || 5) * 60000;
+  const empId = myEmp ? myEmp.id : null;
+
+  const refresh = useCallback(async () => {
+    if (!empId) return;
+    const [{ data: s }, { data: c }] = await Promise.all([
+      sb.from('work_sessions').select('*').eq('employee_id', empId).neq('status', 'ended').order('started_at', { ascending: false }).limit(1).maybeSingle(),
+      sb.from('presence_challenges').select('*').eq('employee_id', empId).is('result', null).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    setSession(s || null);
+    setChallenge(c || null);
+  }, [empId]);
+  useEffect(() => { if (ready && empId) refresh(); else { setSession(null); setChallenge(null); } }, [ready, empId, refresh]);
+
+  /* browser-side activity: anything the user does in this tab */
+  useEffect(() => {
+    const bump = () => { lastActRef.current = Date.now(); };
+    const evs = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    evs.forEach((e) => window.addEventListener(e, bump, { passive: true }));
+    const vis = () => { if (document.visibilityState === 'visible') bump(); };
+    document.addEventListener('visibilitychange', vis);
+    return () => { evs.forEach((e) => window.removeEventListener(e, bump)); document.removeEventListener('visibilitychange', vis); };
+  }, []);
+
+  /* heartbeat + idle check + prompt polling, every 30 s while a session is open */
+  useEffect(() => {
+    if (!session || !empId) return;
+    let stop = false;
+    const tick = async () => {
+      if (stop) return;
+      const { data: s } = await sb.from('work_sessions').select('*').eq('id', session.id).maybeSingle();
+      if (stop) return;
+      if (!s || s.status === 'ended') { setSession(null); return; }
+      const now = Date.now();
+      const patch = { last_heartbeat_at: new Date(now).toISOString() };
+      if (s.status === 'working' && lastActRef.current > new Date(s.last_activity_at).getTime()) patch.last_activity_at = new Date(lastActRef.current).toISOString();
+      const { data: s2 } = await sb.from('work_sessions').update(patch).eq('id', s.id).select().single();
+      const cur = s2 || s;
+      setSession(cur);
+
+      const { data: c } = await sb.from('presence_challenges').select('*').eq('employee_id', empId).is('result', null).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (stop) return;
+      if (c) {
+        if (new Date(c.expires_at).getTime() < now) {
+          /* unanswered -> automatic break */
+          await sb.from('presence_challenges').update({ result: 'timeout' }).eq('id', c.id);
+          if (cur.status === 'working') {
+            const { data: b } = await sb.from('work_sessions').update({ status: 'break', break_started_at: new Date(now).toISOString() }).eq('id', cur.id).select().single();
+            await sb.from('session_events').insert({ session_id: cur.id, employee_id: empId, kind: 'break_start', meta: { reason: 'prompt_timeout', challenge_id: c.id } });
+            if (b) setSession(b);
+          }
+          setChallenge(null);
+        } else setChallenge(c);
+      } else if (cur.status === 'working') {
+        const idle = now - Math.max(new Date(cur.last_activity_at).getTime(), lastActRef.current);
+        if (idle >= idleMs) {
+          const { data: nc } = await sb.from('presence_challenges').insert({ session_id: cur.id, employee_id: empId, expires_at: new Date(now + timeoutMs).toISOString() }).select().single();
+          if (nc) {
+            setChallenge(nc);
+            await sb.from('session_events').insert({ session_id: cur.id, employee_id: empId, kind: 'prompt', meta: { idle_seconds: Math.round(idle / 1000) } });
+          }
+        } else setChallenge(null);
+      } else setChallenge(null);
+    };
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => { stop = true; clearInterval(id); };
+  }, [session && session.id, empId, idleMs, timeoutMs]);
+
+  async function startSession() {
+    if (!empId) return;
+    const { data: s, error } = await sb.from('work_sessions').insert({ employee_id: empId }).select().single();
+    if (error) return toast(error.message, 'error');
+    await sb.from('session_events').insert({ session_id: s.id, employee_id: empId, kind: 'start', meta: { device: isPhone() ? 'phone' : 'laptop' } });
+    lastActRef.current = Date.now();
+    setSession(s);
+  }
+  async function endSession() {
+    if (!session) return;
+    const now = Date.now();
+    const extra = session.status === 'break' && session.break_started_at ? Math.round((now - new Date(session.break_started_at).getTime()) / 1000) : 0;
+    const { error } = await sb.from('work_sessions').update({ status: 'ended', ended_at: new Date(now).toISOString(), break_started_at: null, break_seconds: (session.break_seconds || 0) + extra }).eq('id', session.id);
+    if (error) return toast(error.message, 'error');
+    await sb.from('session_events').insert({ session_id: session.id, employee_id: empId, kind: 'end', meta: {} });
+    setSession(null); setChallenge(null);
+  }
+  /** Answer a prompt / resume from break with a fresh face descriptor (verified server-side). */
+  async function verify(descriptor) {
+    const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'verify', challenge_id: challenge ? challenge.id : null, descriptor, via: isPhone() ? 'phone' : 'laptop' } });
+    if (error) {
+      let msg = error.message;
+      try { const b = await error.context.json(); if (b.error === 'not_enrolled') msg = 'not_enrolled'; else if (b.error) msg = b.error; } catch (e) {}
+      throw new Error(msg);
+    }
+    if (!res.ok) throw new Error('mismatch:' + res.distance);
+    lastActRef.current = Date.now();
+    await refresh();
+    return res;
+  }
+  return { session, challenge, startSession, endSession, verify, refresh };
+}
+
+/** Global prompt: shown for an open challenge or while on break. */
+function PresenceModal({ live, toast }) {
+  const { t } = useL();
+  const [left, setLeft] = useState(0);
+  const open = !!live.challenge || (live.session && live.session.status === 'break');
+  useEffect(() => {
+    if (!live.challenge) return;
+    const id = setInterval(() => setLeft(Math.max(0, Math.round((new Date(live.challenge.expires_at).getTime() - Date.now()) / 1000))), 1000);
+    return () => clearInterval(id);
+  }, [live.challenge && live.challenge.id]);
+  if (!open) return null;
+  const onBreak = !live.challenge;
+  async function onDescriptor(d) {
+    try { await live.verify(d); toast(t.faceOk); }
+    catch (e) { toast(e.message === 'not_enrolled' ? t.notEnrolled : e.message.startsWith('mismatch') ? t.faceMismatch : e.message, 'error'); }
+  }
+  return (
+    <Modal open={true} onClose={() => {}} title={onBreak ? '⏸️ ' + t.onBreak : '👋 ' + t.stillWorking}>
+      {onBreak ? <p className="text-sm text-slate-600">{t.breakAuto}</p>
+        : <p className="text-center text-sm text-slate-600">{t.stillWorkingHint} <b className="text-lg text-rose-600">{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}</b></p>}
+      <SelfieCapture toast={toast} label={onBreak ? t.resumeWork : t.confirmSelfie} onDescriptor={onDescriptor} />
+    </Modal>
+  );
+}
+
+/** Manager / HR view of everyone's live status today. */
+function LiveBoardTab({ data }) {
+  const { lang, t } = useL();
+  const [rows, setRows] = useState(null);
+  useEffect(() => {
+    let stop = false;
+    const load = async () => {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const { data: d } = await sb.from('work_sessions').select('*').gte('started_at', start.toISOString()).order('started_at', { ascending: false });
+      if (!stop) setRows(d || []);
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => { stop = true; clearInterval(id); };
+  }, []);
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const mins = (ts) => Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 60000));
+  const fmtH = (sec) => Math.floor(sec / 3600) + 'h ' + Math.floor((sec % 3600) / 60) + 'm';
+  return (
+    <Card title={t.liveBoard}>
+      {rows === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
+        <ul className="divide-y divide-slate-100">
+          {rows.map((s) => {
+            const emp = data.employees.find((e) => e.id === s.employee_id);
+            const end = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
+            const brk = (s.break_seconds || 0) + (s.status === 'break' && s.break_started_at ? Math.round((Date.now() - new Date(s.break_started_at).getTime()) / 1000) : 0);
+            const net = Math.max(0, Math.round((end - new Date(s.started_at).getTime()) / 1000) - brk);
+            const agentOk = s.agent_seen_at && mins(s.agent_seen_at) <= 3;
+            return (
+              <li key={s.id} className="flex items-center justify-between gap-2 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800">{eName(emp)}</p>
+                  <p className="text-xs text-slate-500">
+                    {t.sessionSince} {fmtTime(s.started_at)} · {t.lastActivity}: {mins(s.last_activity_at)} {t.minsAgo} · {t.breakTotal}: {fmtH(brk)} · {t.workedNet}: {fmtH(net)}
+                    {agentOk ? ' · 💻' : ''}
+                  </p>
+                </div>
+                <Badge tone={s.status === 'working' ? (mins(s.last_activity_at) >= 10 ? 'amber' : 'green') : s.status === 'break' ? 'red' : 'slate'}>
+                  {s.status === 'working' ? t.working : s.status === 'break' ? t.onBreak : t.doneLbl}
+                </Badge>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -5049,6 +5406,9 @@ function App() {
 
   const ctx = useMemo(() => ({ lang, t, setLang }), [lang, t, setLang]);
 
+  /* live work session (idle prompts, breaks, face verification) -- one instance app-wide */
+  const live = useLiveSession({ me, myEmp: me ? employees.find((e) => e.user_id === me.id) : null, settings, toast, ready });
+
   if (session === undefined) {
     return <L.Provider value={ctx}><div className="flex h-full items-center justify-center text-slate-400">{t.loading}</div></L.Provider>;
   }
@@ -5068,12 +5428,13 @@ function App() {
     settings: setSettings, taxBrackets: setTaxBrackets, taxSettings: setTaxSettings, insurance: setInsurance,
     employees: setEmployees, departments: setDepartments, expiringDocs: setExpiringDocs, shifts: setShifts,
   };
-  const shared = { me, setMe, data, refresh, toast, audit };
+  const shared = { me, setMe, data, refresh, toast, audit, live };
   const allowed = NAV.find((n) => n.key === page)?.roles.includes(me.role);
 
   return (
     <L.Provider value={ctx}>
       <Toast msg={msg} />
+      <PresenceModal live={live} toast={toast} />
       <Shell me={me} page={page} setPage={setPage} onSignOut={() => sb.auth.signOut()}>
         {!ready ? <Empty text={t.loading} />
           : !allowed ? <Card><Empty text={t.noPermission} /></Card>

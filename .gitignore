@@ -1,3 +1,5 @@
 .supabase_token
 HR-employee-data-template.csv
 bridge/__pycache__/
+agent/agent_config.json
+agent/agent.log
