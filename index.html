@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v1.9';
+const APP_VERSION = 'v2.0';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -231,6 +231,19 @@ const T = {
     addPayment: 'Record payment', payments: 'Payments',
     paymentKind: { payroll: 'Payroll', manual: 'Manual / cash' },
     cancelLoan: 'Cancel loan', loanDedLbl: 'Loan installment',
+    compliance: 'Compliance', calendarTab: 'Filing calendar', formsTab: 'NOSI forms',
+    addTask: 'Add task', markDone: 'Mark done', dueLbl: 'Due', overdue: 'Overdue', doneLbl: 'Done',
+    recurrence: { once: 'One-time', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual' },
+    category: { nosi: 'Social insurance', tax: 'Tax', labor: 'Labor office', other: 'Other' },
+    showDone: 'Show completed', titleLbl: 'Title',
+    form1: 'Form 1 — Hire', form6: 'Form 6 — Exit', form2: 'Form 2 — Annual wages',
+    form1Hint: 'Registration of a new employee with social insurance — print and transcribe to the official form, or attach.',
+    form6Hint: 'End-of-service notification. Requires a termination date on the employee record.',
+    form2Hint: 'Wages of all insured employees as at 1 January — filed every January.',
+    employerNo: 'NOSI employer number', taxOffice: 'Tax office', commercialReg: 'Commercial register',
+    nosiEmployeeNo: 'Employee insurance number', dataSheet: 'Data sheet',
+    filterSource: 'Source', srcApp: 'App actions', srcDb: 'Database changes (forensic)', changes: 'Changes',
+    before: 'Before', after: 'After', loadMore: 'Load more', allLbl: 'All', noTermination: 'No termination date set',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -358,6 +371,19 @@ const T = {
     addPayment: 'تسجيل سداد', payments: 'السدادات',
     paymentKind: { payroll: 'من الراتب', manual: 'يدوي / نقدي' },
     cancelLoan: 'إلغاء', loanDedLbl: 'قسط سلفة / قرض',
+    compliance: 'الامتثال', calendarTab: 'تقويم الإقرارات', formsTab: 'استمارات التأمينات',
+    addTask: 'إضافة مهمة', markDone: 'تم الإنجاز', dueLbl: 'الاستحقاق', overdue: 'متأخر', doneLbl: 'منجز',
+    recurrence: { once: 'مرة واحدة', monthly: 'شهري', quarterly: 'ربع سنوي', annual: 'سنوي' },
+    category: { nosi: 'التأمينات الاجتماعية', tax: 'الضرائب', labor: 'مكتب العمل', other: 'أخرى' },
+    showDone: 'عرض المنجز', titleLbl: 'العنوان',
+    form1: 'استمارة 1 — تعيين', form6: 'استمارة 6 — إنهاء خدمة', form2: 'استمارة 2 — بيان الأجور السنوي',
+    form1Hint: 'تسجيل موظف جديد بالتأمينات — اطبعها وانقل البيانات للاستمارة الرسمية أو أرفقها.',
+    form6Hint: 'إخطار إنهاء الخدمة. يتطلب تاريخ انتهاء خدمة في ملف الموظف.',
+    form2Hint: 'أجور جميع المؤمن عليهم في 1 يناير — تُقدم كل يناير.',
+    employerNo: 'الرقم التأميني للمنشأة', taxOffice: 'المأمورية الضريبية', commercialReg: 'السجل التجاري',
+    nosiEmployeeNo: 'الرقم التأميني للموظف', dataSheet: 'بيان البيانات',
+    filterSource: 'المصدر', srcApp: 'إجراءات التطبيق', srcDb: 'تغييرات قاعدة البيانات (تدقيق)', changes: 'التغييرات',
+    before: 'قبل', after: 'بعد', loadMore: 'تحميل المزيد', allLbl: 'الكل', noTermination: 'لا يوجد تاريخ انتهاء خدمة',
   },
 };
 
@@ -609,6 +635,27 @@ function downloadCsv(filename, rows) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+/** Print a bilingual data sheet (NOSI forms): sections of label/value rows. */
+function printDataSheet(title, sections, company) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const sec = (s) => '<h2>' + esc(s.title) + '</h2><table>' +
+    s.rows.map((r) => '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1] == null || r[1] === '' ? '—' : r[1]) + '</td></tr>').join('') + '</table>';
+  w.document.write('<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">' +
+    '<style>body{font-family:Cairo,sans-serif;max-width:780px;margin:24px auto;padding:0 20px;color:#111;font-size:13px}' +
+    'header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1d6fa3;padding-bottom:10px;margin-bottom:12px}' +
+    'h1{font-size:18px;color:#12405c;margin:0}img{height:44px}h2{font-size:14px;color:#1a4a60;margin:16px 0 6px}' +
+    'table{width:100%;border-collapse:collapse}th{width:38%;text-align:start;background:#eef6fa;padding:6px 10px;border:1px solid #dbe4ec;font-weight:600}' +
+    'td{padding:6px 10px;border:1px solid #dbe4ec}.sig{display:flex;justify-content:space-between;margin-top:34px;color:#475569}</style></head><body>' +
+    '<header><div><h1>' + esc((company || {}).name_ar || '') + ' — ' + esc((company || {}).name_en || '') + '</h1><div>' + esc(title) + '</div></div><img src="' + LOGO_LOCKUP + '"/></header>' +
+    sections.map(sec).join('') +
+    '<div class="sig"><span>المسؤول / Prepared by: ______________</span><span>التاريخ / Date: ______________</span></div>' +
+    '<script>window.onload=function(){window.print()}<\/script></body></html>');
+  w.document.close();
 }
 
 /** Print a bilingual payslip for one payroll item. */
@@ -874,6 +921,7 @@ const NAV = [
   { key: 'payroll',   icon: '💰', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'loans',     icon: '🏦', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'jobs',      icon: '💼', roles: ['ceo', 'hr'] },
+  { key: 'compliance', icon: '📑', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'users',     icon: '👥', roles: ['ceo', 'hr'] },
   { key: 'settings',  icon: '⚙️', roles: ['ceo', 'hr', 'accountant'] },
   { key: 'audit',     icon: '📋', roles: ['ceo', 'hr', 'accountant'] },
@@ -1005,8 +1053,8 @@ function Dashboard({ me, data }) {
       <Card title={t.moduleSoon}>
         <p className="text-sm text-slate-500">
           {lang === 'ar'
-            ? 'الوحدة 6 جاهزة: السلف والقروض تُخصم تلقائياً من الراتب. التالي: الامتثال والتأمينات.'
-            : 'Module 6 is live: loans and advances auto-deducted in payroll. Next up: compliance (NOSI forms, audit).'}
+            ? 'الوحدة 7 جاهزة: تقويم الإقرارات واستمارات التأمينات وسجل التدقيق الكامل. التالي: الخدمة الذاتية.'
+            : 'Module 7 is live: filing calendar, NOSI forms, full audit trail. Next up: self-service.'}
         </p>
       </Card>
     </>
@@ -3091,6 +3139,191 @@ function LoansPage({ me, data, toast, audit }) {
 }
 
 /* =====================================================================
+   7h. Compliance -- filing calendar + NOSI forms
+   ===================================================================== */
+function CompliancePage({ me, data, toast, audit }) {
+  const { lang, t } = useL();
+  const [tab, setTab] = useState('calendar');
+  const [tasks, setTasks] = useState(null);
+  const [showDone, setShowDone] = useState(false);
+  const [form, setForm] = useState(null);
+  const [empId, setEmpId] = useState('');
+  const company = data.settings.company || {};
+
+  useEffect(() => {
+    sb.from('compliance_tasks').select('*').order('due_date').then(({ data: d }) => setTasks(d || []));
+  }, []);
+
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const tTitle = (x) => (lang === 'ar' ? x.title_ar : x.title_en);
+  const branchName = (id) => { const b = data.branches.find((x) => x.id === id); return b ? (lang === 'ar' ? b.name_ar : b.name_en) : '—'; };
+  const deptName = (id) => { const d = data.departments.find((x) => x.id === id); return d ? (lang === 'ar' ? d.name_ar : d.name_en) : '—'; };
+
+  function nextDue(due, rec) {
+    const d = new Date(due + 'T00:00:00');
+    if (rec === 'monthly') d.setMonth(d.getMonth() + 1);
+    else if (rec === 'quarterly') d.setMonth(d.getMonth() + 3);
+    else if (rec === 'annual') d.setFullYear(d.getFullYear() + 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  async function markDone(task) {
+    const { data: row, error } = await sb.from('compliance_tasks')
+      .update({ status: 'done', done_by: me.id, done_at: new Date().toISOString() }).eq('id', task.id).select().single();
+    if (error) return toast(error.message, 'error');
+    let next = null;
+    if (task.recurrence !== 'once') {
+      const res = await sb.from('compliance_tasks').insert({
+        title_en: task.title_en, title_ar: task.title_ar, category: task.category,
+        due_date: nextDue(task.due_date, task.recurrence), recurrence: task.recurrence, notes: task.notes,
+      }).select().single();
+      next = res.data;
+    }
+    setTasks((prev) => [...prev.map((x) => (x.id === row.id ? row : x)), ...(next ? [next] : [])].sort((a, b) => a.due_date.localeCompare(b.due_date)));
+    audit('update', 'compliance_tasks', row.id, task, row);
+    toast(t.saved);
+  }
+
+  async function saveTask() {
+    const { data: row, error } = await sb.from('compliance_tasks').insert({
+      title_en: form.title_en || form.title_ar, title_ar: form.title_ar || form.title_en,
+      category: form.category, due_date: form.due_date, recurrence: form.recurrence, notes: form.notes || null,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setTasks((prev) => [...prev, row].sort((a, b) => a.due_date.localeCompare(b.due_date)));
+    setForm(null);
+    toast(t.saved);
+  }
+
+  const employerRows = () => [
+    [lang === 'ar' ? 'اسم المنشأة' : 'Employer', (company.name_ar || '') + ' — ' + (company.name_en || '')],
+    [t.employerNo, company.nosi_employer_no], [t.nosiOffice, company.nosi_office],
+    [t.commercialReg, company.commercial_reg], [t.taxFileNo, company.tax_file_no], [t.address, company.address],
+  ];
+  const employeeRows = (e) => [
+    [t.fullNameAr, e.full_name_ar], [t.fullNameEn, e.full_name_en], [t.empCode, e.employee_code],
+    [t.nationalId, e.national_id], [t.birthDate, e.birth_date], [t.gender, e.gender ? t[e.gender] : ''],
+    [t.address, e.address], [t.phone, e.phone],
+    [t.jobTitleAr, e.job_title_ar || e.job_title_en], [t.department, deptName(e.department_id)], [t.branch, branchName(e.branch_id)],
+    [t.hireDate, e.hire_date], [t.contractType, t.contractTypes[e.contract_type]],
+    [t.basicSalary, money(e.basic_salary)], [t.insuranceBase, money(e.insurance_base)], [t.nosiEmployeeNo, e.nosi_number],
+  ];
+
+  function printForm1(e) {
+    printDataSheet(t.form1, [{ title: lang === 'ar' ? 'بيانات المنشأة' : 'Employer', rows: employerRows() },
+      { title: lang === 'ar' ? 'بيانات المؤمن عليه' : 'Employee', rows: employeeRows(e) }], company);
+  }
+  function printForm6(e) {
+    if (!e.termination_date) return toast(t.noTermination, 'error');
+    printDataSheet(t.form6, [{ title: lang === 'ar' ? 'بيانات المنشأة' : 'Employer', rows: employerRows() },
+      { title: lang === 'ar' ? 'بيانات المؤمن عليه' : 'Employee', rows: [...employeeRows(e), [t.terminationDate, e.termination_date], [t.notes, e.notes]] }], company);
+  }
+  function printForm2() {
+    const emps = data.employees.filter((e) => e.status === 'active' && Number(e.insurance_base) > 0);
+    printDataSheet(t.form2 + ' — ' + new Date().getFullYear(), [
+      { title: lang === 'ar' ? 'بيانات المنشأة' : 'Employer', rows: employerRows() },
+      { title: (lang === 'ar' ? 'المؤمن عليهم' : 'Insured employees') + ' (' + emps.length + ')',
+        rows: emps.map((e) => [eName(e) + ' · ' + (e.nosi_number || '—'), (e.national_id || '—') + ' · ' + t.insuranceBase + ' ' + money(e.insurance_base)]) },
+    ], company);
+  }
+
+  const visible = (tasks || []).filter((x) => showDone || x.status === 'open');
+  const emp = data.employees.find((e) => e.id === empId);
+
+  return (
+    <>
+      <div className="flex gap-2">
+        {[['calendar', t.calendarTab], ['forms', t.formsTab]].map(([k, l]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={cx('rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>{l}</button>
+        ))}
+      </div>
+
+      {tab === 'calendar' && (
+        <>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input type="checkbox" className="h-4 w-4 accent-brand-700" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} />{t.showDone}
+            </label>
+            <Btn size="sm" onClick={() => setForm({ title_ar: '', title_en: '', category: 'other', due_date: todayISO(), recurrence: 'once', notes: '' })}>+ {t.addTask}</Btn>
+          </div>
+          <Card title={t.calendarTab}>
+            {tasks === null ? <Empty text={t.loading} /> : visible.length === 0 ? <Empty text={t.noData} /> : (
+              <ul className="divide-y divide-slate-100">
+                {visible.map((x) => {
+                  const d = daysUntil(x.due_date);
+                  return (
+                    <li key={x.id} className="flex items-center justify-between gap-2 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-800">{tTitle(x)}</p>
+                        <p className="text-xs text-slate-500">{t.category[x.category]} · {t.recurrence[x.recurrence]} · {t.dueLbl} {x.due_date}{x.notes ? ' · ' + x.notes : ''}</p>
+                      </div>
+                      {x.status === 'done' ? <Badge tone="green">{t.doneLbl}</Badge> : (
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge tone={d < 0 ? 'red' : d <= 7 ? 'amber' : 'slate'}>{d < 0 ? t.overdue : d + 'd'}</Badge>
+                          <Btn size="sm" variant="soft" onClick={() => markDone(x)}>✓</Btn>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {tab === 'forms' && (
+        <>
+          <Card title={t.formsTab}>
+            <Field label={t.selectEmployee}>
+              <Select value={empId} onChange={(e) => setEmpId(e.target.value)}>
+                <option value="">—</option>
+                {data.employees.map((e) => <option key={e.id} value={e.id}>{eName(e)} · {t.empStatus[e.status]}</option>)}
+              </Select>
+            </Field>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <Btn variant="soft" disabled={!emp} onClick={() => printForm1(emp)}>🖨️ {t.form1}</Btn>
+              <Btn variant="soft" disabled={!emp} onClick={() => printForm6(emp)}>🖨️ {t.form6}</Btn>
+            </div>
+            <p className="mt-2 text-xs text-slate-400">{t.form1Hint}</p>
+            <p className="text-xs text-slate-400">{t.form6Hint}</p>
+          </Card>
+          <Card title={t.form2}>
+            <p className="mb-3 text-xs text-slate-500">{t.form2Hint}</p>
+            <Btn variant="soft" onClick={printForm2}>🖨️ {t.form2}</Btn>
+          </Card>
+        </>
+      )}
+
+      <Modal open={!!form} onClose={() => setForm(null)} title={t.addTask}
+        footer={<><Btn className="flex-1" disabled={!form || !(form.title_ar || form.title_en)} onClick={saveTask}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
+        {form && (
+          <>
+            <Field label={t.titleLbl + ' (ع)'}><Input value={form.title_ar} onChange={(e) => setForm({ ...form, title_ar: e.target.value })} /></Field>
+            <Field label={t.titleLbl + ' (EN)'}><Input value={form.title_en} onChange={(e) => setForm({ ...form, title_en: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.category.other}>
+                <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  {Object.keys(t.category).map((k) => <option key={k} value={k}>{t.category[k]}</option>)}
+                </Select>
+              </Field>
+              <Field label={t.recurrence.once}>
+                <Select value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value })}>
+                  {Object.keys(t.recurrence).map((k) => <option key={k} value={k}>{t.recurrence[k]}</option>)}
+                </Select>
+              </Field>
+            </div>
+            <Field label={t.dueLbl}><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></Field>
+            <Field label={t.notes}><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
+/* =====================================================================
    8. Settings
    ===================================================================== */
 function SettingsPage({ me, data, refresh, toast, audit }) {
@@ -3158,7 +3391,11 @@ function CompanySettings(props) {
         <Field label={t.country}><Input value={f.country || ''} onChange={set('country')} /></Field>
         <Field label={t.currency}><Input value={f.currency || 'EGP'} onChange={set('currency')} /></Field>
         <Field label={t.taxFileNo}><Input value={f.tax_file_no || ''} onChange={set('tax_file_no')} /></Field>
+        <Field label={t.taxOffice}><Input value={f.tax_office || ''} onChange={set('tax_office')} /></Field>
         <Field label={t.nosiOffice}><Input value={f.nosi_office || ''} onChange={set('nosi_office')} /></Field>
+        <Field label={t.employerNo}><Input dir="ltr" value={f.nosi_employer_no || ''} onChange={set('nosi_employer_no')} /></Field>
+        <Field label={t.commercialReg}><Input dir="ltr" value={f.commercial_reg || ''} onChange={set('commercial_reg')} /></Field>
+        <Field label={t.address}><Input value={f.address || ''} onChange={set('address')} /></Field>
       </div>
       <Btn className="mt-4" onClick={() => save('company', f, initial)}>{t.save}</Btn>
     </Card>
@@ -3573,33 +3810,102 @@ function InsuranceSettings({ data, refresh, toast, audit }) {
 /* =====================================================================
    9. Audit log
    ===================================================================== */
-function AuditPage() {
+function AuditPage({ me }) {
   const { t } = useL();
+  const ENTITIES = ['app_users', 'employees', 'employee_documents', 'app_settings', 'tax_brackets', 'tax_settings', 'insurance_rates',
+    'branches', 'holidays', 'shifts', 'attendance_punches', 'attendance_locks', 'leave_requests', 'leave_adjustments',
+    'payroll_runs', 'payroll_items', 'loans', 'loan_payments', 'job_roles', 'job_documents', 'compliance_tasks', 'user_invites'];
+  const PAGE = 200;
+  const [f, setF] = useState({ source: 'app', entity: '', action: '', q: '', from: '', to: '' });
   const [rows, setRows] = useState(null);
+  const [more, setMore] = useState(false);
+  const [view, setView] = useState(null);
 
-  useEffect(() => {
-    sb.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200)
-      .then(({ data, error }) => setRows(error ? [] : data));
-  }, []);
+  async function load(offset) {
+    let qb = sb.from('audit_log').select('*').eq('source', f.source).order('created_at', { ascending: false }).range(offset, offset + PAGE - 1);
+    if (f.entity) qb = qb.eq('entity', f.entity);
+    if (f.action) qb = qb.eq('action', f.action);
+    if (f.from) qb = qb.gte('created_at', new Date(f.from + 'T00:00:00').toISOString());
+    if (f.to) { const d = new Date(f.to + 'T00:00:00'); d.setDate(d.getDate() + 1); qb = qb.lt('created_at', d.toISOString()); }
+    const { data, error } = await qb;
+    if (error) return;
+    setRows((prev) => (offset === 0 ? data : [...(prev || []), ...data]));
+    setMore(data.length === PAGE);
+  }
+  useEffect(() => { setRows(null); load(0); }, [f.source, f.entity, f.action, f.from, f.to]);
 
-  if (rows === null) return <Card title={t.audit}><Empty text={t.loading} /></Card>;
+  const q = f.q.trim().toLowerCase();
+  const list = (rows || []).filter((r) => !q || (r.actor_email || '').toLowerCase().includes(q) || (r.entity_id || '').toLowerCase().includes(q) || (r.note || '').toLowerCase().includes(q));
+  const actions = ['insert', 'update', 'delete', 'approve', 'reject', 'cancel', 'lock', 'unlock'];
+
+  /** Keys whose value changed between before and after. */
+  const diff = (r) => {
+    const b = r.before_data || {}, a = r.after_data || {};
+    const keys = [...new Set([...Object.keys(b), ...Object.keys(a)])].filter((k) => !['updated_at', 'created_at'].includes(k));
+    return keys.filter((k) => JSON.stringify(b[k]) !== JSON.stringify(a[k])).map((k) => [k, b[k], a[k]]);
+  };
+  const fmtV = (v) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
 
   return (
-    <Card title={t.audit}>
-      {rows.length === 0 ? <Empty text={t.noData} /> : (
-        <ul className="divide-y divide-slate-100">
-          {rows.map((r) => (
-            <li key={r.id} className="py-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm font-semibold text-slate-800">{r.entity} &middot; {r.action}</p>
-                <span className="shrink-0 text-xs text-slate-400">{fmtDateTime(r.created_at)}</span>
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <Select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })}>
+          <option value="app">{t.srcApp}</option><option value="db">{t.srcDb}</option>
+        </Select>
+        <Select value={f.entity} onChange={(e) => setF({ ...f, entity: e.target.value })}>
+          <option value="">{t.entity}: {t.allLbl}</option>
+          {ENTITIES.map((x) => <option key={x} value={x}>{x}</option>)}
+        </Select>
+        <Select value={f.action} onChange={(e) => setF({ ...f, action: e.target.value })}>
+          <option value="">{t.action}: {t.allLbl}</option>
+          {actions.map((x) => <option key={x} value={x}>{x}</option>)}
+        </Select>
+        <Input placeholder={t.search} value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+        <Input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
+        <Input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} />
+      </div>
+
+      <Card title={t.audit + (rows ? ' (' + list.length + ')' : '')}>
+        {rows === null ? <Empty text={t.loading} /> : list.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {list.map((r) => (
+              <li key={r.id} className="cursor-pointer py-2.5" onClick={() => setView(r)}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-semibold text-slate-800">{r.entity} · {r.action}</p>
+                  <span className="shrink-0 text-xs text-slate-400">{fmtDateTime(r.created_at)}</span>
+                </div>
+                <p className="truncate text-xs text-slate-500">{r.actor_email || (r.source === 'db' ? 'system / SQL' : '—')} {r.actor_role ? '(' + r.actor_role + ')' : ''} {r.entity_id ? '#' + String(r.entity_id).slice(0, 8) : ''}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {more && <Btn variant="outline" className="mt-3 w-full" onClick={() => load(rows.length)}>{t.loadMore}</Btn>}
+      </Card>
+
+      <Modal open={!!view} onClose={() => setView(null)} title={view ? view.entity + ' · ' + view.action : ''}>
+        {view && (
+          <>
+            <p className="text-xs text-slate-500">{view.actor_email || 'system'} · {fmtDateTime(view.created_at)} · #{view.entity_id}</p>
+            {diff(view).length === 0 ? <Empty text={t.noData} /> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead><tr className="text-slate-400"><th className="py-1 text-start">{t.changes}</th><th className="py-1 text-start">{t.before}</th><th className="py-1 text-start">{t.after}</th></tr></thead>
+                  <tbody>
+                    {diff(view).map(([k, b, a]) => (
+                      <tr key={k} className="border-t border-slate-100 align-top">
+                        <td className="py-1 pe-2 font-semibold text-slate-700">{k}</td>
+                        <td className="max-w-[140px] break-words py-1 pe-2 text-rose-600" dir="auto">{fmtV(b)}</td>
+                        <td className="max-w-[140px] break-words py-1 text-emerald-700" dir="auto">{fmtV(a)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <p className="truncate text-xs text-slate-500">{r.actor_email} ({r.actor_role}) {r.entity_id ? '#' + String(r.entity_id).slice(0, 8) : ''}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
+            )}
+          </>
+        )}
+      </Modal>
+    </>
   );
 }
 
@@ -3807,9 +4113,10 @@ function App() {
           : page === 'payroll' ? <PayrollPage {...shared} />
           : page === 'loans' ? <LoansPage {...shared} />
           : page === 'jobs' ? <JobsPage {...shared} />
+          : page === 'compliance' ? <CompliancePage {...shared} />
           : page === 'users' ? <UsersPage {...shared} />
           : page === 'settings' ? <SettingsPage {...shared} />
-          : page === 'audit' ? <AuditPage />
+          : page === 'audit' ? <AuditPage {...shared} />
           : page === 'profile' ? <ProfilePage {...shared} />
           : null}
       </Shell>
