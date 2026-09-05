@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.9';
+const APP_VERSION = 'v3.0';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -250,6 +250,7 @@ const T = {
     goCheckIn: 'Check in / out', goLeave: 'Request leave', goTrip: 'Log a trip',
     apps: 'Systems', appHr: 'HR & Payroll', appMaint: 'Maintenance management', appCrm: 'Property management (CRM)', currentApp: 'You are here',
     myTasks: 'My maintenance tasks', openTasksLbl: 'open', linkedSystems: 'Linked systems', maintUser: 'Maintenance username', crmUser: 'CRM profile', notLinked: 'not linked',
+    attendanceExempt: 'Exempt from attendance (no check-in, lateness or overtime — CEOs automatically)', exemptBadge: 'Attendance exempt',
     reports: 'Reports', rptPayroll: 'Payroll cost', rptHeadcount: 'Headcount', rptOvertime: 'Overtime & lateness',
     rptLeave: 'Leave liability', rptAttendance: 'Attendance',
     byBranch: 'By branch', byDepartment: 'By department', byGender: 'By gender', byContract: 'By contract type',
@@ -423,6 +424,7 @@ const T = {
     goCheckIn: 'تسجيل حضور / انصراف', goLeave: 'طلب إجازة', goTrip: 'تسجيل مشوار',
     apps: 'الأنظمة', appHr: 'الموارد البشرية والرواتب', appMaint: 'إدارة الصيانة', appCrm: 'إدارة العقارات (CRM)', currentApp: 'أنت هنا',
     myTasks: 'مهام الصيانة الخاصة بي', openTasksLbl: 'مفتوحة', linkedSystems: 'الأنظمة المرتبطة', maintUser: 'مستخدم نظام الصيانة', crmUser: 'حساب CRM', notLinked: 'غير مرتبط',
+    attendanceExempt: 'معفى من الحضور (بدون تسجيل حضور أو تأخير أو إضافي — المدراء التنفيذيون تلقائياً)', exemptBadge: 'معفى من الحضور',
     reports: 'التقارير', rptPayroll: 'تكلفة الرواتب', rptHeadcount: 'عدد الموظفين', rptOvertime: 'الإضافي والتأخير',
     rptLeave: 'التزامات الإجازات', rptAttendance: 'الحضور',
     byBranch: 'حسب الفرع', byDepartment: 'حسب القسم', byGender: 'حسب النوع', byContract: 'حسب نوع العقد',
@@ -909,7 +911,7 @@ function computePayrollItem(emp, ctx) {
   let late = 0, ot = 0;
   const byDay = {};
   for (const p of ctx.punches) (byDay[localDay(p.punch_time)] = byDay[localDay(p.punch_time)] || []).push(p);
-  for (const [date, list] of Object.entries(byDay)) {
+  if (!emp.attendance_exempt) for (const [date, list] of Object.entries(byDay)) {
     if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
     list.sort((a, b) => a.punch_time.localeCompare(b.punch_time));
     const ins = list.filter((p) => p.direction === 'in');
@@ -1684,7 +1686,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       hire_date: todayISO(), contract_type: 'indefinite', contract_end: '', probation_end: '',
       weekend_days: null, basic_salary: 0, allowances: [], insurance_base: 0,
       nosi_number: '', bank_name: '', bank_account: '', status: 'active',
-      termination_date: '', user_id: '', notes: '', shift_id: '', device_code: '',
+      termination_date: '', user_id: '', notes: '', shift_id: '', device_code: '', attendance_exempt: false,
     };
   }
 
@@ -1711,7 +1713,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       insurance_base: Number(form.insurance_base) || 0, nosi_number: nn(form.nosi_number),
       bank_name: nn(form.bank_name), bank_account: nn(form.bank_account),
       status: form.status, termination_date: nn(form.termination_date), user_id: nn(form.user_id), notes: nn(form.notes),
-      shift_id: nn(form.shift_id), device_code: nn(form.device_code),
+      shift_id: nn(form.shift_id), device_code: nn(form.device_code), attendance_exempt: !!form.attendance_exempt,
     };
     let res;
     if (form.id) res = await sb.from('employees').update(payload).eq('id', form.id).select().single();
@@ -2016,6 +2018,11 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                 <Input dir="ltr" inputMode="numeric" value={form.device_code || ''} onChange={(e) => setForm({ ...form, device_code: e.target.value })} />
               </Field>
             </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!form.attendance_exempt}
+                onChange={(e) => setForm({ ...form, attendance_exempt: e.target.checked })} />
+              {t.attendanceExempt}
+            </label>
             <Field label={t.scheduleLbl}>
               <Select value={form.weekend_days ? 'custom' : 'default'}
                 onChange={(e) => setForm({ ...form, weekend_days: e.target.value === 'custom' ? ((data.settings.work_week || {}).weekend_days || [5, 6]) : null })}>
@@ -2075,7 +2082,8 @@ function AttendancePage({ me, data, toast, audit, live }) {
   const admin = me.role !== 'staff';
   const myEmp = data.employees.find((e) => e.user_id === me.id);
   const tabs = [
-    ...(myEmp ? [{ k: 'checkin', label: t.checkIn }, { k: 'trips', label: t.tripsTab }] : []),
+    ...(myEmp && !myEmp.attendance_exempt ? [{ k: 'checkin', label: t.checkIn }] : []),
+    ...(myEmp ? [{ k: 'trips', label: t.tripsTab }] : []),
     ...(admin ? [{ k: 'live', label: '🟢 ' + t.liveBoard }, { k: 'review', label: t.reviewTab }] : []),
     ...(!myEmp && !admin ? [] : []),
     ...(isHr ? [{ k: 'lock', label: t.lockTab }] : []),
@@ -2347,6 +2355,8 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     for (const p of punches) {
       if (!p.employee_id) continue;
       if (fEmp && p.employee_id !== fEmp) continue;
+      const pe = data.employees.find((e) => e.id === p.employee_id);
+      if (pe && pe.attendance_exempt) continue;
       const k = p.employee_id + '|' + localDay(p.punch_time);
       (groups[k] = groups[k] || []).push(p);
     }
@@ -3880,8 +3890,8 @@ function MyPage({ me, data, toast, setPage }) {
         <p className="mt-1 text-sm text-brand-200">{(lang === 'ar' ? myEmp.job_title_ar : myEmp.job_title_en) || '—'} · {branch ? (lang === 'ar' ? branch.name_ar : branch.name_en) : '—'} · {myEmp.employee_code}</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance')}>🕐<span>{t.goCheckIn}</span></Btn>
+      <div className={cx('grid gap-2', myEmp.attendance_exempt ? 'grid-cols-2' : 'grid-cols-3')}>
+        {!myEmp.attendance_exempt && <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance')}>🕐<span>{t.goCheckIn}</span></Btn>}
         <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('leave')}>🌴<span>{t.goLeave}</span></Btn>
         <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance')}>🚗<span>{t.goTrip}</span></Btn>
       </div>
@@ -3892,8 +3902,7 @@ function MyPage({ me, data, toast, setPage }) {
             {[
               [t.annualShort, bal.ent.dueYet ? bal.annualRemaining : '—', '🌴'],
               [t.casualShort, bal.ent.dueYet ? bal.casualRemaining : '—', '⚡'],
-              [t.presentDays, presentDays, '🕐'],
-              [t.lateTotal, lateTotal, '⏰'],
+              ...(myEmp.attendance_exempt ? [] : [[t.presentDays, presentDays, '🕐'], [t.lateTotal, lateTotal, '⏰']]),
             ].map(([l, v, i], idx) => (
               <div key={idx} className="rounded-2xl border border-slate-200 bg-white p-2.5 text-center">
                 <div>{i}</div><div className="text-lg font-bold text-slate-800">{v}</div><div className="text-[10px] leading-tight text-slate-500">{l}</div>
@@ -4084,7 +4093,7 @@ function ReportsPage({ me, data, toast }) {
     const out = {};
     for (const [k, list] of Object.entries(byEmp)) {
       const [empId, date] = k.split('|');
-      const emp = empById(empId); if (!emp) continue;
+      const emp = empById(empId); if (!emp || emp.attendance_exempt) continue;
       const weekend = emp.weekend_days || weekendC;
       if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
       const shift = data.shifts.find((s) => s.id === emp.shift_id) || data.shifts[0];
@@ -4551,7 +4560,7 @@ function useLiveSession({ me, myEmp, settings, toast, ready }) {
   const policy = settings.presence_policy || {};
   const idleMs = (Number(policy.idle_minutes) || 10) * 60000;
   const timeoutMs = (Number(policy.prompt_timeout_minutes) || 5) * 60000;
-  const empId = myEmp ? myEmp.id : null;
+  const empId = myEmp && !myEmp.attendance_exempt ? myEmp.id : null;   // exempt staff (CEOs) get no sessions or prompts
 
   const refresh = useCallback(async () => {
     if (!empId) return;
