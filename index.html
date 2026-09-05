@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.5';
+const APP_VERSION = 'v2.6';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -1758,6 +1758,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   <p className="truncate text-sm font-semibold text-slate-800">{eName(e)}</p>
                   <p className="truncate text-xs text-slate-500">
                     {e.employee_code} &middot; {(lang === 'ar' ? e.job_title_ar : e.job_title_en) || deptName(e.department_id)} &middot; {branchName(e.branch_id)}
+                    &middot; 🗓 {(e.weekend_days || (data.settings.work_week || {}).weekend_days || [5, 6]).map((d) => t.daysShort[d]).join('، ')}
                   </p>
                 </div>
                 <Badge tone={e.status === 'active' ? 'teal' : e.status === 'suspended' ? 'amber' : 'red'}>{t.empStatus[e.status]}</Badge>
