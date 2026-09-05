@@ -4,3 +4,5 @@ bridge/__pycache__/
 agent/agent_config.json
 agent/agent.log
 supabase/.temp/
+_hvm_preview.html
+.cloudflare_token
