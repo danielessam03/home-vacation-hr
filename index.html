@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.6';
+const APP_VERSION = 'v2.7';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -845,15 +845,14 @@ function countWorkingDays(startStr, endStr, weekendDays, holidays, branchId) {
   return n;
 }
 
-/** Annual entitlement per Egyptian labor law: 21 days, 30 after 10 years
-    of service or age 50; pro-rated in the hire year; nothing before 6
-    months of service. A per-employee override wins when set. */
+/** Annual entitlement: 21 days, 30 after 10 years of service or age 50;
+    pro-rated in the hire year. Available from day one (company policy --
+    the law's 6-month waiting period is deliberately not applied).
+    A per-employee override wins when set. */
 function annualEntitlement(emp, year) {
   if (!emp.hire_date) return { days: 0, dueYet: false };
   const hire = new Date(emp.hire_date + 'T00:00:00');
   const now = new Date();
-  const serviceMonths = (now - hire) / (30.44 * 86400000);
-  if (serviceMonths < 6) return { days: 0, dueYet: false };
   const serviceYears = (now - hire) / (365.25 * 86400000);
   let age = 0;
   if (emp.birth_date) age = (now - new Date(emp.birth_date + 'T00:00:00')) / (365.25 * 86400000);
