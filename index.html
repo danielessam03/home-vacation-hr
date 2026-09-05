@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v2.8';
+const APP_VERSION = 'v2.9';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -249,6 +249,7 @@ const T = {
     presentDays: 'Days present', lateTotal: 'Late minutes', noPayslips: 'No approved payslips yet.',
     goCheckIn: 'Check in / out', goLeave: 'Request leave', goTrip: 'Log a trip',
     apps: 'Systems', appHr: 'HR & Payroll', appMaint: 'Maintenance management', appCrm: 'Property management (CRM)', currentApp: 'You are here',
+    myTasks: 'My maintenance tasks', openTasksLbl: 'open', linkedSystems: 'Linked systems', maintUser: 'Maintenance username', crmUser: 'CRM profile', notLinked: 'not linked',
     reports: 'Reports', rptPayroll: 'Payroll cost', rptHeadcount: 'Headcount', rptOvertime: 'Overtime & lateness',
     rptLeave: 'Leave liability', rptAttendance: 'Attendance',
     byBranch: 'By branch', byDepartment: 'By department', byGender: 'By gender', byContract: 'By contract type',
@@ -421,6 +422,7 @@ const T = {
     presentDays: 'أيام الحضور', lateTotal: 'دقائق التأخير', noPayslips: 'لا توجد قسائم راتب معتمدة بعد.',
     goCheckIn: 'تسجيل حضور / انصراف', goLeave: 'طلب إجازة', goTrip: 'تسجيل مشوار',
     apps: 'الأنظمة', appHr: 'الموارد البشرية والرواتب', appMaint: 'إدارة الصيانة', appCrm: 'إدارة العقارات (CRM)', currentApp: 'أنت هنا',
+    myTasks: 'مهام الصيانة الخاصة بي', openTasksLbl: 'مفتوحة', linkedSystems: 'الأنظمة المرتبطة', maintUser: 'مستخدم نظام الصيانة', crmUser: 'حساب CRM', notLinked: 'غير مرتبط',
     reports: 'التقارير', rptPayroll: 'تكلفة الرواتب', rptHeadcount: 'عدد الموظفين', rptOvertime: 'الإضافي والتأخير',
     rptLeave: 'التزامات الإجازات', rptAttendance: 'الحضور',
     byBranch: 'حسب الفرع', byDepartment: 'حسب القسم', byGender: 'حسب النوع', byContract: 'حسب نوع العقد',
@@ -1626,6 +1628,14 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
     if (!view || !canEdit) { setFaceInfo(null); return; }
     sb.from('face_enrollments').select('samples, enrolled_at').eq('employee_id', view.id).maybeSingle().then(({ data: d }) => setFaceInfo(d || false));
   }, [view && view.id]);
+  const [links, setLinks] = useState(null);   // accounts in the other systems (shared database)
+  useEffect(() => {
+    if (!view) { setLinks(null); return; }
+    Promise.all([
+      sb.from('hv_users').select('username, role').eq('employee_id', view.id).maybeSingle(),
+      view.user_id ? sb.from('profiles').select('username, role').eq('id', view.user_id).maybeSingle() : Promise.resolve({ data: null }),
+    ]).then(([m, c]) => setLinks({ maint: m.data, crm: c.data }));
+  }, [view && view.id]);
 
   async function saveEnrollment() {
     const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'enroll', employee_id: view.id, descriptors: enroll.samples } });
@@ -1846,6 +1856,11 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   <Btn size="sm" variant="soft" onClick={genToken}>{t.genToken}</Btn>
                 </div>
                 <p className="text-xs text-slate-400">{t.tokenHint}</p>
+                <div className="border-t border-slate-200 pt-2 text-xs text-slate-600">
+                  <span className="font-semibold">🔗 {t.linkedSystems}:</span>{' '}
+                  🔧 {t.maintUser}: <b>{links && links.maint ? links.maint.username + ' (' + links.maint.role + ')' : t.notLinked}</b>{' · '}
+                  🏠 {t.crmUser}: <b>{links && links.crm ? links.crm.username + ' (' + links.crm.role + ')' : t.notLinked}</b>
+                </div>
               </div>
             )}
 
@@ -3816,9 +3831,24 @@ function MyPage({ me, data, toast, setPage }) {
         sb.from('loans').select('*').eq('employee_id', myEmp.id).eq('status', 'active'),
         sb.from('employee_documents').select('*').eq('employee_id', myEmp.id).order('created_at', { ascending: false }),
       ]);
+      /* linked maintenance account -> my open tasks (shared database) */
+      const { data: hvu } = await sb.from('hv_users').select('id, username').eq('employee_id', myEmp.id).maybeSingle();
+      let tasks = [], taskTypes = [], props = [];
+      if (hvu) {
+        const [tk, tt, pr] = await Promise.all([
+          sb.from('hv_tasks').select('id, task_date, task_type_id, property_id, extra_work')
+            .is('actual_completion_date', null)
+            .or(`assigned_to.eq.${hvu.id},assigned_to_multi.cs.[${hvu.id}],assigned_to_multi.cs.["${hvu.id}"]`)
+            .order('task_date', { ascending: false }).limit(10),
+          sb.from('hv_task_types').select('id, title'),
+          sb.from('hv_properties').select('id, name'),
+        ]);
+        tasks = tk.data || []; taskTypes = tt.data || []; props = pr.data || [];
+      }
       setD({
         items: items.data || [], runs: runs.data || [], reqs: reqs.data || [], adjs: adjs.data || [], types: types.data || [],
         punches: punches.data || [], trips: trips.data || [], loans: loans.data || [], docs: docs.data || [],
+        hvu, tasks, taskTypes, props,
       });
     })();
   }, [myEmp && myEmp.id]);
@@ -3920,6 +3950,25 @@ function MyPage({ me, data, toast, setPage }) {
                 ))}
               </Card>
             </div>
+          )}
+
+          {d.hvu && (
+            <Card title={'🔧 ' + t.myTasks + ' (' + d.tasks.length + ' ' + t.openTasksLbl + ')'}
+              action={<a href="https://hv-maintenance-system.pages.dev" target="_blank" rel="noreferrer" className="text-xs font-semibold text-brand-700">↗ {t.appMaint}</a>}>
+              {d.tasks.length === 0 ? <Empty text={t.noData} /> : (
+                <ul className="divide-y divide-slate-100">
+                  {d.tasks.map((x) => {
+                    const ty = d.taskTypes.find((k) => k.id === x.task_type_id), pr = d.props.find((k) => k.id === x.property_id);
+                    return (
+                      <li key={x.id} className="py-2 text-sm">
+                        <p className="font-semibold text-slate-800">{ty ? ty.title : '#' + x.id}{pr ? ' · ' + pr.name : ''}</p>
+                        <p className="text-xs text-slate-500">{x.task_date}{x.extra_work ? ' · ' + x.extra_work : ''}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Card>
           )}
 
           {d.docs.length > 0 && (
