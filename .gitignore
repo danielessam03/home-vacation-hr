@@ -10,3 +10,6 @@ _hvm_preview.html
 
 # generated credential lists — never commit
 LOGINS-*.csv
+
+# distributable copy of the agent folder
+HV-Agent.zip
