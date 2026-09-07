@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.0';
+const APP_VERSION = 'v3.1';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -250,6 +250,10 @@ const T = {
     goCheckIn: 'Check in / out', goLeave: 'Request leave', goTrip: 'Log a trip',
     apps: 'Systems', appHr: 'HR & Payroll', appMaint: 'Maintenance management', appCrm: 'Property management (CRM)', currentApp: 'You are here',
     myTasks: 'My maintenance tasks', openTasksLbl: 'open', linkedSystems: 'Linked systems', maintUser: 'Maintenance username', crmUser: 'CRM profile', notLinked: 'not linked',
+    username: 'Username', loginAccess: 'Login & system access', systemsAccess: 'Systems this person can open', sysHr: 'HR & Payroll', sysMaint: 'Maintenance', sysCrm: 'CRM',
+    newPassword: 'New password (8+ characters)', setPassword: 'Set password', pwSaved: 'Password updated. It now opens every ticked system.', createLogin: 'Create login', loginEmail: 'Login email', loginCreated: 'Login created',
+    emailSaved: 'Email updated', noLoginYet: 'No login yet. Create one so this employee can use the systems.', accessHint: 'One username and one password for all systems. Tick the systems this person may open. Passwords are set only here.',
+    noHrAccess: 'Your login is not enabled for the HR system. Contact HR.', usernameRule: 'Letters, numbers, dot, dash or underscore (2 to 32).', minPw: 'Password must be at least 8 characters.', loginOff: 'Login disabled', loginOn: 'Login enabled', disableLogin: 'Disable login', enableLogin: 'Enable login', generatePw: 'Generate',
     attendanceExempt: 'Exempt from attendance (no check-in, lateness or overtime — CEOs automatically)', exemptBadge: 'Attendance exempt',
     reports: 'Reports', rptPayroll: 'Payroll cost', rptHeadcount: 'Headcount', rptOvertime: 'Overtime & lateness',
     rptLeave: 'Leave liability', rptAttendance: 'Attendance',
@@ -424,6 +428,10 @@ const T = {
     goCheckIn: 'تسجيل حضور / انصراف', goLeave: 'طلب إجازة', goTrip: 'تسجيل مشوار',
     apps: 'الأنظمة', appHr: 'الموارد البشرية والرواتب', appMaint: 'إدارة الصيانة', appCrm: 'إدارة العقارات (CRM)', currentApp: 'أنت هنا',
     myTasks: 'مهام الصيانة الخاصة بي', openTasksLbl: 'مفتوحة', linkedSystems: 'الأنظمة المرتبطة', maintUser: 'مستخدم نظام الصيانة', crmUser: 'حساب CRM', notLinked: 'غير مرتبط',
+    username: 'اسم المستخدم', loginAccess: 'الدخول وصلاحية الأنظمة', systemsAccess: 'الأنظمة المسموح بدخولها', sysHr: 'الموارد البشرية والرواتب', sysMaint: 'الصيانة', sysCrm: 'CRM',
+    newPassword: 'كلمة مرور جديدة (8 أحرف على الأقل)', setPassword: 'حفظ كلمة المرور', pwSaved: 'تم تحديث كلمة المرور. تفتح الآن كل الأنظمة المحددة.', createLogin: 'إنشاء حساب دخول', loginEmail: 'بريد الدخول', loginCreated: 'تم إنشاء حساب الدخول',
+    emailSaved: 'تم تحديث البريد', noLoginYet: 'لا يوجد حساب دخول بعد. أنشئ واحداً ليتمكن الموظف من استخدام الأنظمة.', accessHint: 'اسم مستخدم واحد وكلمة مرور واحدة لكل الأنظمة. حدد الأنظمة المسموح بدخولها. كلمات المرور تُضبط من هنا فقط.',
+    noHrAccess: 'حسابك غير مفعّل في نظام الموارد البشرية. تواصل مع الموارد البشرية.', usernameRule: 'أحرف إنجليزية وأرقام ونقطة وشرطة فقط (2 إلى 32).', minPw: 'كلمة المرور 8 أحرف على الأقل.', loginOff: 'الدخول موقوف', loginOn: 'الدخول مفعّل', disableLogin: 'إيقاف الدخول', enableLogin: 'تفعيل الدخول', generatePw: 'توليد',
     attendanceExempt: 'معفى من الحضور (بدون تسجيل حضور أو تأخير أو إضافي — المدراء التنفيذيون تلقائياً)', exemptBadge: 'معفى من الحضور',
     reports: 'التقارير', rptPayroll: 'تكلفة الرواتب', rptHeadcount: 'عدد الموظفين', rptOvertime: 'الإضافي والتأخير',
     rptLeave: 'التزامات الإجازات', rptAttendance: 'الحضور',
@@ -1469,21 +1477,219 @@ function Dashboard({ me, data }) {
 /* =====================================================================
    7. Users & roles
    ===================================================================== */
+/* ---------------------------------------------------------------------
+   Unified login: the same account opens HR, maintenance and CRM.
+   Creating a login and changing a password/email go through the
+   admin-users server function; ticking systems is a plain app_users
+   update (a DB trigger provisions the maintenance / CRM rows).
+   --------------------------------------------------------------------- */
+async function callAdmin(body) {
+  const { data, error } = await sb.functions.invoke('admin-users', { body });
+  if (error) {
+    let msg = error.message;
+    try { const j = error.context && await error.context.json(); if (j && j.error) msg = j.error; } catch (_) {}
+    return { ok: false, error: msg };
+  }
+  if (data && data.error) return { ok: false, error: data.error };
+  return { ok: true, data };
+}
+function genPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(10))).map((b) => chars[b % chars.length]).join('');
+}
+const USERNAME_RE = /^[A-Za-z0-9._-]{2,32}$/;
+const SYSTEMS = [['access_hr', 'sysHr', '🧑‍💼'], ['access_maint', 'sysMaint', '🔧'], ['access_crm', 'sysCrm', '🏠']];
+
+function SystemPicker({ value, onChange, disabledKeys = [] }) {
+  const { t } = useL();
+  return (
+    <div>
+      <p className="mb-1 text-xs font-semibold text-slate-600">{t.systemsAccess}</p>
+      <div className="flex flex-wrap gap-2">
+        {SYSTEMS.map(([k, lbl, ic]) => (
+          <label key={k} className={cx('flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm', value[k] ? 'border-brand-300 bg-brand-50 text-brand-900' : 'border-slate-200 bg-white text-slate-600')}>
+            <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!value[k]}
+              disabled={disabledKeys.includes(k)} onChange={(e) => onChange(k, e.target.checked)} />
+            {ic} {t[lbl]}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Username, systems, password, email and the master on/off for one login. */
+function AccessEditor({ user, me, refresh, toast, audit }) {
+  const { t } = useL();
+  const [uname, setUname] = useState(user.username || '');
+  const [email, setEmail] = useState(user.email || '');
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState('');
+  useEffect(() => { setUname(user.username || ''); setEmail(user.email || ''); setPw(''); }, [user.id, user.username, user.email]);
+  const self = user.id === me.id;
+
+  async function patch(fields, okMsg) {
+    const { data: row, error } = await sb.from('app_users').update(fields).eq('id', user.id).select().single();
+    if (error) return toast(error.message, 'error');
+    refresh.users((prev) => prev.map((u) => (u.id === row.id ? row : u)));
+    audit('update', 'app_users', row.id, user, row);
+    toast(okMsg || t.saved);
+  }
+  async function saveUsername() {
+    const v = uname.trim();
+    if (v === (user.username || '')) return;
+    if (!USERNAME_RE.test(v)) return toast(t.usernameRule, 'error');
+    await patch({ username: v });
+  }
+  async function savePw() {
+    if (pw.length < 8) return toast(t.minPw, 'error');
+    setBusy('pw');
+    const r = await callAdmin({ action: 'set_password', id: user.id, password: pw });
+    setBusy('');
+    if (!r.ok) return toast(r.error, 'error');
+    audit('update', 'app_users', user.id, null, { password: 'changed' });
+    setPw('');
+    toast(t.pwSaved);
+  }
+  async function saveEmail() {
+    const v = email.trim().toLowerCase();
+    if (v === user.email) return;
+    setBusy('email');
+    const r = await callAdmin({ action: 'set_email', id: user.id, email: v });
+    setBusy('');
+    if (!r.ok) return toast(r.error, 'error');
+    refresh.users((prev) => prev.map((u) => (u.id === r.data.user.id ? r.data.user : u)));
+    audit('update', 'app_users', user.id, { email: user.email }, { email: v });
+    toast(t.emailSaved);
+  }
+  async function toggleLogin() {
+    setBusy('login');
+    const r = await callAdmin({ action: 'set_enabled', id: user.id, enabled: !user.is_active });
+    setBusy('');
+    if (!r.ok) return toast(r.error, 'error');
+    refresh.users((prev) => prev.map((u) => (u.id === r.data.user.id ? r.data.user : u)));
+    audit('update', 'app_users', user.id, { is_active: user.is_active }, { is_active: !user.is_active });
+    toast(!user.is_active ? t.loginOn : t.loginOff);
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500">{t.accessHint}</p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Field label={t.username}>
+          <div className="flex gap-2">
+            <Input dir="ltr" value={uname} onChange={(e) => setUname(e.target.value)} />
+            <Btn size="sm" variant="soft" disabled={uname.trim() === (user.username || '')} onClick={saveUsername}>{t.save}</Btn>
+          </div>
+        </Field>
+        <Field label={t.loginEmail}>
+          <div className="flex gap-2">
+            <Input dir="ltr" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Btn size="sm" variant="soft" disabled={busy === 'email' || email.trim().toLowerCase() === user.email} onClick={saveEmail}>{t.save}</Btn>
+          </div>
+        </Field>
+      </div>
+      <SystemPicker value={user} disabledKeys={self ? ['access_hr'] : []} onChange={(k, v) => patch({ [k]: v })} />
+      <Field label={t.newPassword}>
+        <div className="flex gap-2">
+          <Input dir="ltr" type="text" autoComplete="off" value={pw} onChange={(e) => setPw(e.target.value)} />
+          <Btn size="sm" variant="soft" onClick={() => setPw(genPassword())}>{t.generatePw}</Btn>
+          <Btn size="sm" disabled={busy === 'pw' || pw.length < 8} onClick={savePw}>{t.setPassword}</Btn>
+        </div>
+      </Field>
+      {!self && (
+        <div className="flex items-center justify-between gap-2 border-t border-slate-200 pt-2">
+          <Badge tone={user.is_active ? 'green' : 'red'}>{user.is_active ? t.loginOn : t.loginOff}</Badge>
+          <Btn size="sm" variant={user.is_active ? 'outline' : 'primary'} disabled={busy === 'login'} onClick={toggleLogin}>{user.is_active ? t.disableLogin : t.enableLogin}</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Brand-new login: auth user + HR profile + ticked systems, optionally
+   linked to an employee record straight away. */
+function CreateLoginModal({ open, onClose, me, data, refresh, toast, audit, employee }) {
+  const { lang, t } = useL();
+  const [f, setF] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!open) { setF(null); return; }
+    const en = employee ? (employee.full_name_en || '') : '';
+    const base = (en.trim().split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let uname = base, n = 1;
+    while (uname && data.users.some((u) => (u.username || '').toLowerCase() === uname)) { n += 1; uname = base + n; }
+    setF({ email: '', username: uname, password: genPassword(), full_name_en: en, full_name_ar: employee ? (employee.full_name_ar || '') : '',
+           role: 'staff', branch_id: employee ? (employee.branch_id || '') : '', access_hr: true, access_maint: false, access_crm: false });
+  }, [open]);
+
+  async function create() {
+    if (!f.email.trim()) return toast(t.loginEmail, 'error');
+    if (!USERNAME_RE.test(f.username.trim())) return toast(t.usernameRule, 'error');
+    if (f.password.length < 8) return toast(t.minPw, 'error');
+    setBusy(true);
+    const r = await callAdmin({ action: 'create', ...f, username: f.username.trim(), branch_id: f.branch_id || null, employee_id: employee ? employee.id : null });
+    setBusy(false);
+    if (!r.ok) return toast(r.error, 'error');
+    const row = r.data.user;
+    refresh.users((prev) => [...prev.filter((u) => u.id !== row.id), row]);
+    if (employee) refresh.employees((prev) => prev.map((e) => (e.id === employee.id ? { ...e, user_id: row.id } : e)));
+    audit('insert', 'app_users', row.id, null, row);
+    toast(t.loginCreated);
+    onClose(row);
+  }
+
+  if (!open || !f) return null;
+  return (
+    <Modal open={open} onClose={() => onClose(null)} title={t.createLogin}
+      footer={<><Btn className="flex-1" disabled={busy} onClick={create}>{busy ? '…' : t.createLogin}</Btn><Btn variant="outline" className="flex-1" onClick={() => onClose(null)}>{t.cancel}</Btn></>}>
+      <Field label={t.fullNameAr}><Input value={f.full_name_ar} onChange={(e) => setF({ ...f, full_name_ar: e.target.value })} /></Field>
+      <Field label={t.fullNameEn}><Input value={f.full_name_en} onChange={(e) => setF({ ...f, full_name_en: e.target.value })} /></Field>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label={t.username} hint={t.usernameRule}><Input dir="ltr" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} /></Field>
+        <Field label={t.loginEmail}><Input dir="ltr" type="email" placeholder="name@home-vacation.com" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
+      </div>
+      <Field label={t.password}>
+        <div className="flex gap-2">
+          <Input dir="ltr" type="text" autoComplete="off" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+          <Btn size="sm" variant="soft" onClick={() => setF({ ...f, password: genPassword() })}>{t.generatePw}</Btn>
+        </div>
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={t.role}>
+          <Select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
+            {Object.keys(t.roles).filter((r) => r !== 'ceo' || me.role === 'ceo').map((r) => <option key={r} value={r}>{t.roles[r]}</option>)}
+          </Select>
+        </Field>
+        <Field label={t.branch}>
+          <Select value={f.branch_id} onChange={(e) => setF({ ...f, branch_id: e.target.value })}>
+            <option value="">{t.allBranches}</option>
+            {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
+          </Select>
+        </Field>
+      </div>
+      <SystemPicker value={f} onChange={(k, v) => setF({ ...f, [k]: v })} />
+      <p className="text-xs text-slate-400">{t.accessHint}</p>
+    </Modal>
+  );
+}
+
 function UsersPage({ me, data, refresh, toast, audit }) {
   const { lang, t } = useL();
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState(null);
   const [inviting, setInviting] = useState(null);
+  const [creating, setCreating] = useState(false);
 
   const list = data.users.filter((u) => {
-    const s = (u.email + ' ' + (u.full_name_en || '') + ' ' + (u.full_name_ar || '')).toLowerCase();
+    const s = (u.email + ' ' + (u.username || '') + ' ' + (u.full_name_en || '') + ' ' + (u.full_name_ar || '')).toLowerCase();
     return s.includes(q.toLowerCase());
   });
 
   async function saveUser(form) {
     const before = data.users.find((u) => u.id === form.id);
     const { data: row, error } = await sb.from('app_users')
-      .update({ full_name_en: form.full_name_en, full_name_ar: form.full_name_ar, role: form.role, branch_id: form.branch_id || null, phone: form.phone, is_active: form.is_active })
+      .update({ full_name_en: form.full_name_en, full_name_ar: form.full_name_ar, role: form.role, branch_id: form.branch_id || null, phone: form.phone })
       .eq('id', form.id).select().single();
     if (error) return toast(error.message, 'error');
     refresh.users((prev) => prev.map((u) => (u.id === row.id ? row : u)));
@@ -1512,7 +1718,8 @@ function UsersPage({ me, data, refresh, toast, audit }) {
     <>
       <div className="flex gap-2">
         <Input placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} />
-        <Btn onClick={() => setInviting({ email: '', role: 'staff', branch_id: '', full_name_en: '', full_name_ar: '' })}>+ {t.invite}</Btn>
+        <Btn onClick={() => setCreating(true)}>+ {t.createLogin}</Btn>
+        <Btn variant="outline" onClick={() => setInviting({ email: '', role: 'staff', branch_id: '', full_name_en: '', full_name_ar: '' })}>{t.invite}</Btn>
       </div>
 
       <Card title={t.users}>
@@ -1524,7 +1731,8 @@ function UsersPage({ me, data, refresh, toast, audit }) {
                   <p className="truncate text-sm font-semibold text-slate-800">
                     {(lang === 'ar' ? u.full_name_ar : u.full_name_en) || u.email}
                   </p>
-                  <p className="truncate text-xs text-slate-500">{u.email} &middot; {branchName(u.branch_id)}</p>
+                  <p className="truncate text-xs text-slate-500"><span dir="ltr">@{u.username || '?'}</span> &middot; {u.email} &middot; {branchName(u.branch_id)}</p>
+                  <p className="text-xs text-slate-400">{SYSTEMS.filter(([k]) => u[k]).map(([k, lbl, ic]) => ic + ' ' + t[lbl]).join(' · ') || '—'}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Badge tone={u.is_active ? 'teal' : 'red'}>{t.roles[u.role]}</Badge>
@@ -1571,15 +1779,15 @@ function UsersPage({ me, data, refresh, toast, audit }) {
                 {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
               </Select>
             </Field>
-            <label className="flex items-center gap-2 pt-1 text-sm text-slate-700">
-              <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={editing.is_active}
-                disabled={editing.id === me.id}
-                onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
-              {t.active}
-            </label>
+            <div className="border-t border-slate-200 pt-3">
+              <p className="mb-2 text-sm font-semibold text-slate-800">🔑 {t.loginAccess}</p>
+              <AccessEditor user={data.users.find((u) => u.id === editing.id) || editing} me={me} refresh={refresh} toast={toast} audit={audit} />
+            </div>
           </>
         )}
       </Modal>
+
+      <CreateLoginModal open={creating} onClose={() => setCreating(false)} me={me} data={data} refresh={refresh} toast={toast} audit={audit} />
 
       <Modal open={!!inviting} onClose={() => setInviting(null)} title={t.invite}
         footer={<><Btn className="flex-1" onClick={() => saveInvite(inviting)}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setInviting(null)}>{t.cancel}</Btn></>}>
@@ -1630,6 +1838,8 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
     if (!view || !canEdit) { setFaceInfo(null); return; }
     sb.from('face_enrollments').select('samples, enrolled_at').eq('employee_id', view.id).maybeSingle().then(({ data: d }) => setFaceInfo(d || false));
   }, [view && view.id]);
+  const [creatingLogin, setCreatingLogin] = useState(false);
+  const viewUser = view && view.user_id ? data.users.find((u) => u.id === view.user_id) : null;
   const [links, setLinks] = useState(null);   // accounts in the other systems (shared database)
   useEffect(() => {
     if (!view) { setLinks(null); return; }
@@ -1637,7 +1847,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       sb.from('hv_users').select('username, role').eq('employee_id', view.id).maybeSingle(),
       view.user_id ? sb.from('profiles').select('username, role').eq('id', view.user_id).maybeSingle() : Promise.resolve({ data: null }),
     ]).then(([m, c]) => setLinks({ maint: m.data, crm: c.data }));
-  }, [view && view.id]);
+  }, [view && view.id, view && view.user_id, viewUser && viewUser.access_maint, viewUser && viewUser.access_crm]);
 
   async function saveEnrollment() {
     const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'enroll', employee_id: view.id, descriptors: enroll.samples } });
@@ -1858,10 +2068,23 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   <Btn size="sm" variant="soft" onClick={genToken}>{t.genToken}</Btn>
                 </div>
                 <p className="text-xs text-slate-400">{t.tokenHint}</p>
-                <div className="border-t border-slate-200 pt-2 text-xs text-slate-600">
-                  <span className="font-semibold">🔗 {t.linkedSystems}:</span>{' '}
-                  🔧 {t.maintUser}: <b>{links && links.maint ? links.maint.username + ' (' + links.maint.role + ')' : t.notLinked}</b>{' · '}
-                  🏠 {t.crmUser}: <b>{links && links.crm ? links.crm.username + ' (' + links.crm.role + ')' : t.notLinked}</b>
+                <div className="border-t border-slate-200 pt-3">
+                  <p className="mb-2 text-sm font-semibold text-slate-800">🔑 {t.loginAccess}</p>
+                  {viewUser ? (
+                    <AccessEditor user={viewUser} me={me} refresh={refresh} toast={toast} audit={audit} />
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-slate-500">{t.noLoginYet}</p>
+                      <Btn size="sm" onClick={() => setCreatingLogin(true)}>+ {t.createLogin}</Btn>
+                    </div>
+                  )}
+                  {links && (links.maint || links.crm) && (
+                    <p className="mt-2 text-xs text-slate-500">
+                      <span className="font-semibold">🔗 {t.linkedSystems}:</span>{' '}
+                      🔧 {t.maintUser}: <b>{links.maint ? links.maint.username + ' (' + links.maint.role + ')' : t.notLinked}</b>{' · '}
+                      🏠 {t.crmUser}: <b>{links.crm ? links.crm.username + ' (' + links.crm.role + ')' : t.notLinked}</b>
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -1990,7 +2213,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
             <Field label={t.linkedAccount}>
               <Select value={form.user_id || ''} onChange={(e) => setForm({ ...form, user_id: e.target.value })}>
                 <option value="">{t.noneLbl}</option>
-                {linkableUsers.map((u) => <option key={u.id} value={u.id}>{u.email}</option>)}
+                {linkableUsers.map((u) => <option key={u.id} value={u.id}>{u.username ? u.username + ' · ' : ''}{u.email}</option>)}
               </Select>
             </Field>
 
@@ -2069,6 +2292,8 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
           </>
         )}
       </Modal>
+      <CreateLoginModal open={creatingLogin} employee={view} me={me} data={data} refresh={refresh} toast={toast} audit={audit}
+        onClose={(row) => { setCreatingLogin(false); if (row && view) setView({ ...view, user_id: row.id }); }} />
     </>
   );
 }
@@ -5424,6 +5649,7 @@ function App() {
       if (error) { toast(error.message, 'error'); return; }
       if (!profile) { toast('Profile not found. Run migration_001.sql first.', 'error'); return; }
       if (!profile.is_active) { toast(t.inactive, 'error'); await sb.auth.signOut(); return; }
+      if (profile.access_hr === false) { toast(t.noHrAccess, 'error'); await sb.auth.signOut(); return; }
 
       setMe(profile);
       meRef.current = profile;
