@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.2';
+const APP_VERSION = 'v3.3';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -262,7 +262,11 @@ const T = {
     liabilityDays: 'Days owed', liabilityAmount: 'Liability (EGP)', exportExcel: 'Export to Excel',
     approvedOnly: 'Approved runs only', fromMonth: 'From month', toMonth: 'To month', countLbl: 'Count',
     dayRateLbl: 'Day rate', noRuns: 'No payroll runs in this range.',
-    kpi: 'Sales KPIs', leaderboard: 'Leaderboard', myEntries: 'My results', addEntry: 'Log a result',
+    kpi: 'KPIs', leaderboard: 'Leaderboard', myEntries: 'My results', addEntry: 'Log a result',
+    salesBoard: 'Sales team', companyBoard: 'All employees', categoryLbl: 'Category',
+    kpiCats: { sales: 'Sales', property: 'Property & bookings', maintenance: 'Maintenance', attendance: 'Attendance', general: 'General' },
+    onTimeDays: 'on-time days', lateDays: 'late', noSalesTeam: 'Nobody is in the Sales department yet. Open each sales rep\'s employee card and set the department to Sales.',
+    salesBoardHint: 'Sales results only, for employees in the Sales department.', companyBoardHint: 'Everyone, all categories. Attendance points come automatically from the fingerprint device and GPS check-ins; maintenance tasks and bookings from the other systems.',
     metricsTab: 'Metrics & points', pointsLbl: 'Points', rankLbl: 'Rank', winner: 'Leader of the month',
     dealValue: 'Deal value (EGP)', referenceLbl: 'Client / unit', quantityLbl: 'Quantity',
     kpiStatus: { pending: 'Pending approval', approved: 'Approved', rejected: 'Rejected' },
@@ -440,7 +444,11 @@ const T = {
     liabilityDays: 'الأيام المستحقة', liabilityAmount: 'الالتزام (ج.م)', exportExcel: 'تصدير إلى Excel',
     approvedOnly: 'المسيرات المعتمدة فقط', fromMonth: 'من شهر', toMonth: 'إلى شهر', countLbl: 'العدد',
     dayRateLbl: 'أجر اليوم', noRuns: 'لا توجد مسيرات رواتب في هذه الفترة.',
-    kpi: 'مؤشرات المبيعات', leaderboard: 'لوحة المتصدرين', myEntries: 'نتائجي', addEntry: 'تسجيل نتيجة',
+    kpi: 'مؤشرات الأداء', leaderboard: 'لوحة المتصدرين', myEntries: 'نتائجي', addEntry: 'تسجيل نتيجة',
+    salesBoard: 'فريق المبيعات', companyBoard: 'كل الموظفين', categoryLbl: 'الفئة',
+    kpiCats: { sales: 'مبيعات', property: 'عقارات وحجوزات', maintenance: 'صيانة', attendance: 'حضور', general: 'عام' },
+    onTimeDays: 'يوم في الموعد', lateDays: 'تأخير', noSalesTeam: 'لا يوجد أحد في قسم المبيعات بعد. افتح بطاقة كل مندوب مبيعات واختر قسم المبيعات.',
+    salesBoardHint: 'نتائج المبيعات فقط، لموظفي قسم المبيعات.', companyBoardHint: 'الجميع، كل الفئات. نقاط الحضور تُحسب تلقائياً من جهاز البصمة وتسجيل الحضور بالموقع؛ ومهام الصيانة والحجوزات من الأنظمة الأخرى.',
     metricsTab: 'المؤشرات والنقاط', pointsLbl: 'نقاط', rankLbl: 'الترتيب', winner: 'متصدر الشهر',
     dealValue: 'قيمة الصفقة (ج.م)', referenceLbl: 'العميل / الوحدة', quantityLbl: 'العدد',
     kpiStatus: { pending: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض' },
@@ -4486,8 +4494,10 @@ function KpiPage({ me, data, toast, audit }) {
   const now = new Date();
   const [month, setMonth] = useState({ y: now.getFullYear(), m: now.getMonth() + 1 });
   const [tab, setTab] = useState('board');
+  const [boardKind, setBoardKind] = useState('sales');
   const [metrics, setMetrics] = useState([]);
   const [entries, setEntries] = useState(null);
+  const [att, setAtt] = useState([]);          // kpi_attendance() rows for the month
   const [form, setForm] = useState(null);
   const [mForm, setMForm] = useState(null);
 
@@ -4500,6 +4510,8 @@ function KpiPage({ me, data, toast, audit }) {
     setEntries(null);
     sb.from('kpi_entries').select('*').gte('entry_date', mFirst).lte('entry_date', mLast).order('entry_date', { ascending: false })
       .then(({ data: d }) => setEntries(d || []));
+    setAtt([]);
+    sb.rpc('kpi_attendance', { p_from: mFirst, p_to: mLast }).then(({ data: d }) => setAtt(d || []));
   }, [mFirst]);
 
   const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
@@ -4511,18 +4523,41 @@ function KpiPage({ me, data, toast, audit }) {
     return r2(Number(en.quantity) * Number(mt.points_per_unit) + (Number(en.value_egp) || 0) / 1000000 * Number(mt.value_points_per_million));
   };
 
-  const board = useMemo(() => {
-    if (!entries) return [];
-    const acc = {};
-    for (const en of entries.filter((x) => x.status === 'approved')) {
-      const a = acc[en.employee_id] = acc[en.employee_id] || { employee_id: en.employee_id, points: 0, value: 0, counts: {} };
-      a.points = r2(a.points + points(en));
-      a.value += Number(en.value_egp) || 0;
-      const mt = metricById(en.metric_id);
-      if (mt) a.counts[mt.code] = (a.counts[mt.code] || 0) + Number(en.quantity);
-    }
-    return Object.values(acc).sort((a, b) => b.points - a.points);
-  }, [entries, metrics]);
+  const deptOf = (e) => data.departments.find((d) => d.id === e.department_id);
+  const isSales = (e) => { const d = deptOf(e); return !!((d && /sales|مبيعات/i.test(d.name_en + ' ' + d.name_ar)) || /sales/i.test(e.job_title_en || '') || /مبيعات/.test(e.job_title_ar || '')); };
+  const catOf = (mt) => (mt && mt.category) || 'sales';
+  /* Sales board: sales-category results for the sales team only.
+     Company board: every active non-exempt employee, every category, plus
+     automatic attendance points (on-time days x the on_time_day metric). */
+  const boards = useMemo(() => {
+    const build = (empFilter, metricFilter, withAttendance) => {
+      const acc = {};
+      const row = (id) => acc[id] = acc[id] || { employee_id: id, points: 0, value: 0, counts: {}, cats: {}, onTime: 0, late: 0 };
+      for (const e of data.employees.filter((x) => x.status === 'active' && empFilter(x))) row(e.id);
+      for (const en of (entries || []).filter((x) => x.status === 'approved')) {
+        const mt = metricById(en.metric_id); const emp = empById(en.employee_id);
+        if (!mt || !emp || emp.status !== 'active' || !empFilter(emp) || !metricFilter(mt)) continue;
+        const a = row(en.employee_id); const p = points(en);
+        a.points = r2(a.points + p); a.value += Number(en.value_egp) || 0;
+        a.counts[mt.code] = (a.counts[mt.code] || 0) + Number(en.quantity);
+        a.cats[catOf(mt)] = r2((a.cats[catOf(mt)] || 0) + p);
+      }
+      const otm = metrics.find((m) => m.code === 'on_time_day' && m.is_active);
+      if (withAttendance && otm) for (const r of att) {
+        const emp = empById(r.employee_id); if (!emp || emp.status !== 'active' || !empFilter(emp)) continue;
+        const a = row(r.employee_id); const p = r2(Number(r.on_time_days) * Number(otm.points_per_unit));
+        a.onTime = Number(r.on_time_days); a.late = Number(r.late_days);
+        a.points = r2(a.points + p); a.cats.attendance = r2((a.cats.attendance || 0) + p);
+      }
+      return Object.values(acc).sort((a, b) => b.points - a.points || eName(empById(a.employee_id)).localeCompare(eName(empById(b.employee_id))));
+    };
+    return {
+      sales: build(isSales, (mt) => catOf(mt) === 'sales', false),
+      company: build((e) => !e.attendance_exempt, () => true, true),
+    };
+  }, [entries, metrics, att, data.employees, data.departments, lang]);
+  const board = boards[boardKind];
+  const salesTeamSize = data.employees.filter((e) => e.status === 'active' && isSales(e)).length;
   const myRank = myEmp ? board.findIndex((b) => b.employee_id === myEmp.id) + 1 : 0;
 
   const canApprove = (en) => {
@@ -4561,7 +4596,7 @@ function KpiPage({ me, data, toast, audit }) {
   }
 
   async function saveMetric() {
-    const payload = { name_en: mForm.name_en, name_ar: mForm.name_ar, points_per_unit: Number(mForm.points_per_unit) || 0,
+    const payload = { name_en: mForm.name_en, name_ar: mForm.name_ar, category: mForm.category || 'sales', points_per_unit: Number(mForm.points_per_unit) || 0,
       value_points_per_million: Number(mForm.value_points_per_million) || 0, has_value: !!mForm.has_value, is_active: mForm.is_active !== false };
     let res;
     if (mForm.id) res = await sb.from('kpi_metrics').update(payload).eq('id', mForm.id).select().single();
@@ -4600,7 +4635,14 @@ function KpiPage({ me, data, toast, audit }) {
 
       {tab === 'board' && (
         <>
-          {board.length > 0 && (
+          <div className="flex gap-2">
+            {[['sales', t.salesBoard], ['company', t.companyBoard]].map(([k, l]) => (
+              <button key={k} onClick={() => setBoardKind(k)} className={cx('flex-1 rounded-xl border px-3 py-2 text-sm font-semibold', boardKind === k ? 'border-brand-700 bg-brand-700 text-white' : 'border-slate-300 bg-white text-slate-600')}>{k === 'sales' ? '💼 ' : '🏢 '}{l}</button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500">{boardKind === 'sales' ? t.salesBoardHint : t.companyBoardHint}</p>
+          {boardKind === 'sales' && salesTeamSize === 0 && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{t.noSalesTeam}</div>}
+          {board.length > 0 && board[0].points > 0 && (
             <div className="rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 p-5 text-white shadow">
               <p className="text-sm opacity-90">🏆 {t.winner} · {month.m}/{month.y}</p>
               <p className="text-2xl font-bold">{eName(empById(board[0].employee_id))}</p>
@@ -4616,7 +4658,7 @@ function KpiPage({ me, data, toast, audit }) {
                     <span className="w-8 text-center text-lg font-bold">{medal(i)}</span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-800">{eName(empById(b.employee_id))}</p>
-                      <p className="truncate text-xs text-slate-500">{metrics.filter((mt) => b.counts[mt.code]).map((mt) => mName(mt) + ' ' + b.counts[mt.code]).join(' · ')}{b.value ? ' · ' + money(b.value) : ''}</p>
+                      <p className="truncate text-xs text-slate-500">{[...metrics.filter((mt) => b.counts[mt.code]).map((mt) => mName(mt) + ' ' + b.counts[mt.code]), ...(b.onTime || b.late ? [b.onTime + ' ' + t.onTimeDays + (b.late ? ' · ' + b.late + ' ' + t.lateDays : '')] : [])].join(' · ') || '—'}{b.value ? ' · ' + money(b.value) : ''}</p>
                     </div>
                     <span className="shrink-0 text-base font-bold text-brand-800">{b.points}</span>
                   </li>
@@ -4629,7 +4671,7 @@ function KpiPage({ me, data, toast, audit }) {
 
       {tab === 'mine' && myEmp && (
         <>
-          <Btn size="lg" onClick={() => setForm({ employee_id: myEmp.id, metric_id: (metrics[0] || {}).id || '', entry_date: todayISO(), quantity: 1, value_egp: '', reference: '', notes: '' })}>+ {t.addEntry}</Btn>
+          <Btn size="lg" onClick={() => setForm({ employee_id: myEmp.id, metric_id: ((isSales(myEmp) ? metrics.find((m) => m.is_active && catOf(m) === 'sales') : metrics.find((m) => m.is_active && catOf(m) !== 'attendance')) || {}).id || '', entry_date: todayISO(), quantity: 1, value_egp: '', reference: '', notes: '' })}>+ {t.addEntry}</Btn>
           <Card title={t.myEntries}>
             {entries === null ? <Empty text={t.loading} /> : entries.filter((x) => x.employee_id === myEmp.id).length === 0 ? <Empty text={t.noData} /> : (
               <ul className="divide-y divide-slate-100">
@@ -4658,11 +4700,11 @@ function KpiPage({ me, data, toast, audit }) {
       )}
 
       {tab === 'metrics' && (
-        <Card title={t.metricsTab} action={<Btn size="sm" onClick={() => setMForm({ name_en: '', name_ar: '', code: '', points_per_unit: 1, value_points_per_million: 0, has_value: false, is_active: true })}>+ {t.add}</Btn>}>
+        <Card title={t.metricsTab} action={<Btn size="sm" onClick={() => setMForm({ name_en: '', name_ar: '', code: '', category: 'sales', points_per_unit: 1, value_points_per_million: 0, has_value: false, is_active: true })}>+ {t.add}</Btn>}>
           <ul className="divide-y divide-slate-100">
             {metrics.map((mt) => (
               <li key={mt.id} className="flex items-center justify-between gap-2 py-2.5">
-                <div><p className="text-sm font-semibold text-slate-800">{mName(mt)}{!mt.is_active && <Badge tone="red"> {t.inactiveLbl}</Badge>}</p>
+                <div><p className="text-sm font-semibold text-slate-800">{mName(mt)} <Badge tone="slate">{t.kpiCats[catOf(mt)]}</Badge>{!mt.is_active && <Badge tone="red"> {t.inactiveLbl}</Badge>}</p>
                   <p className="text-xs text-slate-500">{Number(mt.points_per_unit)} {t.perUnit}{mt.has_value ? ' · ' + Number(mt.value_points_per_million) + ' ' + t.perMillion : ''}</p></div>
                 <Btn variant="ghost" size="sm" onClick={() => setMForm({ ...mt })}>{t.edit}</Btn>
               </li>
@@ -4685,7 +4727,7 @@ function KpiPage({ me, data, toast, audit }) {
             )}
             <Field label={t.kpi}>
               <Select value={form.metric_id} onChange={(e) => setForm({ ...form, metric_id: e.target.value })}>
-                {metrics.filter((x) => x.is_active).map((mt) => <option key={mt.id} value={mt.id}>{mName(mt)} · {Number(mt.points_per_unit)} {t.pointsLbl}</option>)}
+                {metrics.filter((x) => x.is_active && catOf(x) !== 'attendance').map((mt) => <option key={mt.id} value={mt.id}>{t.kpiCats[catOf(mt)]} · {mName(mt)} · {Number(mt.points_per_unit)} {t.pointsLbl}</option>)}
               </Select>
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -4707,6 +4749,11 @@ function KpiPage({ me, data, toast, audit }) {
           <>
             <Field label={t.nameAr}><Input value={mForm.name_ar} onChange={(e) => setMForm({ ...mForm, name_ar: e.target.value })} /></Field>
             <Field label={t.nameEn}><Input value={mForm.name_en} onChange={(e) => setMForm({ ...mForm, name_en: e.target.value })} /></Field>
+            <Field label={t.categoryLbl}>
+              <Select value={mForm.category || 'sales'} onChange={(e) => setMForm({ ...mForm, category: e.target.value })}>
+                {Object.keys(t.kpiCats).map((k) => <option key={k} value={k}>{t.kpiCats[k]}</option>)}
+              </Select>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t.perUnit}><Input type="number" step="0.5" value={mForm.points_per_unit} onChange={(e) => setMForm({ ...mForm, points_per_unit: e.target.value })} /></Field>
               <Field label={t.perMillion}><Input type="number" step="0.5" value={mForm.value_points_per_million} onChange={(e) => setMForm({ ...mForm, value_points_per_million: e.target.value })} /></Field>
