@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.4';
+const APP_VERSION = 'v3.5';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -2874,7 +2874,7 @@ function templateContext({ emp, role, data, lang, overrides = {} }) {
     position: role ? (ar ? role.title_ar : role.title_en) : ((emp && (ar ? emp.job_title_ar : emp.job_title_en)) || blank),
     department: dept ? (ar ? dept.name_ar : dept.name_en) : (role && role.department_id && data.departments.find((d) => d.id === role.department_id) ? (ar ? data.departments.find((d) => d.id === role.department_id).name_ar : data.departments.find((d) => d.id === role.department_id).name_en) : blank),
     reports_to: manager ? nm(manager) : (isSalesRole && !isLeader ? (ar ? 'قائد فريق المبيعات' : 'Sales Team Leader') : (ar ? 'المدير العام' : 'General Manager')),
-    direct_reports: reports.length ? reports.map(nm).join(', ') : (isLeader && isSalesRole ? (ar ? 'جميع مستشاري المبيعات' : 'All Sales Consultants (Junior and Senior)') : (ar ? 'لا يوجد' : 'None')),
+    direct_reports: reports.length ? reports.map(nm).join(ar ? '، ' : ', ') : (isLeader && isSalesRole ? (ar ? 'جميع مستشاري المبيعات' : 'All Sales Consultants (Junior and Senior)') : (ar ? 'لا يوجد' : 'None')),
     location: (branch && branch.address) || company.address || (ar ? company.name_ar : company.name_en) || blank,
     employment_type: emp && emp.contract_type === 'part_time' ? (ar ? 'دوام جزئي' : 'Part-time') : (ar ? 'دوام كامل' : 'Full-time'),
     contract_type: CT[(emp && emp.contract_type) || 'indefinite'] + (emp && emp.contract_end ? (ar ? ' حتى ' : ' until ') + emp.contract_end : ''),
@@ -2882,7 +2882,7 @@ function templateContext({ emp, role, data, lang, overrides = {} }) {
     start_date: overrides.start_date || (emp && emp.hire_date) || blank,
     hire_date: (emp && emp.hire_date) || blank,
     effective_date: overrides.effective_date || todayISO(),
-    basic_salary: salary > 0 ? 'EGP ' + salary.toLocaleString('en-US', { maximumFractionDigits: 0 }) : (ar ? 'EGP [ _____ ]' : 'EGP [ _____ ]'),
+    basic_salary: salary > 0 ? (ar ? salary.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' جنيه' : 'EGP ' + salary.toLocaleString('en-US', { maximumFractionDigits: 0 })) : (ar ? '[ _____ ] جنيه' : 'EGP [ _____ ]'),
     work_days: String(7 - weekend.length),
     work_hours: shift ? hhmm(shift.start_time) + ' – ' + hhmm(shift.end_time) : blank,
     weekend: weekend.map((d) => (ar ? DAY_AR : DAY_EN)[d]).join(ar ? ' و' : ' and '),
@@ -2932,7 +2932,7 @@ async function downloadDocx(title, md, rtl) {
     const cols = Math.max(...rows.map((r) => r.length));
     const w = Math.floor(9000 / cols);
     const cell = (txt, head) => '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (head ? '<w:shd w:val="clear" w:color="auto" w:fill="EEF8FB"/>' : '') + '</w:tcPr>' + para(txt, '<w:spacing w:before="40" w:after="40"/>', head) + '</w:tc>';
-    return '<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/>' + (rtl ? '<w:bidiVisual/>' : '') +
+    return '<w:tbl><w:tblPr>' + (rtl ? '<w:bidiVisual/>' : '') + '<w:tblW w:w="9000" w:type="dxa"/>' +
       '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((b) => '<w:' + b + ' w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>').join('') + '</w:tblBorders>' +
       '<w:tblCellMar><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
       '<w:tblGrid>' + Array.from({ length: cols }, () => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>' +
