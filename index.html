@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.5';
+const APP_VERSION = 'v3.6';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -2875,7 +2875,7 @@ function templateContext({ emp, role, data, lang, overrides = {} }) {
     department: dept ? (ar ? dept.name_ar : dept.name_en) : (role && role.department_id && data.departments.find((d) => d.id === role.department_id) ? (ar ? data.departments.find((d) => d.id === role.department_id).name_ar : data.departments.find((d) => d.id === role.department_id).name_en) : blank),
     reports_to: manager ? nm(manager) : (isSalesRole && !isLeader ? (ar ? 'قائد فريق المبيعات' : 'Sales Team Leader') : (ar ? 'المدير العام' : 'General Manager')),
     direct_reports: reports.length ? reports.map(nm).join(ar ? '، ' : ', ') : (isLeader && isSalesRole ? (ar ? 'جميع مستشاري المبيعات' : 'All Sales Consultants (Junior and Senior)') : (ar ? 'لا يوجد' : 'None')),
-    location: (branch && branch.address) || company.address || (ar ? company.name_ar : company.name_en) || blank,
+    location: (ar && company.address_ar && (!branch || branch.code === 'HRG-HO')) ? company.address_ar : ((branch && branch.address) || (ar ? company.address_ar : '') || company.address || (ar ? company.name_ar : company.name_en) || blank),
     employment_type: emp && emp.contract_type === 'part_time' ? (ar ? 'دوام جزئي' : 'Part-time') : (ar ? 'دوام كامل' : 'Full-time'),
     contract_type: CT[(emp && emp.contract_type) || 'indefinite'] + (emp && emp.contract_end ? (ar ? ' حتى ' : ' until ') + emp.contract_end : ''),
     probation: emp && emp.probation_end ? (ar ? 'حتى ' + emp.probation_end : 'Until ' + emp.probation_end) : (ar ? '3 أشهر من تاريخ المباشرة' : '3 months from the start date'),
@@ -2888,7 +2888,7 @@ function templateContext({ emp, role, data, lang, overrides = {} }) {
     weekend: weekend.map((d) => (ar ? DAY_AR : DAY_EN)[d]).join(ar ? ' و' : ' and '),
     today: todayISO(),
     company_name: (ar ? company.name_ar : company.name_en) || 'Home Vacation',
-    company_address: company.address || '',
+    company_address: (ar ? company.address_ar : '') || company.address || '',
   };
 }
 function fillTemplate(body, ctx) {
@@ -2912,7 +2912,7 @@ async function downloadDocx(title, md, rtl) {
   await loadJSZip();
   const X = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   /* OOXML is order-sensitive: rPr = b, color, sz, rtl; pPr = numPr, pBdr, bidi, spacing, jc */
-  const rpr = (b, extra = '') => '<w:rPr>' + (b ? '<w:b/>' : '') + extra + (rtl ? '<w:rtl/>' : '') + '</w:rPr>';
+  const rpr = (b, extra = '') => '<w:rPr>' + (b ? '<w:b/><w:bCs/>' : '') + extra + (rtl ? '<w:rtl/>' : '') + '</w:rPr>';
   const runs = (text, bold = false) => String(text).split(/(\*\*.+?\*\*)/).filter(Boolean).map((seg) => {
     const b = /^\*\*.+\*\*$/.test(seg); const t = b ? seg.slice(2, -2) : seg;
     return '<w:r>' + rpr(b || bold) + '<w:t xml:space="preserve">' + X(t) + '</w:t></w:r>';
@@ -2922,7 +2922,7 @@ async function downloadDocx(title, md, rtl) {
   const heading = (text, lvl) => {
     const size = lvl === 1 ? 32 : lvl === 2 ? 26 : 24;
     return '<w:p>' + ppr({ pBdr: lvl === 1 ? '<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="4" w:color="1D6FA3"/></w:pBdr>' : '', spacing: '<w:spacing w:before="' + (lvl === 1 ? 0 : 240) + '" w:after="120"/>' }) +
-      '<w:r>' + rpr(true, '<w:color w:val="12405C"/><w:sz w:val="' + size + '"/>') + '<w:t xml:space="preserve">' + X(text) + '</w:t></w:r></w:p>';
+      '<w:r>' + rpr(true, '<w:color w:val="12405C"/><w:sz w:val="' + size + '"/><w:szCs w:val="' + size + '"/>') + '<w:t xml:space="preserve">' + X(text) + '</w:t></w:r></w:p>';
   };
   const bullet = (text) => '<w:p>' + ppr({ numPr: '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>' }) + runs(text) + '</w:p>';
   const table = (rowsIn) => {
