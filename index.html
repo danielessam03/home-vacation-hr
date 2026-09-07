@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.1';
+const APP_VERSION = 'v3.2';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -107,7 +107,7 @@ const { useState, useEffect, useMemo, useCallback, useRef, createContext, useCon
 const T = {
   en: {
     appName: 'Home Vacation HR', appSub: 'HR & Payroll',
-    email: 'Email', password: 'Password', signIn: 'Sign in', signUp: 'Create account',
+    email: 'Email', loginId: 'Username or email', unknownUser: 'Unknown username', password: 'Password', signIn: 'Sign in', signUp: 'Create account',
     signOut: 'Sign out', fullNameEn: 'Full name (English)', fullNameAr: 'Full name (Arabic)',
     forgotPw: 'Forgot password?', resetSent: 'Password reset link sent to your email.',
     haveAccount: 'Already have an account?', noAccount: 'First time here?',
@@ -285,7 +285,7 @@ const T = {
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
-    email: 'البريد الإلكتروني', password: 'كلمة المرور', signIn: 'تسجيل الدخول', signUp: 'إنشاء حساب',
+    email: 'البريد الإلكتروني', loginId: 'اسم المستخدم أو البريد', unknownUser: 'اسم المستخدم غير معروف', password: 'كلمة المرور', signIn: 'تسجيل الدخول', signUp: 'إنشاء حساب',
     signOut: 'تسجيل الخروج', fullNameEn: 'الاسم بالإنجليزية', fullNameAr: 'الاسم بالعربية',
     forgotPw: 'نسيت كلمة المرور؟', resetSent: 'تم إرسال رابط إعادة التعيين إلى بريدك.',
     haveAccount: 'لديك حساب بالفعل؟', noAccount: 'أول مرة؟',
@@ -1223,7 +1223,7 @@ function AuthScreen({ toast }) {
     setBusy(true);
     try {
       if (mode === 'in') {
-        const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
+        const { error } = await sb.auth.signInWithPassword({ email: await resolveEmail(), password: pw });
         if (error) throw error;
       } else {
         const { error } = await sb.auth.signUp({
@@ -1238,9 +1238,20 @@ function AuthScreen({ toast }) {
     setBusy(false);
   }
 
+  /* unified login: a username from any of the three systems, or the email itself */
+  async function resolveEmail() {
+    const v = email.trim();
+    if (v.includes('@')) return v;
+    const { data } = await sb.rpc('hv_login_email', { p_username: v });
+    if (!data) throw new Error(t.unknownUser);
+    return data;
+  }
+
   async function reset() {
-    if (!email.trim()) return toast(t.email, 'error');
-    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.href });
+    if (!email.trim()) return toast(t.loginId, 'error');
+    let target;
+    try { target = await resolveEmail(); } catch (err) { return toast(err.message, 'error'); }
+    const { error } = await sb.auth.resetPasswordForEmail(target, { redirectTo: window.location.href });
     toast(error ? error.message : t.resetSent, error ? 'error' : 'ok');
   }
 
@@ -1262,8 +1273,8 @@ function AuthScreen({ toast }) {
               <Field label={t.fullNameEn}><Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} /></Field>
             </>
           )}
-          <Field label={t.email}>
-            <Input type="email" inputMode="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Field label={mode === 'up' ? t.email : t.loginId}>
+            <Input type={mode === 'up' ? 'email' : 'text'} dir="ltr" autoComplete={mode === 'up' ? 'email' : 'username'} autoCapitalize="none" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <Field label={t.password}>
             <Input type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} required minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} />
