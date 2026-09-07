@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.3';
+const APP_VERSION = 'v3.4';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -195,6 +195,10 @@ const T = {
     generating: 'Generating…', generate: '✨ Generate document', docLang: 'Language', bothLangs: 'Arabic + English',
     savedDocs: 'Saved documents', print: 'Print', regenHint: 'Review and edit the text below before saving or printing.',
     aiFail: 'Generation failed', arabicLbl: 'Arabic', englishLbl: 'English',
+    templates: 'Templates', newTemplate: 'New template', fillFor: 'Fill for employee', placeholdersLbl: 'Auto-filled fields (click to insert)',
+    tplKinds: { offer: 'Offer letter', jd: 'Job description', promotion: 'Promotion letter', contract: 'Contract' }, tplTitle: 'Template title', tplBody: 'Template text',
+    downloadDocx: 'Download Word', startDateLbl: 'Start date', effectiveDate: 'Effective date', salaryOverride: 'Basic salary (EGP)', noTemplates: 'No templates for this role yet.',
+    fillHint: 'Values come from the employee card. Anything still shown as [ … ] is a decision the document leaves to you.',
     leave: 'Leave', myLeave: 'My leave', newRequest: 'New request',
     balanceLbl: 'Balance', entitlement: 'Entitlement', taken: 'Taken', remaining: 'Remaining',
     approvals: 'Approvals', balances: 'Balances', leaveType: 'Leave type',
@@ -377,6 +381,10 @@ const T = {
     generating: 'جاري الإنشاء…', generate: '✨ إنشاء المستند', docLang: 'اللغة', bothLangs: 'عربي + إنجليزي',
     savedDocs: 'المستندات المحفوظة', print: 'طباعة', regenHint: 'راجع النص وعدّله قبل الحفظ أو الطباعة.',
     aiFail: 'فشل الإنشاء', arabicLbl: 'العربية', englishLbl: 'الإنجليزية',
+    templates: 'القوالب', newTemplate: 'قالب جديد', fillFor: 'تعبئة لموظف', placeholdersLbl: 'الحقول التلقائية (اضغط للإدراج)',
+    tplKinds: { offer: 'خطاب عرض عمل', jd: 'توصيف وظيفي', promotion: 'خطاب ترقية', contract: 'عقد' }, tplTitle: 'عنوان القالب', tplBody: 'نص القالب',
+    downloadDocx: 'تنزيل Word', startDateLbl: 'تاريخ المباشرة', effectiveDate: 'تاريخ السريان', salaryOverride: 'الراتب الأساسي (جنيه)', noTemplates: 'لا توجد قوالب لهذه الوظيفة بعد.',
+    fillHint: 'القيم تأتي من بطاقة الموظف. ما زال يظهر بين [ … ] هو قرار يتركه المستند لك.',
     leave: 'الإجازات', myLeave: 'إجازاتي', newRequest: 'طلب جديد',
     balanceLbl: 'الرصيد', entitlement: 'الاستحقاق', taken: 'المستخدم', remaining: 'المتبقي',
     approvals: 'الموافقات', balances: 'الأرصدة', leaveType: 'نوع الإجازة',
@@ -821,8 +829,23 @@ function mdToHtml(md) {
   const lines = String(md || '').split('\n');
   let html = '', inList = false;
   const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
-  for (const raw of lines) {
+  for (let li = 0; li < lines.length; li++) {
+    const raw = lines[li];
     const line = raw.trimEnd();
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      closeList();
+      const rows = [];
+      while (li < lines.length && /^\s*\|.*\|\s*$/.test(lines[li])) {
+        const cells = lines[li].trim().slice(1, -1).split('|').map((c) => c.trim());
+        if (!cells.every((c) => /^:?-{2,}:?$/.test(c))) rows.push(cells);
+        li++;
+      }
+      li--;
+      const head = rows.length > 0 && rows[0].some((c) => c);   // "| | |" first row = key/value table, no header
+      const body = rows.filter((r) => r.some((c) => c));
+      html += '<table>' + body.map((r, i) => '<tr>' + r.map((c) => (i === 0 && head ? '<th>' : '<td>') + inline(c) + (i === 0 && head ? '</th>' : '</td>')).join('') + '</tr>').join('') + '</table>';
+      continue;
+    }
     if (/^\s*[-*]\s+/.test(line)) {
       if (!inList) { html += '<ul>'; inList = true; }
       html += '<li>' + inline(line.replace(/^\s*[-*]\s+/, '')) + '</li>';
@@ -846,6 +869,7 @@ function printDoc(title, md, dirRtl) {
     '<style>body{font-family:Cairo,Inter,sans-serif;max-width:800px;margin:32px auto;padding:0 28px;color:#111;line-height:1.7}' +
     'h1{font-size:22px;color:#12405c;border-bottom:3px solid #1d6fa3;padding-bottom:10px}h2{font-size:17px;color:#1a4a60;margin-top:22px}' +
     'h3{font-size:15px;color:#1a4a60}li{margin:4px 0}hr{margin:26px 0;border:none;border-top:1.5px solid #cbd5e1}' +
+    'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px}th,td{border:1px solid #cbd5e1;padding:6px 10px;text-align:start;vertical-align:top}th{background:#eef8fb}' +
     '.lg{height:52px;margin-bottom:14px}@media print{body{margin:0 auto}}</style></head><body>' +
     '<img class="lg" src="' + LOGO_LOCKUP + '"/>' + mdToHtml(md) +
     '<script>window.onload=function(){window.print()}<\/script></body></html>');
@@ -2811,6 +2835,155 @@ function LockTab({ me, data, toast, audit }) {
 /* =====================================================================
    7d. Jobs -- AI job descriptions & offers
    ===================================================================== */
+/* ---------------------------------------------------------------------
+   Contract templates: {{placeholders}} filled from the employee record,
+   preview as HTML, export as print/PDF or a real .docx (built in the
+   browser with JSZip — no server, no paid service).
+   --------------------------------------------------------------------- */
+const TPL_KEYS = ['employee_name', 'employee_name_ar', 'employee_code', 'national_id', 'phone', 'address', 'position', 'department', 'reports_to',
+  'direct_reports', 'location', 'employment_type', 'contract_type', 'probation', 'start_date', 'hire_date', 'effective_date', 'basic_salary',
+  'work_days', 'work_hours', 'weekend', 'today', 'company_name', 'company_address'];
+
+/** Build the placeholder values for one employee (+ optional overrides from the fill dialog). */
+function templateContext({ emp, role, data, lang, overrides = {} }) {
+  const DAY_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const DAY_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const ar = lang === 'ar';
+  const company = data.settings.company || {};
+  const weekend = (emp && emp.weekend_days) || (data.settings.work_week || {}).weekend_days || [5, 6];
+  const shift = data.shifts.find((s) => s.id === (emp && emp.shift_id)) || data.shifts.find((s) => s.is_active) || data.shifts[0];
+  const hhmm = (t) => String(t || '').slice(0, 5);
+  const dept = emp && data.departments.find((d) => d.id === emp.department_id);
+  const branch = emp && data.branches.find((b) => b.id === emp.branch_id);
+  const manager = emp && data.employees.find((e) => e.id === emp.manager_id);
+  const reports = emp ? data.employees.filter((e) => e.manager_id === emp.id && e.status === 'active') : [];
+  const nm = (e) => e ? ((ar ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '';
+  const isSalesRole = /sales/i.test((role && role.title_en) || '') || /مبيعات/.test((role && role.title_ar) || '');
+  const isLeader = /team leader|manager|head|supervisor|director/i.test((role && role.title_en) || '');
+  const salary = overrides.basic_salary !== undefined && overrides.basic_salary !== '' ? Number(overrides.basic_salary) : (emp ? Number(emp.basic_salary) : 0);
+  const CT = ar ? { indefinite: 'عقد عمل غير محدد المدة', fixed_term: 'عقد عمل محدد المدة', part_time: 'عقد عمل بدوام جزئي', probation: 'عقد فترة اختبار' }
+                : { indefinite: 'Open-ended (indefinite-term) contract', fixed_term: 'Fixed-term contract', part_time: 'Part-time contract', probation: 'Probationary contract' };
+  const blank = '____________________';
+  return {
+    employee_name: (emp && (ar ? emp.full_name_ar : emp.full_name_en)) || (emp && emp.full_name_en) || blank,
+    employee_name_ar: (emp && emp.full_name_ar) || blank,
+    employee_code: (emp && emp.employee_code) || blank,
+    national_id: (emp && emp.national_id) || blank,
+    phone: (emp && emp.phone) || blank,
+    address: (emp && emp.address) || blank,
+    position: role ? (ar ? role.title_ar : role.title_en) : ((emp && (ar ? emp.job_title_ar : emp.job_title_en)) || blank),
+    department: dept ? (ar ? dept.name_ar : dept.name_en) : (role && role.department_id && data.departments.find((d) => d.id === role.department_id) ? (ar ? data.departments.find((d) => d.id === role.department_id).name_ar : data.departments.find((d) => d.id === role.department_id).name_en) : blank),
+    reports_to: manager ? nm(manager) : (isSalesRole && !isLeader ? (ar ? 'قائد فريق المبيعات' : 'Sales Team Leader') : (ar ? 'المدير العام' : 'General Manager')),
+    direct_reports: reports.length ? reports.map(nm).join(', ') : (isLeader && isSalesRole ? (ar ? 'جميع مستشاري المبيعات' : 'All Sales Consultants (Junior and Senior)') : (ar ? 'لا يوجد' : 'None')),
+    location: (branch && branch.address) || company.address || (ar ? company.name_ar : company.name_en) || blank,
+    employment_type: emp && emp.contract_type === 'part_time' ? (ar ? 'دوام جزئي' : 'Part-time') : (ar ? 'دوام كامل' : 'Full-time'),
+    contract_type: CT[(emp && emp.contract_type) || 'indefinite'] + (emp && emp.contract_end ? (ar ? ' حتى ' : ' until ') + emp.contract_end : ''),
+    probation: emp && emp.probation_end ? (ar ? 'حتى ' + emp.probation_end : 'Until ' + emp.probation_end) : (ar ? '3 أشهر من تاريخ المباشرة' : '3 months from the start date'),
+    start_date: overrides.start_date || (emp && emp.hire_date) || blank,
+    hire_date: (emp && emp.hire_date) || blank,
+    effective_date: overrides.effective_date || todayISO(),
+    basic_salary: salary > 0 ? 'EGP ' + salary.toLocaleString('en-US', { maximumFractionDigits: 0 }) : (ar ? 'EGP [ _____ ]' : 'EGP [ _____ ]'),
+    work_days: String(7 - weekend.length),
+    work_hours: shift ? hhmm(shift.start_time) + ' – ' + hhmm(shift.end_time) : blank,
+    weekend: weekend.map((d) => (ar ? DAY_AR : DAY_EN)[d]).join(ar ? ' و' : ' and '),
+    today: todayISO(),
+    company_name: (ar ? company.name_ar : company.name_en) || 'Home Vacation',
+    company_address: company.address || '',
+  };
+}
+function fillTemplate(body, ctx) {
+  return String(body || '').replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k) => (ctx[k] !== undefined ? ctx[k] : m));
+}
+
+/** .docx export of the Markdown subset used by the documents. */
+let jszipReady = null;
+function loadJSZip() {
+  if (window.JSZip) return Promise.resolve();
+  if (jszipReady) return jszipReady;
+  jszipReady = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = resolve; s.onerror = () => reject(new Error('JSZip load failed'));
+    document.head.appendChild(s);
+  });
+  return jszipReady;
+}
+async function downloadDocx(title, md, rtl) {
+  await loadJSZip();
+  const X = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  /* OOXML is order-sensitive: rPr = b, color, sz, rtl; pPr = numPr, pBdr, bidi, spacing, jc */
+  const rpr = (b, extra = '') => '<w:rPr>' + (b ? '<w:b/>' : '') + extra + (rtl ? '<w:rtl/>' : '') + '</w:rPr>';
+  const runs = (text, bold = false) => String(text).split(/(\*\*.+?\*\*)/).filter(Boolean).map((seg) => {
+    const b = /^\*\*.+\*\*$/.test(seg); const t = b ? seg.slice(2, -2) : seg;
+    return '<w:r>' + rpr(b || bold) + '<w:t xml:space="preserve">' + X(t) + '</w:t></w:r>';
+  }).join('');
+  const ppr = ({ numPr = '', pBdr = '', spacing = '' } = {}) => '<w:pPr>' + numPr + pBdr + (rtl ? '<w:bidi/>' : '') + spacing + (rtl ? '<w:jc w:val="right"/>' : '') + '</w:pPr>';
+  const para = (text, spacing = '', bold = false) => '<w:p>' + ppr({ spacing }) + runs(text, bold) + '</w:p>';
+  const heading = (text, lvl) => {
+    const size = lvl === 1 ? 32 : lvl === 2 ? 26 : 24;
+    return '<w:p>' + ppr({ pBdr: lvl === 1 ? '<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="4" w:color="1D6FA3"/></w:pBdr>' : '', spacing: '<w:spacing w:before="' + (lvl === 1 ? 0 : 240) + '" w:after="120"/>' }) +
+      '<w:r>' + rpr(true, '<w:color w:val="12405C"/><w:sz w:val="' + size + '"/>') + '<w:t xml:space="preserve">' + X(text) + '</w:t></w:r></w:p>';
+  };
+  const bullet = (text) => '<w:p>' + ppr({ numPr: '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>' }) + runs(text) + '</w:p>';
+  const table = (rowsIn) => {
+    const hadHeader = rowsIn[0].some((c) => c.trim());          // "| | |" first row = key/value table, no header
+    const rows = rowsIn.filter((r) => r.some((c) => c.trim()));
+    if (!rows.length) return '';
+    const cols = Math.max(...rows.map((r) => r.length));
+    const w = Math.floor(9000 / cols);
+    const cell = (txt, head) => '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (head ? '<w:shd w:val="clear" w:color="auto" w:fill="EEF8FB"/>' : '') + '</w:tcPr>' + para(txt, '<w:spacing w:before="40" w:after="40"/>', head) + '</w:tc>';
+    return '<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/>' + (rtl ? '<w:bidiVisual/>' : '') +
+      '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((b) => '<w:' + b + ' w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>').join('') + '</w:tblBorders>' +
+      '<w:tblCellMar><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
+      '<w:tblGrid>' + Array.from({ length: cols }, () => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>' +
+      rows.map((r, i) => '<w:tr>' + Array.from({ length: cols }, (_, c) => cell(r[c] || '', i === 0 && hadHeader)).join('') + '</w:tr>').join('') + '</w:tbl><w:p/>';
+  };
+  const body = [];
+  const lines = String(md || '').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trimEnd();
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+        const cells = lines[i].trim().slice(1, -1).split('|').map((c) => c.trim());
+        if (!cells.every((c) => /^:?-{2,}:?$/.test(c))) rows.push(cells);
+        i++;
+      }
+      i--;
+      if (rows.length) body.push(table(rows));
+    } else if (/^###\s+/.test(line)) body.push(heading(line.slice(4), 3));
+    else if (/^##\s+/.test(line)) body.push(heading(line.slice(3), 2));
+    else if (/^#\s+/.test(line)) body.push(heading(line.slice(2), 1));
+    else if (/^\s*[-*]\s+/.test(line)) body.push(bullet(line.replace(/^\s*[-*]\s+/, '')));
+    else if (/^\s*---+\s*$/.test(line)) body.push('<w:p>' + ppr({ pBdr: '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="CBD5E1"/></w:pBdr>' }) + '</w:p>');
+    else if (line.trim() === '') { /* paragraph spacing handled by w:after */ }
+    else body.push(para(line, '<w:spacing w:after="120"/>'));
+  }
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ' + NS + '><w:body>' + body.join('') +
+    '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/>' + (rtl ? '<w:bidi/>' : '') + '</w:sectPr></w:body></w:document>';
+  const numbering = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering ' + NS + '><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>';
+  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ' + NS + '><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Arial"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults></w:styles>';
+  const ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>';
+  const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+  const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', ct);
+  zip.file('_rels/.rels', rels);
+  zip.file('word/document.xml', doc);
+  zip.file('word/numbering.xml', numbering);
+  zip.file('word/styles.xml', styles);
+  zip.file('word/_rels/document.xml.rels', docRels);
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = String(title || 'document').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) + '.docx';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+const DOC_CLS = 'text-sm [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:font-bold [&_h3]:mt-2 [&_h3]:font-semibold [&_li]:ms-4 [&_li]:list-disc [&_p]:my-1 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-slate-200 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-slate-200 [&_th]:bg-brand-50 [&_th]:px-2 [&_th]:py-1 [&_th]:text-start';
+
 function JobsPage({ me, data, toast, audit }) {
   const { lang, t } = useL();
   const [roles, setRoles] = useState(null);
@@ -2818,15 +2991,21 @@ function JobsPage({ me, data, toast, audit }) {
   const [form, setForm] = useState(null);       // role add/edit
   const [gen, setGen] = useState(null);         // {role, kind, language, candidate_name, custom_notes, result, busy}
   const [viewDoc, setViewDoc] = useState(null);
+  const [tpls, setTpls] = useState([]);          // contract templates (job_templates)
+  const [tplList, setTplList] = useState(null);  // role whose templates are open
+  const [tplForm, setTplForm] = useState(null);  // template add/edit
+  const [fill, setFill] = useState(null);        // {tpl, employee_id, start_date, effective_date, basic_salary, result}
 
   useEffect(() => {
     (async () => {
-      const [r, d] = await Promise.all([
+      const [r, d, tp] = await Promise.all([
         sb.from('job_roles').select('*').order('title_en'),
         sb.from('job_documents').select('*').order('created_at', { ascending: false }),
+        sb.from('job_templates').select('*').order('title'),
       ]);
       setRoles(r.data || []);
       setDocs(d.data || []);
+      setTpls(tp.data || []);
     })();
   }, []);
 
@@ -2891,9 +3070,52 @@ function JobsPage({ me, data, toast, audit }) {
     audit('delete', 'job_documents', d.id, d, null);
   }
 
+  async function saveTpl() {
+    const payload = { role_id: tplForm.role_id || null, doc_kind: tplForm.doc_kind, language: tplForm.language, title: tplForm.title.trim(), body_md: tplForm.body_md, is_active: tplForm.is_active !== false };
+    let res;
+    if (tplForm.id) res = await sb.from('job_templates').update(payload).eq('id', tplForm.id).select().single();
+    else res = await sb.from('job_templates').insert({ ...payload, created_by: me.id }).select().single();
+    if (res.error) return toast(res.error.message, 'error');
+    setTpls((prev) => (tplForm.id ? prev.map((x) => (x.id === res.data.id ? res.data : x)) : [...prev, res.data]));
+    audit(tplForm.id ? 'update' : 'insert', 'job_templates', res.data.id, tplForm.id ? tplForm : null, { title: res.data.title });
+    setTplForm(null);
+    toast(t.saved);
+  }
+  async function removeTpl(tp) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('job_templates').delete().eq('id', tp.id);
+    if (error) return toast(error.message, 'error');
+    setTpls((prev) => prev.filter((x) => x.id !== tp.id));
+    setTplForm(null);
+    audit('delete', 'job_templates', tp.id, { title: tp.title }, null);
+  }
+  const fillEmp = () => data.employees.find((e) => e.id === (fill && fill.employee_id));
+  const fillRole = () => (roles || []).find((r) => r.id === (fill && fill.tpl.role_id));
+  function pickFillEmployee(id) {
+    const emp = data.employees.find((e) => e.id === id);
+    setFill({ ...fill, employee_id: id, start_date: emp ? (emp.hire_date || '') : '', basic_salary: emp && Number(emp.basic_salary) > 0 ? Number(emp.basic_salary) : '' });
+  }
+  function runFill() {
+    const ctx = templateContext({ emp: fillEmp(), role: fillRole(), data, lang: fill.tpl.language, overrides: { start_date: fill.start_date, effective_date: fill.effective_date, basic_salary: fill.basic_salary } });
+    setFill({ ...fill, result: fillTemplate(fill.tpl.body_md, ctx) });
+  }
+  const fillTitle = () => { const emp = fillEmp(); return fill.tpl.title + (emp ? ' — ' + ((lang === 'ar' ? emp.full_name_ar : emp.full_name_en) || emp.full_name_en) : ''); };
+  async function saveFilled() {
+    const emp = fillEmp();
+    const { data: row, error } = await sb.from('job_documents').insert({
+      role_id: fill.tpl.role_id, doc_kind: fill.tpl.doc_kind, language: fill.tpl.language, template_id: fill.tpl.id, employee_id: emp ? emp.id : null,
+      candidate_name: emp ? (emp.full_name_en || emp.full_name_ar) : null, title: fillTitle(), content_md: fill.result, created_by: me.id,
+    }).select().single();
+    if (error) return toast(error.message, 'error');
+    setDocs((prev) => [row, ...prev]);
+    audit('insert', 'job_documents', row.id, null, { title: row.title, employee_id: row.employee_id });
+    setFill(null);
+    toast(t.saved);
+  }
+
   const blankRole = () => ({ title_en: '', title_ar: '', department_id: '', duties: '', requirements: '', salary_note: '', commission_note: '', benefits: '', schedule_note: '', papers: [], is_active: true });
   const openGen = (role, kind) => setGen({ role, kind, language: 'both', candidate_name: '', custom_notes: '', result: null, busy: false });
-  const docTitle = (d) => { const r = (roles || []).find((x) => x.id === d.role_id); return (d.doc_kind === 'offer' ? t.genOffer : t.genJd) + ' — ' + (r ? rTitle(r) : '') + (d.candidate_name ? ' — ' + d.candidate_name : ''); };
+  const docTitle = (d) => { if (d.title) return d.title; const r = (roles || []).find((x) => x.id === d.role_id); return (t.tplKinds[d.doc_kind] || t.genJd) + ' — ' + (r ? rTitle(r) : '') + (d.candidate_name ? ' — ' + d.candidate_name : ''); };
   const Ta = (p) => <textarea {...p} className={cx(inputCls, 'min-h-[90px]', p.className)} />;
 
   return (
@@ -2915,6 +3137,7 @@ function JobsPage({ me, data, toast, audit }) {
                 <div className="mt-2 flex gap-2">
                   <Btn variant="soft" size="sm" className="flex-1" onClick={() => openGen(r, 'jd')}>📄 {t.genJd}</Btn>
                   <Btn variant="soft" size="sm" className="flex-1" onClick={() => openGen(r, 'offer')}>✉️ {t.genOffer}</Btn>
+                  <Btn variant={tpls.some((x) => x.role_id === r.id) ? 'primary' : 'outline'} size="sm" className="flex-1" onClick={() => setTplList(r)}>📑 {t.templates} ({tpls.filter((x) => x.role_id === r.id).length})</Btn>
                 </div>
               </li>
             ))}
@@ -3026,13 +3249,89 @@ function JobsPage({ me, data, toast, audit }) {
         footer={viewDoc ? (
           <>
             <Btn variant="soft" className="flex-1" onClick={() => printDoc(docTitle(viewDoc), viewDoc.content_md, viewDoc.language !== 'en')}>🖨️ {t.print}</Btn>
+            <Btn variant="soft" className="flex-1" onClick={() => downloadDocx(docTitle(viewDoc), viewDoc.content_md, viewDoc.language === 'ar').catch((e) => toast(e.message, 'error'))}>⬇️ {t.downloadDocx}</Btn>
             <Btn variant="ghost" className="text-rose-600" onClick={() => removeDoc(viewDoc)}>{t.del}</Btn>
             <Btn variant="outline" className="flex-1" onClick={() => setViewDoc(null)}>{t.close}</Btn>
           </>
         ) : null}>
         {viewDoc && (
-          <div className="text-sm [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:mt-3 [&_h2]:font-bold [&_li]:ms-4 [&_li]:list-disc [&_p]:my-1"
-            dir="auto" dangerouslySetInnerHTML={{ __html: mdToHtml(viewDoc.content_md) }} />
+          <div className={DOC_CLS} dir="auto" dangerouslySetInnerHTML={{ __html: mdToHtml(viewDoc.content_md) }} />
+        )}
+      </Modal>
+
+      {/* ---------- templates of one role ---------- */}
+      <Modal open={!!tplList} onClose={() => setTplList(null)} title={tplList ? '📑 ' + t.templates + ' — ' + rTitle(tplList) : ''}
+        footer={tplList ? <><Btn className="flex-1" onClick={() => setTplForm({ role_id: tplList.id, doc_kind: 'offer', language: 'en', title: '', body_md: '', is_active: true })}>+ {t.newTemplate}</Btn><Btn variant="outline" className="flex-1" onClick={() => setTplList(null)}>{t.close}</Btn></> : null}>
+        {tplList && (tpls.filter((x) => x.role_id === tplList.id).length === 0 ? <Empty text={t.noTemplates} /> : (
+          <ul className="divide-y divide-slate-100">
+            {tpls.filter((x) => x.role_id === tplList.id).map((tp) => (
+              <li key={tp.id} className="space-y-2 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-semibold text-slate-800">{tp.title}</p>
+                  <Badge tone={tp.doc_kind === 'jd' ? 'teal' : 'amber'}>{t.tplKinds[tp.doc_kind]} · {tp.language.toUpperCase()}</Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Btn size="sm" className="flex-1" onClick={() => { setFill({ tpl: tp, employee_id: '', start_date: '', effective_date: todayISO(), basic_salary: '', result: null }); setTplList(null); }}>🧾 {t.fillFor}</Btn>
+                  <Btn size="sm" variant="outline" onClick={() => setTplForm({ ...tp })}>{t.edit}</Btn>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ))}
+      </Modal>
+
+      {/* ---------- template editor ---------- */}
+      <Modal open={!!tplForm} onClose={() => setTplForm(null)} title={tplForm && tplForm.id ? t.edit : t.newTemplate}
+        footer={tplForm ? <><Btn className="flex-1" disabled={!tplForm.title.trim() || !tplForm.body_md.trim()} onClick={saveTpl}>{t.save}</Btn>{tplForm.id && <Btn variant="ghost" className="text-rose-600" onClick={() => removeTpl(tplForm)}>{t.del}</Btn>}<Btn variant="outline" className="flex-1" onClick={() => setTplForm(null)}>{t.cancel}</Btn></> : null}>
+        {tplForm && (
+          <>
+            <Field label={t.tplTitle}><Input value={tplForm.title} onChange={(e) => setTplForm({ ...tplForm, title: e.target.value })} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.docLang}><Select value={tplForm.language} onChange={(e) => setTplForm({ ...tplForm, language: e.target.value })}><option value="en">{t.englishLbl}</option><option value="ar">{t.arabicLbl}</option></Select></Field>
+              <Field label={t.jobs}><Select value={tplForm.doc_kind} onChange={(e) => setTplForm({ ...tplForm, doc_kind: e.target.value })}>{Object.keys(t.tplKinds).map((k) => <option key={k} value={k}>{t.tplKinds[k]}</option>)}</Select></Field>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-slate-600">{t.placeholdersLbl}</p>
+              <div className="flex flex-wrap gap-1">{TPL_KEYS.map((k) => <button key={k} type="button" onClick={() => setTplForm({ ...tplForm, body_md: tplForm.body_md + '{{' + k + '}}' })} className="rounded-full border border-slate-300 bg-white px-2 py-0.5 font-mono text-[11px] text-slate-600 hover:bg-brand-50">{'{{' + k + '}}'}</button>)}</div>
+            </div>
+            <Field label={t.tplBody}><textarea className={cx(inputCls, 'min-h-[320px] font-mono text-xs')} dir={tplForm.language === 'ar' ? 'rtl' : 'ltr'} value={tplForm.body_md} onChange={(e) => setTplForm({ ...tplForm, body_md: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+
+      {/* ---------- fill a template for an employee ---------- */}
+      <Modal open={!!fill} onClose={() => setFill(null)} title={fill ? '🧾 ' + fill.tpl.title : ''}
+        footer={fill && fill.result ? (
+          <>
+            <Btn className="flex-1" onClick={saveFilled}>{t.save}</Btn>
+            <Btn variant="soft" onClick={() => printDoc(fillTitle(), fill.result, fill.tpl.language === 'ar')}>🖨️</Btn>
+            <Btn variant="soft" onClick={() => downloadDocx(fillTitle(), fill.result, fill.tpl.language === 'ar').catch((e) => toast(e.message, 'error'))}>⬇️ Word</Btn>
+            <Btn variant="outline" onClick={() => setFill(null)}>{t.cancel}</Btn>
+          </>
+        ) : null}>
+        {fill && !fill.result && (
+          <>
+            <Field label={t.selectEmployee}>
+              <Select value={fill.employee_id} onChange={(e) => pickFillEmployee(e.target.value)}>
+                <option value="">—</option>
+                {data.employees.filter((e) => e.status === 'active').map((e) => <option key={e.id} value={e.id}>{(lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en}</option>)}
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.startDateLbl}><Input type="date" value={fill.start_date} onChange={(e) => setFill({ ...fill, start_date: e.target.value })} /></Field>
+              <Field label={t.effectiveDate}><Input type="date" value={fill.effective_date} onChange={(e) => setFill({ ...fill, effective_date: e.target.value })} /></Field>
+            </div>
+            <Field label={t.salaryOverride}><Input type="number" inputMode="decimal" value={fill.basic_salary} onChange={(e) => setFill({ ...fill, basic_salary: e.target.value })} /></Field>
+            <p className="text-xs text-slate-500">{t.fillHint}</p>
+            <Btn size="lg" disabled={!fill.employee_id} onClick={runFill}>{t.generate}</Btn>
+          </>
+        )}
+        {fill && fill.result && (
+          <>
+            <p className="text-xs text-slate-500">{t.regenHint}</p>
+            <textarea className={cx(inputCls, 'min-h-[140px] font-mono text-xs')} dir="auto" value={fill.result} onChange={(e) => setFill({ ...fill, result: e.target.value })} />
+            <div className={cx(DOC_CLS, 'max-h-80 overflow-y-auto rounded-xl border border-slate-200 p-4')} dir={fill.tpl.language === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: mdToHtml(fill.result) }} />
+          </>
         )}
       </Modal>
     </>
