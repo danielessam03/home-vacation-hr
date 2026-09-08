@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.9';
+const APP_VERSION = 'v3.10';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -210,6 +210,7 @@ const T = {
     lvStatus: { pending: 'Pending manager', manager_approved: 'Pending HR', approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled' },
     approve: 'Approve', reject: 'Reject', confirmHr: 'Final approve', cancelReq: 'Cancel request', noteOpt: 'Note (optional)',
     notEnoughBalance: 'Not enough balance', overlapErr: 'Overlaps an existing request',
+    delLeave: 'Delete leave', delLeaveConfirm: 'Delete this leave permanently? The days go back to the balance. A payroll already run for that month is not changed.',
     makeup: 'Make-up days', makeupHint: 'Worked on your own rest day within {w} weeks after a leave? Claim that leave day back. Only days with a fingerprint or GPS check-in count.',
     makeupClaim: 'Claim this day', makeupCandidates: 'Days you can claim', makeupNone: 'No claimable days right now.', makeupMine: 'My claims', makeupPending: 'Claims to approve',
     makeupFor: 'for leave', makeupAdd: 'Add a make-up day', makeupDate: 'Day worked', makeupLeave: 'Compensates leave', makeupWindow: 'Make-up window after a leave (weeks)',
@@ -407,6 +408,7 @@ const T = {
     lvStatus: { pending: 'بانتظار المدير', manager_approved: 'بانتظار الموارد البشرية', approved: 'معتمدة', rejected: 'مرفوضة', cancelled: 'ملغاة' },
     approve: 'موافقة', reject: 'رفض', confirmHr: 'اعتماد نهائي', cancelReq: 'إلغاء الطلب', noteOpt: 'ملاحظة (اختياري)',
     notEnoughBalance: 'الرصيد غير كافٍ', overlapErr: 'يتعارض مع طلب قائم',
+    delLeave: 'حذف الإجازة', delLeaveConfirm: 'حذف هذه الإجازة نهائياً؟ تعود الأيام إلى الرصيد. ولا يتغير راتب سبق احتسابه لذلك الشهر.',
     makeup: 'أيام التعويض', makeupHint: 'عملت في يوم راحتك الخاص خلال {w} أسابيع بعد إجازة؟ استرد يوم الإجازة. تُحتسب فقط الأيام التي بها بصمة أو تسجيل حضور بالموقع.',
     makeupClaim: 'استرداد هذا اليوم', makeupCandidates: 'أيام يمكنك استردادها', makeupNone: 'لا توجد أيام قابلة للاسترداد حالياً.', makeupMine: 'طلباتي', makeupPending: 'طلبات بانتظار الاعتماد',
     makeupFor: 'عن إجازة', makeupAdd: 'إضافة يوم تعويض', makeupDate: 'يوم العمل', makeupLeave: 'يعوّض إجازة', makeupWindow: 'مهلة التعويض بعد الإجازة (أسابيع)',
@@ -3608,6 +3610,15 @@ function LeavePage({ me, data, toast, audit }) {
     toast(t.saved);
   }
 
+  async function removeReq(r) {
+    if (!window.confirm(t.delLeaveConfirm)) return;
+    const { error } = await sb.from('leave_requests').delete().eq('id', r.id);
+    if (error) return toast(error.message, 'error');
+    setReqs((prev) => prev.filter((x) => x.id !== r.id));
+    audit('delete', 'leave_requests', r.id, r, null);
+    toast(t.saved);
+  }
+
   async function saveAdj() {
     const { data: row, error } = await sb.from('leave_adjustments').insert({
       employee_id: adjForm.employee_id, leave_type_id: adjForm.leave_type_id, year,
@@ -3721,13 +3732,14 @@ function LeavePage({ me, data, toast, audit }) {
           </div>
           <Badge tone={lvTone(r.status)}>{t.lvStatus[r.status]}</Badge>
         </div>
-        {(canManagerAct || canHrAct || canCancel) && (
+        {(canManagerAct || canHrAct || canCancel || isHr) && (
           <div className="flex gap-2">
             {canManagerAct && <><Btn size="sm" className="flex-1" onClick={() => setAction({ req: r, kind: 'manager', note: '' })}>{t.approve}</Btn>
               <Btn size="sm" variant="danger" className="flex-1" onClick={() => setAction({ req: r, kind: 'reject', note: '' })}>{t.reject}</Btn></>}
             {canHrAct && <><Btn size="sm" className="flex-1" onClick={() => setAction({ req: r, kind: 'hr', note: '' })}>{r.status === 'pending' ? t.approve : t.confirmHr}</Btn>
               <Btn size="sm" variant="danger" className="flex-1" onClick={() => setAction({ req: r, kind: 'reject', note: '' })}>{t.reject}</Btn></>}
             {canCancel && !canHrAct && <Btn size="sm" variant="outline" className="flex-1" onClick={() => setAction({ req: r, kind: 'cancel', note: '' })}>{t.cancelReq}</Btn>}
+            {isHr && <Btn size="sm" variant="ghost" className="text-rose-600" onClick={() => removeReq(r)}>🗑 {t.delLeave}</Btn>}
           </div>
         )}
       </li>
