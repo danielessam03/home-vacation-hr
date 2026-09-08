@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.6';
+const APP_VERSION = 'v3.8';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -206,6 +206,13 @@ const T = {
     lvStatus: { pending: 'Pending manager', manager_approved: 'Pending HR', approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled' },
     approve: 'Approve', reject: 'Reject', confirmHr: 'Final approve', cancelReq: 'Cancel request', noteOpt: 'Note (optional)',
     notEnoughBalance: 'Not enough balance', overlapErr: 'Overlaps an existing request',
+    makeup: 'Make-up days', makeupHint: 'Worked on your own rest day within {w} weeks after a leave? Claim that leave day back. Only days with a fingerprint or GPS check-in count.',
+    makeupClaim: 'Claim this day', makeupCandidates: 'Days you can claim', makeupNone: 'No claimable days right now.', makeupMine: 'My claims', makeupPending: 'Claims to approve',
+    makeupFor: 'for leave', makeupAdd: 'Add a make-up day', makeupDate: 'Day worked', makeupLeave: 'Compensates leave', makeupWindow: 'Make-up window after a leave (weeks)',
+    makeupApproved: 'Approved: one annual leave day credited', makeupWorked: 'worked', makeupNoPunch: 'no check-in that day',
+    makeupErr: { not_rest_day: 'Not this employee\'s rest day', company_off: 'The company does not work that day', holiday: 'That day is a holiday', future: 'That day has not happened yet',
+      no_leave: 'Pick the leave it compensates', leave_not_approved: 'That leave is not approved', before_leave_end: 'The day must come after the leave ended', window_passed: 'Too late: outside the make-up window',
+      leave_fully_compensated: 'That leave is already fully compensated', no_attendance: 'No check-in recorded that day', exempt: 'This employee has no attendance', no_employee: 'Employee not found' },
     casualHint: 'Casual leave is deducted from the annual balance (max 7 days/year).',
     needSixMonths: 'Less than 6 months of service — annual leave is not due yet (labor law).',
     adjustBalance: 'Adjust balance', daysLbl: 'Days',
@@ -392,6 +399,13 @@ const T = {
     lvStatus: { pending: 'بانتظار المدير', manager_approved: 'بانتظار الموارد البشرية', approved: 'معتمدة', rejected: 'مرفوضة', cancelled: 'ملغاة' },
     approve: 'موافقة', reject: 'رفض', confirmHr: 'اعتماد نهائي', cancelReq: 'إلغاء الطلب', noteOpt: 'ملاحظة (اختياري)',
     notEnoughBalance: 'الرصيد غير كافٍ', overlapErr: 'يتعارض مع طلب قائم',
+    makeup: 'أيام التعويض', makeupHint: 'عملت في يوم راحتك الخاص خلال {w} أسابيع بعد إجازة؟ استرد يوم الإجازة. تُحتسب فقط الأيام التي بها بصمة أو تسجيل حضور بالموقع.',
+    makeupClaim: 'استرداد هذا اليوم', makeupCandidates: 'أيام يمكنك استردادها', makeupNone: 'لا توجد أيام قابلة للاسترداد حالياً.', makeupMine: 'طلباتي', makeupPending: 'طلبات بانتظار الاعتماد',
+    makeupFor: 'عن إجازة', makeupAdd: 'إضافة يوم تعويض', makeupDate: 'يوم العمل', makeupLeave: 'يعوّض إجازة', makeupWindow: 'مهلة التعويض بعد الإجازة (أسابيع)',
+    makeupApproved: 'تم الاعتماد: أُضيف يوم إجازة سنوية للرصيد', makeupWorked: 'عمل', makeupNoPunch: 'لا يوجد تسجيل حضور في هذا اليوم',
+    makeupErr: { not_rest_day: 'ليس يوم راحة هذا الموظف', company_off: 'الشركة لا تعمل في هذا اليوم', holiday: 'هذا اليوم عطلة رسمية', future: 'هذا اليوم لم يأتِ بعد',
+      no_leave: 'اختر الإجازة التي يعوّضها', leave_not_approved: 'هذه الإجازة غير معتمدة', before_leave_end: 'يجب أن يكون اليوم بعد انتهاء الإجازة', window_passed: 'انتهت مهلة التعويض',
+      leave_fully_compensated: 'هذه الإجازة عُوّضت بالكامل', no_attendance: 'لا يوجد تسجيل حضور في هذا اليوم', exempt: 'هذا الموظف بلا حضور', no_employee: 'الموظف غير موجود' },
     casualHint: 'الإجازة العارضة تُخصم من رصيد السنوية (بحد أقصى 7 أيام سنوياً).',
     needSixMonths: 'أقل من 6 أشهر خدمة — لم تُستحق الإجازة السنوية بعد (قانون العمل).',
     adjustBalance: 'تعديل رصيد', daysLbl: 'أيام',
@@ -1349,7 +1363,7 @@ const NAV = [
   { key: 'leave',      icon: '🌴', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'kpi',        icon: '🏆', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'employees', icon: '🧑‍💼', roles: ['ceo', 'hr', 'accountant', 'manager'] },
-  { key: 'payroll',   icon: '💰', roles: ['ceo', 'hr', 'accountant'] },
+  { key: 'payroll',   icon: '💰', roles: ['ceo', 'accountant'] },
   { key: 'loans',     icon: '🏦', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'jobs',      icon: '💼', roles: ['ceo', 'hr'] },
   { key: 'compliance', icon: '📑', roles: ['ceo', 'hr', 'accountant'] },
@@ -1361,7 +1375,7 @@ const NAV = [
 ];
 
 const HV_APPS = [
-  { key: 'appHr', icon: '👥', url: 'https://home-vacation-hr.homevacation1950.workers.dev', here: true },
+  { key: 'appHr', icon: '👥', url: 'https://home-vacation-hr.pages.dev', here: true },
   { key: 'appMaint', icon: '🔧', url: 'https://hv-maintenance-system.pages.dev' },
   { key: 'appCrm', icon: '🏠', url: 'https://property-management-crm.pages.dev' },
 ];
@@ -1864,6 +1878,7 @@ function UsersPage({ me, data, refresh, toast, audit }) {
 function EmployeesPage({ me, data, refresh, toast, audit }) {
   const { lang, t } = useL();
   const canEdit = ['ceo', 'hr'].includes(me.role);
+  const canSalary = ['ceo', 'accountant'].includes(me.role);   // salaries: accounting and CEO only
   const [q, setQ] = useState('');
   const [fBranch, setFBranch] = useState('');
   const [fStatus, setFStatus] = useState('active');
@@ -2064,7 +2079,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
         {view && (
           <>
             <div className="flex gap-2">
-              {['profile', 'salary', 'docs'].map((k) => (
+              {['profile', ...(canSalary ? ['salary'] : []), 'docs'].map((k) => (
                 <button key={k} onClick={() => setTab(k)}
                   className={cx('flex-1 rounded-lg py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600')}>
                   {k === 'profile' ? t.profileTab : k === 'salary' ? t.salaryTab : t.docsTab}
@@ -2308,6 +2323,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
               </div>
             )}
 
+            {canSalary && (<>
             <Field label={t.basicSalary}><Input type="number" inputMode="decimal" value={form.basic_salary} onChange={(e) => setForm({ ...form, basic_salary: e.target.value })} /></Field>
             <div>
               <div className="mb-1 flex items-center justify-between">
@@ -2325,6 +2341,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
               ))}
               <p className="text-end text-xs font-semibold text-slate-500">{t.salaryTotal}: {money(gross)}</p>
             </div>
+            </>)}
             <div className="grid grid-cols-2 gap-3">
               <Field label={t.insuranceBase}><Input type="number" inputMode="decimal" value={form.insurance_base} onChange={(e) => setForm({ ...form, insurance_base: e.target.value })} /></Field>
               <Field label={t.nosiNumber}><Input dir="ltr" value={form.nosi_number || ''} onChange={(e) => setForm({ ...form, nosi_number: e.target.value })} /></Field>
@@ -3354,24 +3371,31 @@ function LeavePage({ me, data, toast, audit }) {
   const [form, setForm] = useState(null);
   const [action, setAction] = useState(null);   // {req, kind: approve|reject|confirm, note}
   const [adjForm, setAdjForm] = useState(null);
+  const [makeups, setMakeups] = useState([]);      // leave_makeups this year
+  const [myPunchDays, setMyPunchDays] = useState(null); // {date: [punches]} for the signed-in employee
+  const [mkForm, setMkForm] = useState(null);      // HR: add a make-up day for someone
+  const makeupWeeks = Number((data.settings.work_week || {}).makeup_window_weeks) || 4;
 
   const tabs = [
     ...(myEmp ? [{ k: 'mine', label: t.myLeave }] : []),
     ...(admin ? [{ k: 'approvals', label: t.approvals }] : []),
+    ...(myEmp || admin ? [{ k: 'makeup', label: t.makeup }] : []),
     ...(['ceo', 'hr', 'accountant'].includes(me.role) ? [{ k: 'balances', label: t.balances }] : []),
   ];
   const [tab, setTab] = useState(tabs.length ? tabs[0].k : 'mine');
 
   useEffect(() => {
     (async () => {
-      const [ty, rq, ad] = await Promise.all([
+      const [ty, rq, ad, mk] = await Promise.all([
         sb.from('leave_types').select('*').eq('is_active', true).order('sort'),
         sb.from('leave_requests').select('*').gte('start_date', year + '-01-01').order('created_at', { ascending: false }),
         sb.from('leave_adjustments').select('*').eq('year', year),
+        sb.from('leave_makeups').select('*').gte('work_date', year + '-01-01').order('work_date', { ascending: false }),
       ]);
       setTypes(ty.data || []);
       setReqs(rq.data || []);
       setAdjs(ad.data || []);
+      setMakeups(mk.data || []);
     })();
   }, []);
 
@@ -3459,6 +3483,90 @@ function LeavePage({ me, data, toast, audit }) {
     setAdjForm(null);
     toast(t.saved);
   }
+
+  /* ---------- make-up days ---------- */
+  // own punches for the make-up window, loaded when the tab opens
+  useEffect(() => {
+    if (tab !== 'makeup' || !myEmp || myPunchDays !== null) return;
+    const from = new Date(); from.setDate(from.getDate() - (makeupWeeks * 7 + 45));
+    sb.from('attendance_punches').select('punch_time, direction').eq('employee_id', myEmp.id).gte('punch_time', from.toISOString()).order('punch_time')
+      .then(({ data: d }) => { const by = {}; for (const p of d || []) (by[localDay(p.punch_time)] = by[localDay(p.punch_time)] || []).push(p); setMyPunchDays(by); });
+  }, [tab, myEmp && myEmp.id]);
+  const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const isHoliday = (iso, emp) => data.holidays.some((h) => h.holiday_date === iso && (!h.branch_id || h.branch_id === emp.branch_id));
+  /* leave days an employee may still claim back, given the days they actually came in */
+  function makeupCandidates(emp, punchDays) {
+    if (!emp || !emp.weekend_days || !punchDays) return [];
+    const today = todayISO();
+    const out = [];
+    for (const lr of (reqs || []).filter((r) => r.employee_id === emp.id && r.status === 'approved' && r.end_date < today)) {
+      const approved = makeups.filter((m) => m.leave_request_id === lr.id && m.status === 'approved').length;
+      if (approved >= Math.ceil(Number(lr.days))) continue;
+      const last = addDays(lr.end_date, makeupWeeks * 7);
+      for (let d = addDays(lr.end_date, 1); d <= today && d <= last; d = addDays(d, 1)) {
+        const dow = new Date(d + 'T00:00:00').getDay();
+        if (!emp.weekend_days.includes(dow) || companyWeekend.includes(dow) || isHoliday(d, emp)) continue;
+        if (!punchDays[d] || makeups.some((m) => m.employee_id === emp.id && m.work_date === d && m.status !== 'rejected')) continue;
+        out.push({ date: d, leave: lr, punches: punchDays[d] });
+      }
+    }
+    return out;
+  }
+  const punchSummary = (list) => { if (!list || !list.length) return t.makeupNoPunch; const a = list[0].punch_time, b = list[list.length - 1].punch_time; const h = list.length > 1 ? Math.round((new Date(b) - new Date(a)) / 36000) / 100 : 0; return fmtTime(a) + (list.length > 1 ? ' → ' + fmtTime(b) + ' · ' + h + ' h' : ''); };
+  const mkErr = (e) => { const m = /makeup:([a-z_]+)/.exec(e.message || ''); return m ? (t.makeupErr[m[1]] || m[1]) : e.message; };
+  async function claimMakeup(empId, date, leaveId) {
+    const { data: row, error } = await sb.from('leave_makeups').insert({ employee_id: empId, work_date: date, leave_request_id: leaveId, created_by: me.id }).select().single();
+    if (error) return toast(mkErr(error), 'error');
+    setMakeups((prev) => [row, ...prev]);
+    audit('insert', 'leave_makeups', row.id, null, row);
+    setMkForm(null);
+    toast(t.saved);
+  }
+  async function decideMakeup(m, approve) {
+    const { data: row, error } = await sb.rpc('decide_leave_makeup', { p_id: m.id, p_approve: approve, p_note: null });
+    if (error) return toast(mkErr(error), 'error');
+    setMakeups((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    if (approve && row.adjustment_id) sb.from('leave_adjustments').select('*').eq('id', row.adjustment_id).single().then(({ data: a }) => { if (a) setAdjs((prev) => [...prev, a]); });
+    audit(approve ? 'approve' : 'reject', 'leave_makeups', row.id, m, row);
+    toast(approve ? t.makeupApproved : t.saved);
+  }
+  async function removeMakeup(m) {
+    if (!window.confirm(t.confirmDel)) return;
+    const { error } = await sb.from('leave_makeups').delete().eq('id', m.id);
+    if (error) return toast(error.message, 'error');
+    setMakeups((prev) => prev.filter((x) => x.id !== m.id));
+  }
+  const canDecideMakeup = (m) => { if (isHr) return true; const emp = data.employees.find((e) => e.id === m.employee_id); return !!(admin && myEmp && emp && emp.manager_id === myEmp.id); };
+  const leaveLabel = (id) => { const lr = (reqs || []).find((r) => r.id === id); return lr ? lr.start_date + ' ← ' + lr.end_date + ' (' + Number(lr.days) + ' ' + t.daysLbl + ')' : '—'; };
+  /* punches of one day for the approver's eyes (loaded per row) */
+  function DayPunches({ empId, date }) {
+    const [list, setList] = useState(null);
+    useEffect(() => {
+      const from = new Date(date + 'T00:00:00'), to = new Date(date + 'T00:00:00'); to.setDate(to.getDate() + 1);
+      sb.from('attendance_punches').select('punch_time, direction').eq('employee_id', empId).gte('punch_time', from.toISOString()).lt('punch_time', to.toISOString()).order('punch_time').then(({ data: d }) => setList(d || []));
+    }, [empId, date]);
+    return <span>{list === null ? '…' : punchSummary(list)}</span>;
+  }
+  function MakeupRow({ m, showName }) {
+    const emp = data.employees.find((e) => e.id === m.employee_id);
+    const mine = myEmp && m.employee_id === myEmp.id;
+    return (
+      <li className="space-y-2 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-800">{showName ? eName(emp) + ' · ' : ''}🔁 {m.work_date}</p>
+            <p className="text-xs text-slate-500">{t.makeupFor} {leaveLabel(m.leave_request_id)} · <DayPunches empId={m.employee_id} date={m.work_date} />{m.decision_note ? ' · ' + m.decision_note : ''}</p>
+          </div>
+          <Badge tone={lvTone(m.status)}>{t.kpiStatus[m.status]}</Badge>
+        </div>
+        {m.status === 'pending' && (canDecideMakeup(m) ? (
+          <div className="flex gap-2"><Btn size="sm" className="flex-1" onClick={() => decideMakeup(m, true)}>{t.approve}</Btn><Btn size="sm" variant="danger" className="flex-1" onClick={() => decideMakeup(m, false)}>{t.reject}</Btn></div>
+        ) : mine ? <Btn size="sm" variant="outline" onClick={() => removeMakeup(m)}>{t.cancelReq}</Btn> : null)}
+      </li>
+    );
+  }
+  const myCandidates = myEmp ? makeupCandidates(myEmp, myPunchDays) : [];
+  const pendingMakeups = makeups.filter((m) => m.status === 'pending' && canDecideMakeup(m) && !(myEmp && m.employee_id === myEmp.id && !isHr));
 
   const lvTone = (s) => s === 'approved' ? 'green' : s === 'rejected' ? 'red' : s === 'cancelled' ? 'slate' : 'amber';
 
@@ -3555,6 +3663,61 @@ function LeavePage({ me, data, toast, audit }) {
           </Card>
         </>
       )}
+
+      {tab === 'makeup' && (
+        <>
+          <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.makeupHint.replace('{w}', makeupWeeks)}</p>
+          {myEmp && (
+            <Card title={t.makeupCandidates}>
+              {myPunchDays === null ? <Empty text={t.loading} /> : myCandidates.length === 0 ? <Empty text={t.makeupNone} /> : (
+                <ul className="divide-y divide-slate-100">
+                  {myCandidates.map((c) => (
+                    <li key={c.date} className="flex items-center justify-between gap-2 py-2.5">
+                      <div className="min-w-0"><p className="text-sm font-semibold text-slate-800">{c.date} · {t.daysShort[new Date(c.date + 'T00:00:00').getDay()]}</p>
+                        <p className="text-xs text-slate-500">{t.makeupWorked} {punchSummary(c.punches)} · {t.makeupFor} {c.leave.start_date} ← {c.leave.end_date}</p></div>
+                      <Btn size="sm" onClick={() => claimMakeup(myEmp.id, c.date, c.leave.id)}>{t.makeupClaim}</Btn>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
+          {admin && (
+            <>
+              {isHr && <Btn onClick={() => setMkForm({ employee_id: '', work_date: todayISO(), leave_request_id: '' })}>+ {t.makeupAdd}</Btn>}
+              <Card title={t.makeupPending}>
+                {pendingMakeups.length === 0 ? <Empty text={t.noData} /> : <ul className="divide-y divide-slate-100">{pendingMakeups.map((m) => <MakeupRow key={m.id} m={m} showName={true} />)}</ul>}
+              </Card>
+            </>
+          )}
+          <Card title={(myEmp && !admin ? t.makeupMine : t.makeup) + ' — ' + year}>
+            {(() => { const list = admin ? makeups : makeups.filter((m) => myEmp && m.employee_id === myEmp.id); return list.length === 0 ? <Empty text={t.noData} /> : <ul className="divide-y divide-slate-100">{list.slice(0, 40).map((m) => <MakeupRow key={m.id} m={m} showName={admin} />)}</ul>; })()}
+          </Card>
+        </>
+      )}
+
+      {/* ---------- HR: add a make-up day for an employee ---------- */}
+      <Modal open={!!mkForm} onClose={() => setMkForm(null)} title={t.makeupAdd}
+        footer={<><Btn className="flex-1" disabled={!mkForm || !mkForm.employee_id || !mkForm.leave_request_id} onClick={() => claimMakeup(mkForm.employee_id, mkForm.work_date, mkForm.leave_request_id)}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setMkForm(null)}>{t.cancel}</Btn></>}>
+        {mkForm && (
+          <>
+            <Field label={t.selectEmployee}>
+              <Select value={mkForm.employee_id} onChange={(e) => setMkForm({ ...mkForm, employee_id: e.target.value, leave_request_id: '' })}>
+                <option value="">—</option>
+                {data.employees.filter((e) => e.status === 'active' && e.weekend_days && !e.attendance_exempt).map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+              </Select>
+            </Field>
+            <Field label={t.makeupDate}><Input type="date" value={mkForm.work_date} onChange={(e) => setMkForm({ ...mkForm, work_date: e.target.value })} /></Field>
+            <Field label={t.makeupLeave}>
+              <Select value={mkForm.leave_request_id} onChange={(e) => setMkForm({ ...mkForm, leave_request_id: e.target.value })}>
+                <option value="">—</option>
+                {(reqs || []).filter((r) => r.employee_id === mkForm.employee_id && r.status === 'approved').map((r) => <option key={r.id} value={r.id}>{tyName(tyById(r.leave_type_id))} · {r.start_date} ← {r.end_date} · {Number(r.days)} {t.daysLbl}</option>)}
+              </Select>
+            </Field>
+            {mkForm.employee_id && <p className="text-xs text-slate-500"><DayPunches empId={mkForm.employee_id} date={mkForm.work_date} /></p>}
+          </>
+        )}
+      </Modal>
 
       {tab === 'balances' && (
         <Card title={t.balances + ' — ' + year}>
@@ -4242,7 +4405,7 @@ function CompliancePage({ me, data, toast, audit }) {
     [t.address, e.address], [t.phone, e.phone],
     [t.jobTitleAr, e.job_title_ar || e.job_title_en], [t.department, deptName(e.department_id)], [t.branch, branchName(e.branch_id)],
     [t.hireDate, e.hire_date], [t.contractType, t.contractTypes[e.contract_type]],
-    [t.basicSalary, money(e.basic_salary)], [t.insuranceBase, money(e.insurance_base)], [t.nosiEmployeeNo, e.nosi_number],
+    ...(['ceo', 'accountant'].includes(me.role) ? [[t.basicSalary, money(e.basic_salary)], [t.insuranceBase, money(e.insurance_base)]] : []), [t.nosiEmployeeNo, e.nosi_number],
   ];
 
   function printForm1(e) {
@@ -4564,7 +4727,7 @@ function ReportsPage({ me, data, toast }) {
   const { lang, t } = useL();
   const now = new Date();
   const ym = (y, m) => y * 100 + m;
-  const [tab, setTab] = useState('payroll');
+  const [tab, setTab] = useState(['ceo', 'accountant'].includes(me.role) ? 'payroll' : 'headcount');
   const [range, setRange] = useState({ fy: now.getFullYear(), fm: 1, ty: now.getFullYear(), tm: now.getMonth() + 1, from: todayISO().slice(0, 8) + '01', to: todayISO(), approvedOnly: true });
   const [pr, setPr] = useState(null);      // {runs, items}
   const [att, setAtt] = useState(null);    // punches
@@ -4681,7 +4844,8 @@ function ReportsPage({ me, data, toast }) {
     </div>
   );
 
-  const tabs = [['payroll', t.rptPayroll], ['headcount', t.rptHeadcount], ['overtime', t.rptOvertime], ['leave', t.rptLeave], ['attendance', t.rptAttendance]];
+  const canSalary = ['ceo', 'accountant'].includes(me.role);
+  const tabs = [...(canSalary ? [['payroll', t.rptPayroll]] : []), ['headcount', t.rptHeadcount], ...(canSalary ? [['overtime', t.rptOvertime]] : []), ['leave', t.rptLeave], ['attendance', t.rptAttendance]];
 
   return (
     <>
@@ -5427,6 +5591,10 @@ function WorkWeekSettings(props) {
         <Field label={t.daysPerMonth}>
           <Input type="number" inputMode="numeric" value={f.standard_days_per_month ?? 30}
             onChange={(e) => setF({ ...f, standard_days_per_month: Number(e.target.value) })} />
+        </Field>
+        <Field label={t.makeupWindow}>
+          <Input type="number" inputMode="numeric" min="1" value={f.makeup_window_weeks ?? 4}
+            onChange={(e) => setF({ ...f, makeup_window_weeks: Number(e.target.value) })} />
         </Field>
       </div>
       <Btn className="mt-4" onClick={() => save('work_week', f, initial)}>{t.save}</Btn>
