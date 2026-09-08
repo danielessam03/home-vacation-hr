@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.10';
+const APP_VERSION = 'v3.11';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -180,6 +180,10 @@ const T = {
     km: 'km', totalKm: 'Total km', thisMonth: 'This month',
     reviewTab: 'Review', lockTab: 'Lock',
     lateMin: 'Late', workedH: 'Hours', otMin: 'OT', missingOut: 'Missing punch', weekendLbl: 'Weekend',
+    attRules: 'Lateness rules', tierFrom: 'From minute', tierKind: 'Penalty', tierValue: 'Value', tierLabel: 'Label', addTier: 'Add tier', resetDefaults: 'Reset to defaults',
+    tierKinds: { none: 'Notice only (no deduction)', minutes: 'Deduct the late minutes (× factor)', hours: 'Deduct fixed hours', day_fraction: 'Deduct part of a day (0.5 = half day)' },
+    rulesHint: 'Minutes count from the shift start time. The highest tier reached applies once per day. An accepted late note skips all tiers for that day. Changes apply to payroll runs created or recalculated from now on.',
+    lateDaysLbl: 'late days',
     excTab: 'Exceptions', excRequest: 'Late / break note', excKinds: { late: 'Late arrival', break: 'Longer break', early_leave: 'Leaving early' }, excMinutes: 'Expected minutes',
     excHint: 'Write the note before it happens (today or a later date). If it is accepted, that day carries no lateness deduction and no violation.', excused: 'Excused', excPending: 'Notes to approve', excMine: 'My notes', excAll: 'All notes',
     excTooLate: 'The note must be sent before the day, not after it.', excApprovedMsg: 'Accepted. The day is excused.',
@@ -378,6 +382,10 @@ const T = {
     km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
     reviewTab: 'المراجعة', lockTab: 'القفل',
     lateMin: 'تأخير', workedH: 'ساعات', otMin: 'إضافي', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية',
+    attRules: 'قواعد التأخير', tierFrom: 'من الدقيقة', tierKind: 'الجزاء', tierValue: 'القيمة', tierLabel: 'التسمية', addTier: 'إضافة شريحة', resetDefaults: 'استعادة الافتراضي',
+    tierKinds: { none: 'إنذار فقط (بدون خصم)', minutes: 'خصم دقائق التأخير (× معامل)', hours: 'خصم ساعات ثابتة', day_fraction: 'خصم جزء من يوم (0.5 = نصف يوم)' },
+    rulesHint: 'تُحسب الدقائق من بداية الوردية. تُطبَّق أعلى شريحة يصل إليها الموظف مرة واحدة في اليوم. الإذن المقبول يلغي كل الشرائح في ذلك اليوم. تسري التغييرات على مسيرات الرواتب التي تُنشأ أو يُعاد احتسابها من الآن.',
+    lateDaysLbl: 'أيام تأخير',
     excTab: 'الاستثناءات', excRequest: 'إذن تأخير / استراحة', excKinds: { late: 'تأخير في الحضور', break: 'استراحة أطول', early_leave: 'انصراف مبكر' }, excMinutes: 'الدقائق المتوقعة',
     excHint: 'اكتب الإذن قبل حدوثه (اليوم أو تاريخ لاحق). إذا قُبل، لا يُخصم تأخير ولا تُسجَّل مخالفة في ذلك اليوم.', excused: 'معذور', excPending: 'أذونات بانتظار الاعتماد', excMine: 'أذوناتي', excAll: 'كل الأذونات',
     excTooLate: 'يجب إرسال الإذن قبل اليوم لا بعده.', excApprovedMsg: 'تم القبول. اليوم معذور.',
@@ -956,6 +964,30 @@ function leaveBalance(emp, year, reqs, adjs, types) {
 
 const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
 
+/** Lateness tiers (Attendance -> Rules). Minutes are counted from the shift
+    start; the highest tier reached applies once per day. */
+const DEFAULT_LATE_TIERS = [
+  { from_minutes: 15, kind: 'none', value: 0, label_en: 'Late notice', label_ar: 'إنذار تأخير' },
+  { from_minutes: 30, kind: 'minutes', value: 1, label_en: 'Late minutes deducted', label_ar: 'خصم دقائق التأخير' },
+  { from_minutes: 60, kind: 'day_fraction', value: 0.5, label_en: 'Half day deducted', label_ar: 'خصم نصف يوم' },
+];
+const lateTiers = (policy) => ((policy && Array.isArray(policy.tiers) && policy.tiers.length) ? policy.tiers : [])
+  .filter((x) => Number(x.from_minutes) > 0).sort((a, b) => Number(a.from_minutes) - Number(b.from_minutes));
+function lateTierFor(policy, rawMinutes) {
+  let hit = null;
+  for (const tr of lateTiers(policy)) if (rawMinutes >= Number(tr.from_minutes)) hit = tr;
+  return hit;
+}
+function lateTierAmount(policy, tier, rawMinutes, hourRate, dayRate) {
+  if (!tier) return 0;
+  const tiers = lateTiers(policy);
+  const grace = tiers.length ? Number(tiers[0].from_minutes) : 0;
+  if (tier.kind === 'minutes') return (Math.max(0, rawMinutes - grace) / 60) * hourRate * (Number(tier.value) || 1);
+  if (tier.kind === 'hours') return (Number(tier.value) || 0) * hourRate;
+  if (tier.kind === 'day_fraction') return (Number(tier.value) || 0) * dayRate;
+  return 0;
+}
+
 /** Full payroll computation for one employee for one month.
     Every input is data the user can edit in Settings — nothing hardcoded. */
 function computePayrollItem(emp, ctx) {
@@ -973,6 +1005,10 @@ function computePayrollItem(emp, ctx) {
 
   /* ---- attendance: late minutes + overtime minutes ---- */
   let late = 0, ot = 0;
+  const attPolicy = ctx.attendancePolicy || {};
+  const useTiers = lateTiers(attPolicy).length > 0;
+  let lateDedTiers = 0, lateDays = 0;
+  const lateDetail = [];
   const byDay = {};
   for (const p of ctx.punches) (byDay[localDay(p.punch_time)] = byDay[localDay(p.punch_time)] || []).push(p);
   const excusedDays = new Set((ctx.exceptions || []).filter((x) => x.employee_id === emp.id && x.status === 'approved' && x.kind !== 'break').map((x) => x.exc_date));
@@ -983,7 +1019,14 @@ function computePayrollItem(emp, ctx) {
     const outs = list.filter((p) => p.direction === 'out');
     const firstIn = ins[0] || list[0];
     const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
-    if (shift && firstIn && !excusedDays.has(date)) late += Math.max(0, minutesOf(firstIn.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes));
+    if (shift && firstIn && !excusedDays.has(date)) {
+      const raw = Math.max(0, minutesOf(firstIn.punch_time) - timeToMin(shift.start_time));
+      late += Math.max(0, raw - shift.grace_minutes);
+      if (useTiers) {
+        const tier = lateTierFor(attPolicy, raw);
+        if (tier) { lateDays++; const amt = lateTierAmount(attPolicy, tier, raw, hourRate, dayRate); lateDedTiers += amt; lateDetail.push({ date, minutes: raw, tier: tier.label_en || tier.kind, kind: tier.kind, amount: r2(amt) }); }
+      }
+    }
     if (shift && lastOut) {
       const over = minutesOf(lastOut.punch_time) - timeToMin(shift.end_time);
       if (over >= shift.min_overtime_minutes) ot += over;
@@ -1012,7 +1055,7 @@ function computePayrollItem(emp, ctx) {
 
   const policy = ctx.policy || {};
   const otAmount = r2((ot / 60) * hourRate * (policy.ot_multiplier || 1.35));
-  const lateDed = r2((late / 60) * hourRate * (policy.late_multiplier || 1));
+  const lateDed = useTiers ? r2(lateDedTiers) : r2((late / 60) * hourRate * (policy.late_multiplier || 1));
   const unpaidDed = r2(unpaidDays * dayRate);
 
   /* ---- social insurance on the insurance base, clamped ---- */
@@ -1050,7 +1093,7 @@ function computePayrollItem(emp, ctx) {
     basic_salary: r2(basic), allowances, allowances_total: r2(allowTotal),
     ot_minutes: Math.round(ot), ot_amount: otAmount,
     other_earnings: 0, other_earnings_note: null,
-    late_minutes: Math.round(late), late_deduction: lateDed,
+    late_minutes: Math.round(late), late_deduction: lateDed, late_days: lateDays, late_detail: lateDetail,
     unpaid_days: unpaidDays, unpaid_deduction: unpaidDed,
     sick_days: sickDays, sick_deduction: r2(sickDed),
     other_deductions: 0, other_deductions_note: null,
@@ -2372,7 +2415,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
 /* =====================================================================
    7c. Attendance + trips
    ===================================================================== */
-function AttendancePage({ me, data, toast, audit, live, initialTab }) {
+function AttendancePage({ me, data, refresh, toast, audit, live, initialTab }) {
   const { lang, t } = useL();
   const isHr = ['ceo', 'hr'].includes(me.role);
   const admin = me.role !== 'staff';
@@ -2382,7 +2425,7 @@ function AttendancePage({ me, data, toast, audit, live, initialTab }) {
     ...(myEmp ? [{ k: 'trips', label: t.tripsTab }] : []),
     ...(admin ? [{ k: 'live', label: '🟢 ' + t.liveBoard }, { k: 'review', label: t.reviewTab }] : []),
     ...((myEmp && !myEmp.attendance_exempt) || admin ? [{ k: 'exceptions', label: '⏰ ' + t.excTab }] : []),
-    ...(isHr ? [{ k: 'lock', label: t.lockTab }] : []),
+    ...(isHr ? [{ k: 'lock', label: t.lockTab }, { k: 'rules', label: '⚙️ ' + t.attRules }] : []),
   ];
   const [tab, setTab] = useState(initialTab && tabs.some((x) => x.k === initialTab) ? initialTab : (tabs.length ? tabs[0].k : 'none'));
   const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
@@ -2405,6 +2448,54 @@ function AttendancePage({ me, data, toast, audit, live, initialTab }) {
       {tab === 'review' && <ReviewTab me={me} data={data} toast={toast} audit={audit} eName={eName} isHr={isHr} />}
       {tab === 'lock' && <LockTab me={me} data={data} toast={toast} audit={audit} />}
       {tab === 'exceptions' && <ExceptionsTab me={me} myEmp={myEmp} data={data} toast={toast} audit={audit} eName={eName} admin={admin} isHr={isHr} />}
+      {tab === 'rules' && <AttendanceRulesTab me={me} data={data} refresh={refresh} toast={toast} audit={audit} />}
+    </>
+  );
+}
+
+/* Lateness tiers, edited in place by HR / CEO. */
+function AttendanceRulesTab(props) {
+  const { lang, t } = useL();
+  const save = useSettingSaver(props);
+  const initial = props.data.settings.attendance_policy || { tiers: DEFAULT_LATE_TIERS };
+  const [tiers, setTiers] = useState((initial.tiers || []).map((x) => ({ ...x })));
+  useEffect(() => { setTiers(((props.data.settings.attendance_policy || {}).tiers || DEFAULT_LATE_TIERS).map((x) => ({ ...x }))); }, [props.data.settings.attendance_policy]);
+  const set = (i, k, v) => setTiers((prev) => prev.map((x, idx) => (idx === i ? { ...x, [k]: v } : x)));
+  const sorted = [...tiers].sort((a, b) => Number(a.from_minutes) - Number(b.from_minutes));
+  const shift = props.data.shifts.find((x) => x.is_active) || props.data.shifts[0];
+  const example = (m) => { const tr = lateTierFor({ tiers: sorted }, m); return tr ? ((lang === 'ar' ? tr.label_ar : tr.label_en) || tr.kind) : '—'; };
+  return (
+    <>
+      <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.rulesHint}</p>
+      <Card title={t.attRules} action={<Btn size="sm" variant="soft" onClick={() => setTiers([...tiers, { from_minutes: (sorted.length ? Number(sorted[sorted.length - 1].from_minutes) + 30 : 15), kind: 'hours', value: 1, label_en: '', label_ar: '' }])}>+ {t.addTier}</Btn>}>
+        <div className="space-y-3">
+          {tiers.map((tr, i) => (
+            <div key={i} className="rounded-xl border border-slate-200 p-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <Field label={t.tierFrom}><Input type="number" inputMode="numeric" min="1" value={tr.from_minutes} onChange={(e) => set(i, 'from_minutes', Number(e.target.value))} /></Field>
+                <Field label={t.tierKind}>
+                  <Select value={tr.kind} onChange={(e) => set(i, 'kind', e.target.value)}>{Object.keys(t.tierKinds).map((k) => <option key={k} value={k}>{t.tierKinds[k]}</option>)}</Select>
+                </Field>
+                <Field label={t.tierValue}><Input type="number" inputMode="decimal" step="0.25" disabled={tr.kind === 'none'} value={tr.kind === 'none' ? '' : tr.value} onChange={(e) => set(i, 'value', Number(e.target.value))} /></Field>
+                <div className="flex items-end"><Btn variant="ghost" size="sm" className="text-rose-600" onClick={() => setTiers(tiers.filter((_, idx) => idx !== i))}>&times; {t.del}</Btn></div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Field label={t.tierLabel + ' (ع)'}><Input dir="rtl" value={tr.label_ar || ''} onChange={(e) => set(i, 'label_ar', e.target.value)} /></Field>
+                <Field label={t.tierLabel + ' (EN)'}><Input dir="ltr" value={tr.label_en || ''} onChange={(e) => set(i, 'label_en', e.target.value)} /></Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Btn className="flex-1" onClick={() => save('attendance_policy', { ...initial, tiers: sorted }, initial)}>{t.save}</Btn>
+          <Btn variant="outline" onClick={() => setTiers(DEFAULT_LATE_TIERS.map((x) => ({ ...x })))}>{t.resetDefaults}</Btn>
+        </div>
+      </Card>
+      <Card title={(shift ? (lang === 'ar' ? shift.name_ar : shift.name_en) + ' · ' + String(shift.start_time).slice(0, 5) : '') }>
+        <ul className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          {[10, 20, 45, 90].map((m) => <li key={m} className="rounded-xl bg-slate-50 p-2 text-center"><div className="text-xs text-slate-500">+{m} {t.minutesLbl}</div><div className="font-semibold text-slate-800">{example(m)}</div></li>)}
+        </ul>
+      </Card>
     </>
   );
 }
@@ -2742,7 +2833,7 @@ function TripsTab({ me, myEmp, data, toast, eName, admin }) {
 }
 
 function ReviewTab({ me, data, toast, audit, eName, isHr }) {
-  const { t } = useL();
+  const { lang, t } = useL();
   const first = todayISO().slice(0, 8) + '01';
   const [from, setFrom] = useState(first);
   const [to, setTo] = useState(todayISO());
@@ -2799,7 +2890,9 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       }
       const flagged = list.some((p) => p.source === 'web' && p.within_geofence === false);
       const exc = excused[empId + '|' + date];
-      return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut, flagged, excused: !!exc };
+      const raw = shift && firstIn ? Math.max(0, minutesOf(firstIn.punch_time) - timeToMin(shift.start_time)) : 0;
+      const tier = weekend || exc ? null : lateTierFor(data.settings.attendance_policy, raw);
+      return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut, flagged, excused: !!exc, tier };
     }).sort((a, b) => b.date.localeCompare(a.date) || eName(a.emp).localeCompare(eName(b.emp)));
   }, [punches, fEmp, data.employees, data.shifts, excused]);
 
@@ -2856,7 +2949,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                     <td className="max-w-[130px] truncate font-semibold text-slate-800">{eName(r.emp)}</td>
                     <td>{r.firstIn ? fmtTime(r.firstIn.punch_time) : '—'}</td>
                     <td>{r.lastOut ? fmtTime(r.lastOut.punch_time) : '—'}</td>
-                    <td className={r.late > 0 ? 'font-bold text-rose-600' : ''}>{r.late || ''}</td>
+                    <td className={r.late > 0 ? 'font-bold text-rose-600' : ''}>{r.late || ''}{r.tier && <Badge tone={r.tier.kind === 'none' ? 'amber' : 'red'}> {(lang === 'ar' ? r.tier.label_ar : r.tier.label_en) || r.tier.kind}</Badge>}</td>
                     <td>{r.hours || ''}</td>
                     <td className={r.ot > 0 ? 'font-bold text-emerald-600' : ''}>{r.ot || ''}</td>
                     <td className="text-xs">
@@ -4006,6 +4099,7 @@ function PayrollPage({ me, data, toast, audit }) {
       companyWeekend: (data.settings.work_week || {}).weekend_days || [5, 6],
       workWeek: data.settings.work_week || {},
       policy: data.settings.payroll_policy || {},
+      attendancePolicy: data.settings.attendance_policy || {},
       insurance: data.insurance, taxBrackets: data.taxBrackets, taxSettings: data.taxSettings,
     };
   }
@@ -4207,7 +4301,7 @@ function PayrollPage({ me, data, toast, audit }) {
                 {[
                   [t.basicLbl, editItem.basic_salary], [t.allowLbl, editItem.allowances_total],
                   [t.otLbl + ' (' + editItem.ot_minutes + ' ' + t.minutesLbl + ')', editItem.ot_amount],
-                  [t.lateDedLbl + ' (' + editItem.late_minutes + ' ' + t.minutesLbl + ')', -editItem.late_deduction],
+                  [t.lateDedLbl + ' (' + editItem.late_minutes + ' ' + t.minutesLbl + (editItem.late_days ? ' · ' + editItem.late_days + ' ' + t.lateDaysLbl : '') + ')', -editItem.late_deduction],
                   [t.unpaidDedLbl + ' (' + Number(editItem.unpaid_days) + ' ' + t.daysUnit + ')', -editItem.unpaid_deduction],
                   [t.sickDedLbl + ' (' + Number(editItem.sick_days) + ' ' + t.daysUnit + ')', -editItem.sick_deduction],
                   [t.insEmp, -editItem.insurance_employee],
