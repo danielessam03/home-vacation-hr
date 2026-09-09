@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.14';
+const APP_VERSION = 'v3.15';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -288,6 +288,12 @@ const T = {
     dayRateLbl: 'Day rate', noRuns: 'No payroll runs in this range.',
     kpi: 'KPIs', leaderboard: 'Leaderboard', myEntries: 'My results', addEntry: 'Log a result',
     salesBoard: 'Sales team', companyBoard: 'All employees', categoryLbl: 'Category',
+    engazImport: 'Engaz import', salesPerf: 'Sales performance', fileKind: 'File type', kindLeads: 'Leads export', kindDeals: 'Closed deals export', chooseFile: 'Choose the Engaz file (Excel or CSV)', rowsLbl: 'rows',
+    mapCols: 'Match the columns', colAgent: 'Sales agent column', colDate: 'Date column', colId: 'Record ID column (optional)', colStatus: 'Status column (optional)', colType: 'Sale / rental column (optional)', colValue: 'Value column (optional)', colRef: 'Client / unit column (optional)',
+    dealTypeFixed: 'Deal type', typeAuto: 'Read from the sale / rental column', typeSale: 'All rows are sales', typeRental: 'All rows are rentals', statusFilter: 'Import only rows whose status contains',
+    matchAgents: 'Match Engaz agents to employees', skipAgent: 'Not matched (skipped)', previewLbl: 'Preview', importBtn: 'Import', importedMsg: 'Imported', skippedLbl: 'skipped', lastImports: 'Previous imports',
+    leadsLbl: 'Leads', viewingsLbl: 'Viewings', dealsLbl: 'Deals', convLbl: 'Closing %', salesCnt: 'Sales', rentalsCnt: 'Rentals', rentalValue: 'Rental value', noAgentCol: 'Choose the agent and date columns first.',
+    engazHint: 'Upload the weekly Engaz export. Column matching and agent names are remembered after the first time. Rows already imported are updated, never counted twice.',
     kpiCats: { sales: 'Sales', property: 'Property & bookings', maintenance: 'Maintenance', attendance: 'Attendance', general: 'General' },
     onTimeDays: 'on-time days', lateDays: 'late', noSalesTeam: 'Nobody is in the Sales department yet. Open each sales rep\'s employee card and set the department to Sales.',
     salesBoardHint: 'Sales results only, for employees in the Sales department.', companyBoardHint: 'Everyone, all categories. Attendance points come automatically from the fingerprint device and GPS check-ins; maintenance tasks and bookings from the other systems.',
@@ -494,6 +500,12 @@ const T = {
     dayRateLbl: 'أجر اليوم', noRuns: 'لا توجد مسيرات رواتب في هذه الفترة.',
     kpi: 'مؤشرات الأداء', leaderboard: 'لوحة المتصدرين', myEntries: 'نتائجي', addEntry: 'تسجيل نتيجة',
     salesBoard: 'فريق المبيعات', companyBoard: 'كل الموظفين', categoryLbl: 'الفئة',
+    engazImport: 'استيراد من إنجاز', salesPerf: 'أداء المبيعات', fileKind: 'نوع الملف', kindLeads: 'تصدير العملاء المحتملين', kindDeals: 'تصدير الصفقات المغلقة', chooseFile: 'اختر ملف إنجاز (Excel أو CSV)', rowsLbl: 'صف',
+    mapCols: 'مطابقة الأعمدة', colAgent: 'عمود مندوب المبيعات', colDate: 'عمود التاريخ', colId: 'عمود رقم السجل (اختياري)', colStatus: 'عمود الحالة (اختياري)', colType: 'عمود بيع / إيجار (اختياري)', colValue: 'عمود القيمة (اختياري)', colRef: 'عمود العميل / الوحدة (اختياري)',
+    dealTypeFixed: 'نوع الصفقة', typeAuto: 'يُقرأ من عمود بيع / إيجار', typeSale: 'كل الصفوف مبيعات', typeRental: 'كل الصفوف إيجارات', statusFilter: 'استيراد الصفوف التي تحتوي حالتها على',
+    matchAgents: 'مطابقة مندوبي إنجاز بالموظفين', skipAgent: 'غير مطابق (يُتخطى)', previewLbl: 'معاينة', importBtn: 'استيراد', importedMsg: 'تم استيراد', skippedLbl: 'تم تخطي', lastImports: 'عمليات الاستيراد السابقة',
+    leadsLbl: 'عملاء محتملون', viewingsLbl: 'معاينات', dealsLbl: 'صفقات', convLbl: 'نسبة الإغلاق', salesCnt: 'مبيعات', rentalsCnt: 'إيجارات', rentalValue: 'قيمة الإيجارات', noAgentCol: 'اختر عمودي المندوب والتاريخ أولاً.',
+    engazHint: 'ارفع تصدير إنجاز الأسبوعي. تُحفظ مطابقة الأعمدة وأسماء المندوبين بعد المرة الأولى. الصفوف المستوردة سابقاً تُحدَّث ولا تُحسب مرتين.',
     kpiCats: { sales: 'مبيعات', property: 'عقارات وحجوزات', maintenance: 'صيانة', attendance: 'حضور', general: 'عام' },
     onTimeDays: 'يوم في الموعد', lateDays: 'تأخير', noSalesTeam: 'لا يوجد أحد في قسم المبيعات بعد. افتح بطاقة كل مندوب مبيعات واختر قسم المبيعات.',
     salesBoardHint: 'نتائج المبيعات فقط، لموظفي قسم المبيعات.', companyBoardHint: 'الجميع، كل الفئات. نقاط الحضور تُحسب تلقائياً من جهاز البصمة وتسجيل الحضور بالموقع؛ ومهام الصيانة والحجوزات من الأنظمة الأخرى.',
@@ -5330,6 +5342,326 @@ function ReportsPage({ me, data, toast }) {
 /* =====================================================================
    7k. Sales KPIs & leaderboard
    ===================================================================== */
+/* ---------------------------------------------------------------------
+   Engaz CRM weekly import. The team leader drops the Engaz export
+   (Excel / CSV); columns and agent names are matched once and remembered;
+   rows become approved KPI entries (source 'engaz') with a stable
+   external_id, so re-uploading the same export updates rather than
+   double counts.
+   --------------------------------------------------------------------- */
+let xlsxReady = null;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve();
+  if (xlsxReady) return xlsxReady;
+  xlsxReady = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = resolve; s.onerror = () => reject(new Error('Excel reader failed to load'));
+    document.head.appendChild(s);
+  });
+  return xlsxReady;
+}
+const strHash = (str) => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; return h.toString(16); };
+/** Excel serials, Date objects, dd/mm/yyyy, yyyy-mm-dd, with optional time. */
+function parseAnyDate(v) {
+  if (v instanceof Date && !isNaN(v)) return localDay(v);
+  if (typeof v === 'number' && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 86400000)); return d.toISOString().slice(0, 10); }
+  const s = String(v || '').trim();
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+  if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+  m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/.exec(s);
+  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  const d = new Date(s);
+  return isNaN(d) ? null : localDay(d);
+}
+const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9؀-ۿ]+/g, ' ').trim();
+/** Best guess of a header for a field, by keywords (English + Arabic). */
+function guessColumn(headers, keys) {
+  const hs = headers.map((h) => ({ h, n: norm(h) }));
+  for (const k of keys) { const hit = hs.find((x) => x.n.includes(k)); if (hit) return hit.h; }
+  return '';
+}
+const FIELD_KEYS = {
+  agent: ['sales agent', 'agent', 'sales person', 'salesperson', 'assigned', 'owner', 'sales', 'user', 'employee', 'مندوب', 'موظف المبيعات', 'المسؤول', 'المندوب', 'مسؤول'],
+  date: ['created', 'date', 'closing date', 'assigned at', 'تاريخ', 'التاريخ'],
+  id: ['lead id', 'deal id', 'id', 'code', 'رقم', 'الكود', 'المعرف'],
+  status: ['status', 'stage', 'الحالة', 'المرحلة'],
+  type: ['type', 'unit type', 'deal type', 'purpose', 'النوع', 'نوع'],
+  value: ['value', 'price', 'amount', 'total', 'deal value', 'القيمة', 'السعر', 'المبلغ'],
+  ref: ['client', 'customer', 'name', 'lead name', 'unit', 'project', 'العميل', 'الاسم', 'الوحدة', 'المشروع'],
+};
+/** Match an Engaz agent name to an employee (exact, then first-name, then token overlap). */
+function guessEmployee(name, employees) {
+  const n = norm(name); if (!n) return '';
+  const cands = employees.filter((e) => e.status === 'active');
+  const full = (e) => [norm(e.full_name_en), norm(e.full_name_ar)];
+  let hit = cands.find((e) => full(e).includes(n));
+  if (hit) return hit.id;
+  const toks = n.split(' ').filter((x) => x.length > 2);
+  let best = null, bestScore = 0;
+  for (const e of cands) {
+    const et = full(e).join(' ').split(' ');
+    const score = toks.filter((tk) => et.includes(tk)).length;
+    if (score > bestScore) { best = e; bestScore = score; }
+  }
+  return bestScore > 0 ? best.id : '';
+}
+
+function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) {
+  const { lang, t } = useL();
+  const [kind, setKind] = useState('deals');
+  const [profiles, setProfiles] = useState({});
+  const [history, setHistory] = useState([]);
+  const [file, setFile] = useState(null);       // { name, headers, rows }
+  const [map, setMap] = useState({});
+  const [agents, setAgents] = useState({});
+  const [opts, setOpts] = useState({ status_filter: '', deal_type: 'auto' });
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+
+  useEffect(() => {
+    sb.from('import_profiles').select('*').then(({ data: d }) => setProfiles(Object.fromEntries((d || []).map((p) => [p.kind, p]))));
+    sb.from('engaz_imports').select('*').order('created_at', { ascending: false }).limit(12).then(({ data: d }) => setHistory(d || []));
+  }, []);
+  useEffect(() => {
+    const p = profiles[kind];
+    if (p) { setMap(p.mapping || {}); setAgents(p.agents || {}); setOpts({ status_filter: '', deal_type: 'auto', ...(p.options || {}) }); }
+    else { setMap({}); setAgents({}); setOpts({ status_filter: '', deal_type: 'auto' }); }
+    if (file) applyGuesses(file.headers, p);
+  }, [kind, profiles]);
+
+  function applyGuesses(headers, p) {
+    const m = { ...((p && p.mapping) || {}) };
+    for (const f of Object.keys(FIELD_KEYS)) if (!m[f] || !headers.includes(m[f])) m[f] = guessColumn(headers, FIELD_KEYS[f]);
+    setMap(m);
+  }
+
+  async function onFile(e) {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    setBusy(true);
+    try {
+      await loadXLSX();
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+      if (!headers.length) throw new Error(t.noData);
+      setFile({ name: f.name, headers, rows });
+      applyGuesses(headers, profiles[kind]);
+      const agentCol = map.agent && headers.includes(map.agent) ? map.agent : guessColumn(headers, FIELD_KEYS.agent);
+      if (agentCol) {
+        const names = [...new Set(rows.map((r) => String(r[agentCol] || '').trim()).filter(Boolean))];
+        setAgents((prev) => { const a = { ...prev }; for (const n of names) if (a[n] === undefined) a[n] = guessEmployee(n, data.employees); return a; });
+      }
+    } catch (err) { toast(err.message, 'error'); }
+    setBusy(false);
+    e.target.value = '';
+  }
+
+  const agentNames = file && map.agent ? [...new Set(file.rows.map((r) => String(r[map.agent] || '').trim()).filter(Boolean))] : [];
+  const metricByCode = (c) => metrics.find((m) => m.code === c);
+
+  /* rows -> entries (also drives the preview) */
+  function build() {
+    if (!file || !map.agent || !map.date) return { entries: [], skipped: 0, byEmp: {}, unmatched: [] };
+    const out = [], byEmp = {}, unmatched = new Set();
+    let skipped = 0;
+    const filt = norm(opts.status_filter);
+    for (const r of file.rows) {
+      const agent = String(r[map.agent] || '').trim();
+      const empId = agents[agent];
+      if (!agent || !empId) { if (agent) unmatched.add(agent); skipped++; continue; }
+      if (filt && map.status && !norm(r[map.status]).includes(filt)) { skipped++; continue; }
+      const date = parseAnyDate(r[map.date]);
+      if (!date) { skipped++; continue; }
+      let code = 'lead';
+      if (kind === 'deals') {
+        if (opts.deal_type === 'sale') code = 'closing';
+        else if (opts.deal_type === 'rental') code = 'rental';
+        else code = /rent|إيجار|ايجار|تأجير/.test(norm(map.type ? r[map.type] : '')) ? 'rental' : 'closing';
+      }
+      const mt = metricByCode(code);
+      if (!mt) { skipped++; continue; }
+      const ref = map.ref ? String(r[map.ref] || '').trim() : '';
+      const value = map.value ? Number(String(r[map.value] || '').replace(/[^0-9.]/g, '')) || null : null;
+      const rawId = map.id ? String(r[map.id] || '').trim() : '';
+      const ext = 'engaz:' + kind + ':' + (rawId || strHash([agent, date, ref, value || '', code].join('|')));
+      out.push({ employee_id: empId, metric_id: mt.id, entry_date: date, quantity: 1, value_egp: mt.has_value ? value : null,
+        reference: ref || null, status: 'approved', source: 'engaz', external_id: ext, approved_at: new Date().toISOString(), created_by: me.id,
+        notes: 'Engaz ' + kind + (rawId ? ' #' + rawId : '') });
+      const b = byEmp[empId] = byEmp[empId] || { lead: 0, closing: 0, rental: 0, value: 0 };
+      b[code]++; b.value += value || 0;
+    }
+    // same external id twice in one file: keep the last
+    const uniq = Object.values(Object.fromEntries(out.map((x) => [x.external_id, x])));
+    return { entries: uniq, skipped, byEmp, unmatched: [...unmatched] };
+  }
+  const preview = file ? build() : null;
+
+  async function doImport() {
+    const { entries, skipped, byEmp } = build();
+    if (!entries.length) return toast(t.noData, 'error');
+    setBusy(true);
+    let imported = 0;
+    for (let i = 0; i < entries.length; i += 200) {
+      const { error } = await sb.from('kpi_entries').upsert(entries.slice(i, i + 200), { onConflict: 'external_id' });
+      if (error) { setBusy(false); return toast(error.message, 'error'); }
+      imported += Math.min(200, entries.length - i);
+    }
+    const dates = entries.map((x) => x.entry_date).sort();
+    const { data: log } = await sb.from('engaz_imports').insert({ kind, file_name: file.name, rows_total: file.rows.length, rows_imported: imported, rows_skipped: skipped,
+      period_from: dates[0], period_to: dates[dates.length - 1], summary: byEmp, created_by: me.id }).select().single();
+    if (log) setHistory((prev) => [log, ...prev]);
+    const prof = { kind, mapping: map, agents, options: opts, updated_by: me.id, updated_at: new Date().toISOString() };
+    const { data: saved } = await sb.from('import_profiles').upsert(prof, { onConflict: 'kind' }).select().single();
+    if (saved) setProfiles((prev) => ({ ...prev, [kind]: saved }));
+    audit('insert', 'engaz_imports', log ? log.id : file.name, null, { kind, imported, skipped });
+    setBusy(false);
+    setFile(null);
+    toast(t.importedMsg + ': ' + imported + ' · ' + t.skippedLbl + ': ' + skipped);
+    onImported();
+  }
+
+  const FieldSel = ({ f, label }) => (
+    <Field label={label}>
+      <Select value={map[f] || ''} onChange={(e) => setMap({ ...map, [f]: e.target.value })}>
+        <option value="">—</option>
+        {file.headers.map((h) => <option key={h} value={h}>{h}</option>)}
+      </Select>
+    </Field>
+  );
+
+  return (
+    <>
+      <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.engazHint}</p>
+      <Card>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t.fileKind}>
+            <Select value={kind} onChange={(e) => setKind(e.target.value)}>
+              <option value="deals">{t.kindDeals}</option>
+              <option value="leads">{t.kindLeads}</option>
+            </Select>
+          </Field>
+          <Field label={t.chooseFile}>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={onFile} />
+            <Btn className="w-full" disabled={busy} onClick={() => fileRef.current && fileRef.current.click()}>📂 {busy ? t.loading : t.chooseFile}</Btn>
+          </Field>
+        </div>
+        {file && <p className="mt-2 text-xs text-slate-500">{file.name} · {file.rows.length} {t.rowsLbl}</p>}
+      </Card>
+
+      {file && (
+        <>
+          <Card title={t.mapCols}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <FieldSel f="agent" label={t.colAgent + ' *'} />
+              <FieldSel f="date" label={t.colDate + ' *'} />
+              <FieldSel f="id" label={t.colId} />
+              <FieldSel f="status" label={t.colStatus} />
+              {kind === 'deals' && <FieldSel f="type" label={t.colType} />}
+              {kind === 'deals' && <FieldSel f="value" label={t.colValue} />}
+              <FieldSel f="ref" label={t.colRef} />
+              {kind === 'deals' && (
+                <Field label={t.dealTypeFixed}>
+                  <Select value={opts.deal_type} onChange={(e) => setOpts({ ...opts, deal_type: e.target.value })}>
+                    <option value="auto">{t.typeAuto}</option>
+                    <option value="sale">{t.typeSale}</option>
+                    <option value="rental">{t.typeRental}</option>
+                  </Select>
+                </Field>
+              )}
+              {map.status && <Field label={t.statusFilter}><Input value={opts.status_filter} placeholder={kind === 'deals' ? 'closed / won / تم' : ''} onChange={(e) => setOpts({ ...opts, status_filter: e.target.value })} /></Field>}
+            </div>
+          </Card>
+
+          {map.agent && (
+            <Card title={t.matchAgents}>
+              <ul className="divide-y divide-slate-100">
+                {agentNames.map((n) => (
+                  <li key={n} className="grid grid-cols-2 items-center gap-2 py-2">
+                    <span className="truncate text-sm font-semibold text-slate-800">{n}</span>
+                    <Select value={agents[n] || ''} onChange={(e) => setAgents({ ...agents, [n]: e.target.value })}>
+                      <option value="">{t.skipAgent}</option>
+                      {data.employees.filter((e) => e.status === 'active').map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+                    </Select>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          <Card title={t.previewLbl} action={<Btn size="sm" disabled={busy || !preview || !preview.entries.length} onClick={doImport}>⬆️ {t.importBtn} ({preview ? preview.entries.length : 0})</Btn>}>
+            {!map.agent || !map.date ? <Empty text={t.noAgentCol} /> : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-sm">
+                    <thead><tr>{[t.selectEmployee, t.leadsLbl, t.salesCnt, t.rentalsCnt, t.salesValue].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {Object.entries(preview.byEmp).map(([id, b]) => (
+                        <tr key={id} className="border-t border-slate-100"><td className="py-1.5 font-semibold text-slate-800">{eName(data.employees.find((e) => e.id === id))}</td><td>{b.lead || ''}</td><td>{b.closing || ''}</td><td>{b.rental || ''}</td><td>{b.value ? money(b.value) : ''}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">{t.skippedLbl}: {preview.skipped}{preview.unmatched.length ? ' · ' + t.skipAgent + ': ' + preview.unmatched.join(', ') : ''}</p>
+              </>
+            )}
+          </Card>
+        </>
+      )}
+
+      <Card title={t.lastImports}>
+        {history.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">
+            {history.map((h) => (
+              <li key={h.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <div className="min-w-0"><p className="truncate font-semibold text-slate-800">{h.kind === 'deals' ? t.kindDeals : t.kindLeads} · {h.file_name}</p>
+                  <p className="text-xs text-slate-500">{localDay(h.created_at)} · {h.period_from} → {h.period_to} · {t.importedMsg} {h.rows_imported} · {t.skippedLbl} {h.rows_skipped}</p></div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
+  );
+}
+
+/** Per-rep month table: leads, deals, closing %, sales & rentals with values. */
+function SalesPerformance({ data, entries, metrics, isSales, eName }) {
+  const { t } = useL();
+  const code = (id) => { const m = metrics.find((x) => x.id === id); return m ? m.code : ''; };
+  const rows = data.employees.filter((e) => e.status === 'active' && isSales(e)).map((e) => {
+    const mine = (entries || []).filter((x) => x.employee_id === e.id && x.status === 'approved');
+    const cnt = (c) => mine.filter((x) => code(x.metric_id) === c).reduce((s, x) => s + Number(x.quantity), 0);
+    const val = (c) => mine.filter((x) => code(x.metric_id) === c).reduce((s, x) => s + (Number(x.value_egp) || 0), 0);
+    const leads = cnt('lead'), sales = cnt('closing'), rentals = cnt('rental');
+    return { e, leads, viewings: cnt('viewing'), sales, rentals, deals: sales + rentals, conv: leads ? Math.round((sales + rentals) / leads * 1000) / 10 : null, salesValue: val('closing'), rentalValue: val('rental') };
+  }).sort((a, b) => b.deals - a.deals || b.leads - a.leads);
+  return (
+    <Card title={t.salesPerf}>
+      {rows.length === 0 ? <Empty text={t.noSalesTeam} /> : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead><tr>{[t.selectEmployee, t.leadsLbl, t.viewingsLbl, t.dealsLbl, t.convLbl, t.salesCnt, t.salesValue, t.rentalsCnt, t.rentalValue].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.e.id} className="border-t border-slate-100">
+                  <td className="py-2 font-semibold text-slate-800">{eName(r.e)}</td><td>{r.leads}</td><td>{r.viewings}</td><td className="font-semibold">{r.deals}</td>
+                  <td className={r.conv === null ? 'text-slate-400' : r.conv >= 10 ? 'font-bold text-emerald-600' : ''}>{r.conv === null ? '—' : r.conv + '%'}</td>
+                  <td>{r.sales}</td><td>{r.salesValue ? money(r.salesValue) : ''}</td><td>{r.rentals}</td><td>{r.rentalValue ? money(r.rentalValue) : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function KpiPage({ me, data, toast, audit }) {
   const { lang, t } = useL();
   const isHr = ['ceo', 'hr'].includes(me.role);
@@ -5343,6 +5675,7 @@ function KpiPage({ me, data, toast, audit }) {
   const [att, setAtt] = useState([]);          // kpi_attendance() rows for the month
   const [form, setForm] = useState(null);
   const [mForm, setMForm] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const pad2 = (n) => String(n).padStart(2, '0');
   const mFirst = month.y + '-' + pad2(month.m) + '-01';
@@ -5355,7 +5688,7 @@ function KpiPage({ me, data, toast, audit }) {
       .then(({ data: d }) => setEntries(d || []));
     setAtt([]);
     sb.rpc('kpi_attendance', { p_from: mFirst, p_to: mLast }).then(({ data: d }) => setAtt(d || []));
-  }, [mFirst]);
+  }, [mFirst, reloadKey]);
 
   const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
   const empById = (id) => data.employees.find((e) => e.id === id);
@@ -5450,7 +5783,10 @@ function KpiPage({ me, data, toast, audit }) {
     toast(t.saved);
   }
 
-  const tabs = [['board', t.leaderboard], ...(myEmp ? [['mine', t.myEntries]] : []), ...(pending.length || isHr || (myEmp && data.employees.some((e) => e.manager_id === myEmp.id)) ? [['approvals', t.approvals + (pending.length ? ' (' + pending.length + ')' : '')]] : []), ...(isHr ? [['metrics', t.metricsTab]] : [])];
+  const isManager = !!(myEmp && data.employees.some((e) => e.manager_id === myEmp.id));
+  const canImport = isHr || isManager;
+  const seesSales = isHr || isManager || me.role === 'accountant' || (myEmp && isSales(myEmp));
+  const tabs = [['board', t.leaderboard], ...(seesSales ? [['sales', '📈 ' + t.salesPerf]] : []), ...(canImport ? [['engaz', '📥 ' + t.engazImport]] : []), ...(myEmp ? [['mine', t.myEntries]] : []), ...(pending.length || isHr || (myEmp && data.employees.some((e) => e.manager_id === myEmp.id)) ? [['approvals', t.approvals + (pending.length ? ' (' + pending.length + ')' : '')]] : []), ...(isHr ? [['metrics', t.metricsTab]] : [])];
   const kTone = (s) => s === 'approved' ? 'green' : s === 'rejected' ? 'red' : 'amber';
   const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
 
@@ -5542,6 +5878,8 @@ function KpiPage({ me, data, toast, audit }) {
         </>
       )}
 
+      {tab === 'sales' && <SalesPerformance data={data} entries={entries} metrics={metrics} isSales={isSales} eName={eName} />}
+      {tab === 'engaz' && <EngazImportTab me={me} myEmp={myEmp} data={data} toast={toast} audit={audit} metrics={metrics} onImported={() => setReloadKey((k) => k + 1)} />}
       {tab === 'metrics' && (
         <Card title={t.metricsTab} action={<Btn size="sm" onClick={() => setMForm({ name_en: '', name_ar: '', code: '', category: 'sales', points_per_unit: 1, value_points_per_million: 0, has_value: false, is_active: true })}>+ {t.add}</Btn>}>
           <ul className="divide-y divide-slate-100">
