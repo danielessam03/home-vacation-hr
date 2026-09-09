@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.20';
+const APP_VERSION = 'v3.21';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -232,6 +232,7 @@ const T = {
     leaveIo: 'Import / Export', exportLeaves: 'Export to Excel', exportExcel: 'Download Excel', yearLbl: 'Year', exportLeavesHint: 'Two sheets: balances per employee and every leave of the year.',
     importLeaves: 'Import leave history from Excel', importLeavesHint: 'Upload your existing leave sheet. Rows become approved leaves and the balances update. Re-uploading the same sheet updates instead of duplicating.',
     sheetLayout: 'Sheet layout', layoutList: 'One row per leave (employee, type, from, to)', layoutTotals: 'Totals per employee (annual taken, casual taken)', matchPeople: 'Match names to employees', otherLbl: 'Other',
+    noRestDay: 'No weekly rest day (rest days become leave credit)', noRestRule: 'No weekly rest day: add the company rest days of the year (e.g. every Friday) to the annual credit',
     leavePolicy: 'Leave entitlement', annualOneRest: 'Annual days: 1 rest day a week', annualTwoRest: 'Annual days: 2 rest days a week', annualSecondHalf: 'Annual days when hired July–December (first year)', casualDays: 'Casual days per year (from the annual balance)',
     leavePolicyHint: 'These are the defaults. Any employee can be given a different number on their card.', annualOverride: 'Annual leave days (override)', casualOverride: 'Casual leave days (override)', overrideHint: 'Leave empty to follow the rule.',
     needSixMonths: 'Less than 6 months of service — annual leave is not due yet (labor law).',
@@ -451,6 +452,7 @@ const T = {
     leaveIo: 'استيراد / تصدير', exportLeaves: 'تصدير إلى Excel', exportExcel: 'تنزيل Excel', yearLbl: 'السنة', exportLeavesHint: 'ورقتان: الأرصدة لكل موظف وكل إجازات السنة.',
     importLeaves: 'استيراد سجل الإجازات من Excel', importLeavesHint: 'ارفع ملف الإجازات الحالي. تصبح الصفوف إجازات معتمدة وتتحدث الأرصدة. إعادة رفع نفس الملف تُحدّث ولا تكرر.',
     sheetLayout: 'شكل الورقة', layoutList: 'صف لكل إجازة (الموظف، النوع، من، إلى)', layoutTotals: 'إجماليات لكل موظف (سنوية مستخدمة، عارضة مستخدمة)', matchPeople: 'مطابقة الأسماء بالموظفين', otherLbl: 'أخرى',
+    noRestDay: 'بدون يوم راحة أسبوعي (أيام الراحة تتحول إلى رصيد إجازات)', noRestRule: 'بدون يوم راحة أسبوعي: تُضاف أيام راحة الشركة في السنة (مثل كل جمعة) إلى رصيد السنوية',
     leavePolicy: 'استحقاق الإجازات', annualOneRest: 'أيام السنوية: يوم راحة واحد أسبوعياً', annualTwoRest: 'أيام السنوية: يوما راحة أسبوعياً', annualSecondHalf: 'أيام السنوية عند التعيين من يوليو إلى ديسمبر (السنة الأولى)', casualDays: 'أيام العارضة سنوياً (من رصيد السنوية)',
     leavePolicyHint: 'هذه هي القيم الافتراضية. يمكن إعطاء أي موظف رقماً مختلفاً من بطاقته.', annualOverride: 'أيام الإجازة السنوية (استثناء)', casualOverride: 'أيام الإجازة العارضة (استثناء)', overrideHint: 'اتركه فارغاً لاتباع القاعدة.',
     needSixMonths: 'أقل من 6 أشهر خدمة — لم تُستحق الإجازة السنوية بعد (قانون العمل).',
@@ -963,7 +965,7 @@ function countWorkingDays(startStr, endStr, weekendDays, holidays, branchId) {
     A per-employee override wins when set. */
 /** Company leave rule (Settings -> Work week -> Leave entitlement), with the
     company weekend attached so entitlement can count rest days. */
-const LEAVE_DEFAULTS = { annual_one_rest_day: 21, annual_two_rest_days: 14, annual_second_half_hire: 8, casual_days: 1 };
+const LEAVE_DEFAULTS = { annual_one_rest_day: 21, annual_two_rest_days: 14, annual_second_half_hire: 8, casual_days: 1, no_rest_add_company_days: true };
 function leavePolicyOf(settings) {
   return { ...LEAVE_DEFAULTS, ...((settings && settings.leave_policy) || {}), weekend: ((settings && settings.work_week) || {}).weekend_days || [5, 6] };
 }
@@ -980,6 +982,12 @@ function annualEntitlement(emp, year, policy) {
     const restDays = (emp.weekend_days || p.weekend || [5, 6]).length;
     base = restDays >= 2 ? Number(p.annual_two_rest_days) : Number(p.annual_one_rest_day);
     if (hire.getFullYear() === year && hire.getMonth() >= 6) base = Number(p.annual_second_half_hire);
+    // seven-day workers: every company rest day of the year is banked as leave
+    if (restDays === 0 && p.no_rest_add_company_days !== false) {
+      base = (hire.getFullYear() === year && hire.getMonth() >= 6) ? Number(p.annual_second_half_hire) : Number(p.annual_one_rest_day);
+      const from = hire.getFullYear() === year ? hire : new Date(year, 0, 1);
+      for (let d = new Date(from); d.getFullYear() === year; d.setDate(d.getDate() + 1)) if ((p.weekend || [5, 6]).includes(d.getDay())) base += 1;
+    }
   }
   const casual = emp.casual_days_override != null && emp.casual_days_override !== '' ? Number(emp.casual_days_override) : Number(p.casual_days);
   return { days: base, casual, dueYet: true };
@@ -2253,7 +2261,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   <p className="truncate text-sm font-semibold text-slate-800">{eName(e)}</p>
                   <p className="truncate text-xs text-slate-500">
                     {e.employee_code} &middot; {(lang === 'ar' ? e.job_title_ar : e.job_title_en) || deptName(e.department_id)} &middot; {branchName(e.branch_id)}
-                    &middot; 🗓 {(e.weekend_days || (data.settings.work_week || {}).weekend_days || [5, 6]).map((d) => t.daysShort[d]).join('، ')}
+                    &middot; 🗓 {e.weekend_days && e.weekend_days.length === 0 ? t.noRestDay : (e.weekend_days || (data.settings.work_week || {}).weekend_days || [5, 6]).map((d) => t.daysShort[d]).join('، ')}
                   </p>
                 </div>
                 <Badge tone={e.status === 'active' ? 'teal' : e.status === 'suspended' ? 'amber' : 'red'}>{t.empStatus[e.status]}</Badge>
@@ -2287,7 +2295,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   [t.managerLbl, view.manager_id ? eName(data.employees.find((x) => x.id === view.manager_id) || { full_name_en: '—' }) : '—'],
                   [t.hireDate, view.hire_date], [t.contractType, t.contractTypes[view.contract_type]],
                   [t.contractEnd, view.contract_end], [t.probationEnd, view.probation_end],
-                  [t.scheduleLbl, view.weekend_days ? view.weekend_days.map((d) => t.daysShort[d]).join('، ') : t.companyDefaultWeek],
+                  [t.scheduleLbl, view.weekend_days ? (view.weekend_days.length ? view.weekend_days.map((d) => t.daysShort[d]).join('، ') : t.noRestDay) : t.companyDefaultWeek],
                   ...(view.day_shifts && Object.keys(view.day_shifts).length ? [[t.shiftByDay, Object.keys(view.day_shifts).sort().map((k) => { const sh = data.shifts.find((x) => x.id === view.day_shifts[k]); return t.daysShort[Number(k)] + ' ' + (sh ? String(sh.start_time).slice(0, 5) : '?'); }).join(' · ')]] : []),
                 ].map(([k, v], i) => (
                   <div key={i}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-medium text-slate-800">{v || '—'}</dd></div>
@@ -6711,6 +6719,7 @@ function LeavePolicySettings(props) {
         {num('annual_second_half_hire', t.annualSecondHalf)}
         {num('casual_days', t.casualDays)}
       </div>
+      <label className="mt-3 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={f.no_rest_add_company_days !== false} onChange={(e) => setF({ ...f, no_rest_add_company_days: e.target.checked })} />{t.noRestRule}</label>
       <Btn className="mt-4" onClick={() => save('leave_policy', f, initial)}>{t.save}</Btn>
     </Card>
   );
