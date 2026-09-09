@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.12';
+const APP_VERSION = 'v3.13';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -154,6 +154,7 @@ const T = {
     department: 'Department', jobTitleEn: 'Job title (English)', jobTitleAr: 'Job title (Arabic)',
     managerLbl: 'Direct manager', scheduleLbl: 'Work schedule',
     companyDefaultWeek: 'Company default weekend', customWeek: 'Custom weekend days',
+    shiftByDay: 'Shift by weekday', sameShift: 'Default shift', shiftByDayHint: 'Pick a different start time for the days that differ. Days left on "Default shift" use the shift above.',
     basicSalary: 'Basic salary (EGP)', allowancesLbl: 'Allowances', amount: 'Amount',
     addAllowance: 'Add allowance', insuranceBase: 'Insurance base wage (EGP)',
     nosiNumber: 'Social insurance no.', bankName: 'Bank', bankAccount: 'Account / IBAN',
@@ -358,6 +359,7 @@ const T = {
     department: 'القسم', jobTitleEn: 'المسمى الوظيفي (إنجليزي)', jobTitleAr: 'المسمى الوظيفي (عربي)',
     managerLbl: 'المدير المباشر', scheduleLbl: 'جدول العمل',
     companyDefaultWeek: 'إجازة الشركة الأساسية', customWeek: 'أيام إجازة مخصصة',
+    shiftByDay: 'الوردية حسب اليوم', sameShift: 'الوردية الأساسية', shiftByDayHint: 'اختر وقت بداية مختلفاً للأيام التي تختلف. الأيام المتروكة على "الوردية الأساسية" تستخدم الوردية أعلاه.',
     basicSalary: 'الراتب الأساسي (ج.م)', allowancesLbl: 'البدلات', amount: 'المبلغ',
     addAllowance: 'إضافة بدل', insuranceBase: 'أجر الاشتراك التأميني (ج.م)',
     nosiNumber: 'الرقم التأميني', bankName: 'البنك', bankAccount: 'رقم الحساب / IBAN',
@@ -946,6 +948,14 @@ function annualEntitlement(emp, year) {
   return { days: base, dueYet: true };
 }
 
+/** The shift that applies to an employee on a given day: weekday override
+    (employees.day_shifts) -> employee default -> first active shift. */
+function shiftForDay(emp, dateStr, shifts) {
+  if (!emp) return null;
+  const dow = new Date(dateStr + 'T00:00:00').getDay();
+  const id = (emp.day_shifts && emp.day_shifts[dow]) || emp.shift_id;
+  return (shifts || []).find((x) => x.id === id) || (shifts || []).find((x) => x.is_active) || (shifts || [])[0] || null;
+}
 const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
 /** Leave balance summary for one employee for a year -- shared by the
@@ -1068,17 +1078,18 @@ function computePayrollItem(emp, ctx) {
     const outs = list.filter((p) => p.direction === 'out');
     const firstIn = ins[0] || list[0];
     const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
-    if (shift && firstIn && !excusedDays.has(date)) {
-      const raw = Math.max(0, minutesOf(firstIn.punch_time) - timeToMin(shift.start_time));
-      late += Math.max(0, raw - shift.grace_minutes);
+    const dShift = shiftForDay(emp, date, ctx.shifts) || shift;
+    if (dShift && firstIn && !excusedDays.has(date)) {
+      const raw = Math.max(0, minutesOf(firstIn.punch_time) - timeToMin(dShift.start_time));
+      late += Math.max(0, raw - dShift.grace_minutes);
       if (useTiers) {
         const tier = lateTierFor(attPolicy, raw);
         if (tier) { lateDays++; const amt = lateTierAmount(attPolicy, tier, raw, hourRate, dayRate); lateDedTiers += amt; lateDetail.push({ date, minutes: raw, tier: tier.label_en || tier.kind, kind: tier.kind, amount: r2(amt) }); }
       }
     }
-    if (shift && lastOut) {
-      const over = minutesOf(lastOut.punch_time) - timeToMin(shift.end_time);
-      if (over >= shift.min_overtime_minutes) ot += over;
+    if (dShift && lastOut) {
+      const over = minutesOf(lastOut.punch_time) - timeToMin(dShift.end_time);
+      if (over >= dShift.min_overtime_minutes) ot += over;
     }
   }
 
@@ -2087,6 +2098,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       bank_name: nn(form.bank_name), bank_account: nn(form.bank_account),
       status: form.status, termination_date: nn(form.termination_date), user_id: nn(form.user_id), notes: nn(form.notes),
       shift_id: nn(form.shift_id), device_code: nn(form.device_code), attendance_exempt: !!form.attendance_exempt,
+      day_shifts: form.day_shifts && Object.keys(form.day_shifts).length ? form.day_shifts : null,
     };
     let res;
     if (form.id) res = await sb.from('employees').update(payload).eq('id', form.id).select().single();
@@ -2203,6 +2215,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   [t.hireDate, view.hire_date], [t.contractType, t.contractTypes[view.contract_type]],
                   [t.contractEnd, view.contract_end], [t.probationEnd, view.probation_end],
                   [t.scheduleLbl, view.weekend_days ? view.weekend_days.map((d) => t.daysShort[d]).join('، ') : t.companyDefaultWeek],
+                  ...(view.day_shifts && Object.keys(view.day_shifts).length ? [[t.shiftByDay, Object.keys(view.day_shifts).sort().map((k) => { const sh = data.shifts.find((x) => x.id === view.day_shifts[k]); return t.daysShort[Number(k)] + ' ' + (sh ? String(sh.start_time).slice(0, 5) : '?'); }).join(' · ')]] : []),
                 ].map(([k, v], i) => (
                   <div key={i}><dt className="text-xs text-slate-400">{k}</dt><dd className="font-medium text-slate-800">{v || '—'}</dd></div>
                 ))}
@@ -2400,6 +2413,21 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   {data.shifts.map((s) => <option key={s.id} value={s.id}>{lang === 'ar' ? s.name_ar : s.name_en}</option>)}
                 </Select>
               </Field>
+              <div className="col-span-2">
+                <p className="mb-1 text-xs font-semibold text-slate-600">{t.shiftByDay}</p>
+                <p className="mb-2 text-xs text-slate-400">{t.shiftByDayHint}</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {t.daysShort.map((d, i) => ((form.weekend_days || (data.settings.work_week || {}).weekend_days || [5, 6]).includes(i) ? null : (
+                    <label key={i} className="block">
+                      <span className="mb-1 block text-[11px] font-semibold text-slate-500">{d}</span>
+                      <Select value={(form.day_shifts || {})[i] || ''} onChange={(e) => { const ds = { ...(form.day_shifts || {}) }; if (e.target.value) ds[i] = e.target.value; else delete ds[i]; setForm({ ...form, day_shifts: ds }); }}>
+                        <option value="">{t.sameShift}</option>
+                        {data.shifts.filter((x) => x.is_active).map((x) => <option key={x.id} value={x.id}>{String(x.start_time).slice(0, 5)} · {lang === 'ar' ? x.name_ar : x.name_en}</option>)}
+                      </Select>
+                    </label>
+                  )))}
+                </div>
+              </div>
               <Field label={t.deviceCode}>
                 <Input dir="ltr" inputMode="numeric" value={form.device_code || ''} onChange={(e) => setForm({ ...form, device_code: e.target.value })} />
               </Field>
@@ -2965,7 +2993,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     return Object.entries(groups).map(([k, list]) => {
       const [empId, date] = k.split('|');
       const emp = data.employees.find((e) => e.id === empId);
-      const shift = data.shifts.find((s) => s.id === (emp && emp.shift_id)) || defShift;
+      const shift = (emp && shiftForDay(emp, date, data.shifts)) || defShift;
       const ins = list.filter((p) => p.direction === 'in');
       const outs = list.filter((p) => p.direction === 'out');
       const firstIn = ins.length ? ins[0] : list[0];
@@ -4920,7 +4948,7 @@ function MyPage({ me, data, toast, setPage, live }) {
   const presentDays = d ? new Set(d.punches.map((p) => localDay(p.punch_time))).size : 0;
   const shift = data.shifts.find((s) => s.id === myEmp.shift_id) || data.shifts[0];
   const lateTotal = d && shift ? Object.values(d.punches.reduce((acc, p) => { (acc[localDay(p.punch_time)] = acc[localDay(p.punch_time)] || []).push(p); return acc; }, {}))
-    .reduce((s, list) => { const first = list[list.length - 1]; return s + Math.max(0, minutesOf(first.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes)); }, 0) : 0;
+    .reduce((s, list) => { const first = list[list.length - 1]; const sh = shiftForDay(myEmp, localDay(first.punch_time), data.shifts) || shift; return s + Math.max(0, minutesOf(first.punch_time) - (timeToMin(sh.start_time) + sh.grace_minutes)); }, 0) : 0;
   const km = d ? d.trips.reduce((s, x) => s + (x.manual_km != null ? Number(x.manual_km) : Number(x.distance_km) || 0), 0) : 0;
 
   async function openDoc(doc) {
@@ -5145,7 +5173,7 @@ function ReportsPage({ me, data, toast }) {
       const emp = empById(empId); if (!emp || emp.attendance_exempt) continue;
       const weekend = emp.weekend_days || weekendC;
       if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
-      const shift = data.shifts.find((s) => s.id === emp.shift_id) || data.shifts[0];
+      const shift = shiftForDay(emp, date, data.shifts) || data.shifts[0];
       const ins = list.filter((p) => p.direction === 'in'), outs = list.filter((p) => p.direction === 'out');
       const firstIn = ins[0] || list[0];
       const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
