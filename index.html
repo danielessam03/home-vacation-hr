@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.15';
+const APP_VERSION = 'v3.16';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -226,7 +226,9 @@ const T = {
     makeupErr: { not_rest_day: 'Not this employee\'s rest day', company_off: 'The company does not work that day', holiday: 'That day is a holiday', future: 'That day has not happened yet',
       no_leave: 'Pick the leave it compensates', leave_not_approved: 'That leave is not approved', before_leave_end: 'The day must come after the leave ended', window_passed: 'Too late: outside the make-up window',
       leave_fully_compensated: 'That leave is already fully compensated', no_attendance: 'No check-in recorded that day', exempt: 'This employee has no attendance', no_employee: 'Employee not found' },
-    casualHint: 'Casual leave is deducted from the annual balance (max 7 days/year).',
+    casualHint: 'Casual leave is deducted from the annual balance.',
+    leavePolicy: 'Leave entitlement', annualOneRest: 'Annual days: 1 rest day a week', annualTwoRest: 'Annual days: 2 rest days a week', annualSecondHalf: 'Annual days when hired July–December (first year)', casualDays: 'Casual days per year (from the annual balance)',
+    leavePolicyHint: 'These are the defaults. Any employee can be given a different number on their card.', annualOverride: 'Annual leave days (override)', casualOverride: 'Casual leave days (override)', overrideHint: 'Leave empty to follow the rule.',
     needSixMonths: 'Less than 6 months of service — annual leave is not due yet (labor law).',
     adjustBalance: 'Adjust balance', daysLbl: 'Days',
     creditHint: 'Positive adds days, negative removes (carry-over, correction, encashment).',
@@ -438,7 +440,9 @@ const T = {
     makeupErr: { not_rest_day: 'ليس يوم راحة هذا الموظف', company_off: 'الشركة لا تعمل في هذا اليوم', holiday: 'هذا اليوم عطلة رسمية', future: 'هذا اليوم لم يأتِ بعد',
       no_leave: 'اختر الإجازة التي يعوّضها', leave_not_approved: 'هذه الإجازة غير معتمدة', before_leave_end: 'يجب أن يكون اليوم بعد انتهاء الإجازة', window_passed: 'انتهت مهلة التعويض',
       leave_fully_compensated: 'هذه الإجازة عُوّضت بالكامل', no_attendance: 'لا يوجد تسجيل حضور في هذا اليوم', exempt: 'هذا الموظف بلا حضور', no_employee: 'الموظف غير موجود' },
-    casualHint: 'الإجازة العارضة تُخصم من رصيد السنوية (بحد أقصى 7 أيام سنوياً).',
+    casualHint: 'الإجازة العارضة تُخصم من رصيد السنوية.',
+    leavePolicy: 'استحقاق الإجازات', annualOneRest: 'أيام السنوية: يوم راحة واحد أسبوعياً', annualTwoRest: 'أيام السنوية: يوما راحة أسبوعياً', annualSecondHalf: 'أيام السنوية عند التعيين من يوليو إلى ديسمبر (السنة الأولى)', casualDays: 'أيام العارضة سنوياً (من رصيد السنوية)',
+    leavePolicyHint: 'هذه هي القيم الافتراضية. يمكن إعطاء أي موظف رقماً مختلفاً من بطاقته.', annualOverride: 'أيام الإجازة السنوية (استثناء)', casualOverride: 'أيام الإجازة العارضة (استثناء)', overrideHint: 'اتركه فارغاً لاتباع القاعدة.',
     needSixMonths: 'أقل من 6 أشهر خدمة — لم تُستحق الإجازة السنوية بعد (قانون العمل).',
     adjustBalance: 'تعديل رصيد', daysLbl: 'أيام',
     creditHint: 'موجب يضيف أياماً وسالب يخصم (ترحيل رصيد، تصحيح، بدل نقدي).',
@@ -947,19 +951,28 @@ function countWorkingDays(startStr, endStr, weekendDays, holidays, branchId) {
     pro-rated in the hire year. Available from day one (company policy --
     the law's 6-month waiting period is deliberately not applied).
     A per-employee override wins when set. */
-function annualEntitlement(emp, year) {
+/** Company leave rule (Settings -> Work week -> Leave entitlement), with the
+    company weekend attached so entitlement can count rest days. */
+const LEAVE_DEFAULTS = { annual_one_rest_day: 21, annual_two_rest_days: 14, annual_second_half_hire: 8, casual_days: 1 };
+function leavePolicyOf(settings) {
+  return { ...LEAVE_DEFAULTS, ...((settings && settings.leave_policy) || {}), weekend: ((settings && settings.work_week) || {}).weekend_days || [5, 6] };
+}
+/** Annual days for the year: employee override, else 1 rest day/week -> 21,
+    2+ rest days/week -> 14; hired July-December -> the second-half figure for
+    that first year only. */
+function annualEntitlement(emp, year, policy) {
+  const p = policy || LEAVE_DEFAULTS;
   if (!emp.hire_date) return { days: 0, dueYet: false };
   const hire = new Date(emp.hire_date + 'T00:00:00');
-  const now = new Date();
-  const serviceYears = (now - hire) / (365.25 * 86400000);
-  let age = 0;
-  if (emp.birth_date) age = (now - new Date(emp.birth_date + 'T00:00:00')) / (365.25 * 86400000);
-  let base = emp.annual_days_override != null ? Number(emp.annual_days_override)
-    : (serviceYears >= 10 || age >= 50 ? 30 : 21);
-  if (hire.getFullYear() === year) {
-    base = Math.round(base * (12 - hire.getMonth()) / 12 * 2) / 2;
+  let base;
+  if (emp.annual_days_override != null && emp.annual_days_override !== '') base = Number(emp.annual_days_override);
+  else {
+    const restDays = (emp.weekend_days || p.weekend || [5, 6]).length;
+    base = restDays >= 2 ? Number(p.annual_two_rest_days) : Number(p.annual_one_rest_day);
+    if (hire.getFullYear() === year && hire.getMonth() >= 6) base = Number(p.annual_second_half_hire);
   }
-  return { days: base, dueYet: true };
+  const casual = emp.casual_days_override != null && emp.casual_days_override !== '' ? Number(emp.casual_days_override) : Number(p.casual_days);
+  return { days: base, casual, dueYet: true };
 }
 
 /** The shift that applies to an employee on a given day: weekday override
@@ -981,8 +994,8 @@ const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' 
 
 /** Leave balance summary for one employee for a year -- shared by the
     leave module and the self-service screen so both agree. */
-function leaveBalance(emp, year, reqs, adjs, types) {
-  const ent = annualEntitlement(emp, year);
+function leaveBalance(emp, year, reqs, adjs, types, policy) {
+  const ent = annualEntitlement(emp, year, policy);
   const code = (id) => { const ty = types.find((x) => x.id === id); return ty ? ty.code : null; };
   const taken = (c) => reqs.filter((r) => r.employee_id === emp.id && r.status === 'approved' && code(r.leave_type_id) === c)
     .reduce((s, r) => s + Number(r.days), 0);
@@ -992,7 +1005,7 @@ function leaveBalance(emp, year, reqs, adjs, types) {
   const annualRemaining = ent.days + adj('annual') - annualTaken - casualTaken;
   return {
     ent, annualTaken, casualTaken, annualRemaining,
-    casualRemaining: Math.min(7 + adj('casual') - casualTaken, annualRemaining),
+    casualRemaining: Math.min(ent.casual + adj('casual') - casualTaken, annualRemaining),
     sickTaken: taken('sick'), unpaidTaken: taken('unpaid'), maternityTaken: taken('maternity'),
   };
 }
@@ -2120,6 +2133,8 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       status: form.status, termination_date: nn(form.termination_date), user_id: nn(form.user_id), notes: nn(form.notes),
       shift_id: nn(form.shift_id), device_code: nn(form.device_code), attendance_exempt: !!form.attendance_exempt,
       day_shifts: form.day_shifts && Object.keys(form.day_shifts).length ? form.day_shifts : null,
+      annual_days_override: form.annual_days_override === '' || form.annual_days_override == null ? null : Number(form.annual_days_override),
+      casual_days_override: form.casual_days_override === '' || form.casual_days_override == null ? null : Number(form.casual_days_override),
     };
     let res;
     if (form.id) res = await sb.from('employees').update(payload).eq('id', form.id).select().single();
@@ -2476,6 +2491,11 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                 ))}
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.annualOverride} hint={t.overrideHint}><Input type="number" inputMode="decimal" step="0.5" value={form.annual_days_override ?? ''} onChange={(e) => setForm({ ...form, annual_days_override: e.target.value })} /></Field>
+              <Field label={t.casualOverride} hint={t.overrideHint}><Input type="number" inputMode="decimal" step="0.5" value={form.casual_days_override ?? ''} onChange={(e) => setForm({ ...form, casual_days_override: e.target.value })} /></Field>
+            </div>
 
             {canSalary && (<>
             <Field label={t.basicSalary}><Input type="number" inputMode="decimal" value={form.basic_salary} onChange={(e) => setForm({ ...form, basic_salary: e.target.value })} /></Field>
@@ -3780,7 +3800,7 @@ function LeavePage({ me, data, toast, audit }) {
   const companyWeekend = (data.settings.work_week || {}).weekend_days || [5, 6];
   const empWeekend = (emp) => (emp && emp.weekend_days) || companyWeekend;
 
-  const balance = (emp) => leaveBalance(emp, year, reqs || [], adjs, types);
+  const balance = (emp) => leaveBalance(emp, year, reqs || [], adjs, types, leavePolicyOf(data.settings));
 
   /* ---------- create request ---------- */
   function openForm() {
@@ -4108,7 +4128,7 @@ function LeavePage({ me, data, toast, audit }) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead><tr>
-                {[t.selectEmployee, t.entitlement, t.taken, t.remaining, t.casualShort + ' /7', t.sickShort, t.unpaidShort, ''].map((h, i) =>
+                {[t.selectEmployee, t.entitlement, t.taken, t.remaining, t.casualShort, t.sickShort, t.unpaidShort, ''].map((h, i) =>
                   <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}
               </tr></thead>
               <tbody>
@@ -4120,7 +4140,7 @@ function LeavePage({ me, data, toast, audit }) {
                       <td>{b.ent.dueYet ? b.ent.days : '—'}</td>
                       <td>{b.annualTaken + b.casualTaken}</td>
                       <td className={b.annualRemaining < 0 ? 'font-bold text-rose-600' : 'font-semibold'}>{b.ent.dueYet ? b.annualRemaining : '—'}</td>
-                      <td>{b.casualTaken}</td>
+                      <td>{b.casualTaken} / {b.ent.casual}</td>
                       <td>{b.sickTaken}</td>
                       <td>{b.unpaidTaken}</td>
                       <td>{isHr && <Btn variant="ghost" size="sm" onClick={() => setAdjForm({ employee_id: e.id, leave_type_id: (tyByCode('annual') || {}).id, days: '', reason: '' })}>±</Btn>}</td>
@@ -4962,7 +4982,7 @@ function MyPage({ me, data, toast, setPage, live }) {
   if (!myEmp) return <Card><Empty text={t.noEmpLink} /></Card>;
   const name = (lang === 'ar' ? myEmp.full_name_ar : myEmp.full_name_en) || myEmp.full_name_en;
   const branch = data.branches.find((b) => b.id === myEmp.branch_id);
-  const bal = d ? leaveBalance(myEmp, year, d.reqs, d.adjs, d.types) : null;
+  const bal = d ? leaveBalance(myEmp, year, d.reqs, d.adjs, d.types, leavePolicyOf(data.settings)) : null;
   const tyName = (id) => { const ty = d && d.types.find((x) => x.id === id); return ty ? (lang === 'ar' ? ty.name_ar : ty.name_en) : '—'; };
   const lvTone = (s) => s === 'approved' ? 'green' : s === 'rejected' ? 'red' : s === 'cancelled' ? 'slate' : 'amber';
   const slips = d ? d.runs.map((r) => ({ run: r, item: d.items.find((i) => i.run_id === r.id) })).filter((x) => x.item) : [];
@@ -5208,7 +5228,7 @@ function ReportsPage({ me, data, toast }) {
   }, [att, data.employees, data.shifts]);
 
   const leaveRows = lv ? active.map((e) => {
-    const b = leaveBalance(e, now.getFullYear(), lv.reqs, lv.adjs, lv.types);
+    const b = leaveBalance(e, now.getFullYear(), lv.reqs, lv.adjs, lv.types, leavePolicyOf(data.settings));
     const monthly = (Number(e.basic_salary) || 0) + (e.allowances || []).reduce((s, a) => s + (Number(a.amount) || 0), 0);
     const dayRate = monthly / ((data.settings.work_week || {}).standard_days_per_month || 30);
     const days = b.ent.dueYet ? Math.max(0, b.annualRemaining) : 0;
@@ -6298,7 +6318,7 @@ function WorkWeekSettings(props) {
     setF({ ...f, weekend_days: cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d].sort() });
   };
 
-  return (
+  return (<>
     <Card title={t.workWeek}>
       <p className="mb-2 text-xs font-semibold text-slate-600">{t.weekendDays}</p>
       <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
@@ -6324,6 +6344,28 @@ function WorkWeekSettings(props) {
         </Field>
       </div>
       <Btn className="mt-4" onClick={() => save('work_week', f, initial)}>{t.save}</Btn>
+    </Card>
+    <LeavePolicySettings {...props} />
+  </>);
+}
+
+function LeavePolicySettings(props) {
+  const { t } = useL();
+  const save = useSettingSaver(props);
+  const initial = { ...LEAVE_DEFAULTS, ...(props.data.settings.leave_policy || {}) };
+  const [f, setF] = useState(initial);
+  useEffect(() => { setF({ ...LEAVE_DEFAULTS, ...(props.data.settings.leave_policy || {}) }); }, [props.data.settings.leave_policy]);
+  const num = (k, label) => <Field label={label}><Input type="number" inputMode="decimal" step="0.5" value={f[k]} onChange={(e) => setF({ ...f, [k]: Number(e.target.value) })} /></Field>;
+  return (
+    <Card title={'🌴 ' + t.leavePolicy}>
+      <p className="mb-3 text-xs text-slate-500">{t.leavePolicyHint}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {num('annual_one_rest_day', t.annualOneRest)}
+        {num('annual_two_rest_days', t.annualTwoRest)}
+        {num('annual_second_half_hire', t.annualSecondHalf)}
+        {num('casual_days', t.casualDays)}
+      </div>
+      <Btn className="mt-4" onClick={() => save('leave_policy', f, initial)}>{t.save}</Btn>
     </Card>
   );
 }
