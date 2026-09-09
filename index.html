@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.16';
+const APP_VERSION = 'v3.17';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -227,6 +227,9 @@ const T = {
       no_leave: 'Pick the leave it compensates', leave_not_approved: 'That leave is not approved', before_leave_end: 'The day must come after the leave ended', window_passed: 'Too late: outside the make-up window',
       leave_fully_compensated: 'That leave is already fully compensated', no_attendance: 'No check-in recorded that day', exempt: 'This employee has no attendance', no_employee: 'Employee not found' },
     casualHint: 'Casual leave is deducted from the annual balance.',
+    leaveIo: 'Import / Export', exportLeaves: 'Export to Excel', exportExcel: 'Download Excel', yearLbl: 'Year', exportLeavesHint: 'Two sheets: balances per employee and every leave of the year.',
+    importLeaves: 'Import leave history from Excel', importLeavesHint: 'Upload your existing leave sheet. Rows become approved leaves and the balances update. Re-uploading the same sheet updates instead of duplicating.',
+    sheetLayout: 'Sheet layout', layoutList: 'One row per leave (employee, type, from, to)', layoutTotals: 'Totals per employee (annual taken, casual taken)', matchPeople: 'Match names to employees', otherLbl: 'Other',
     leavePolicy: 'Leave entitlement', annualOneRest: 'Annual days: 1 rest day a week', annualTwoRest: 'Annual days: 2 rest days a week', annualSecondHalf: 'Annual days when hired July–December (first year)', casualDays: 'Casual days per year (from the annual balance)',
     leavePolicyHint: 'These are the defaults. Any employee can be given a different number on their card.', annualOverride: 'Annual leave days (override)', casualOverride: 'Casual leave days (override)', overrideHint: 'Leave empty to follow the rule.',
     needSixMonths: 'Less than 6 months of service — annual leave is not due yet (labor law).',
@@ -441,6 +444,9 @@ const T = {
       no_leave: 'اختر الإجازة التي يعوّضها', leave_not_approved: 'هذه الإجازة غير معتمدة', before_leave_end: 'يجب أن يكون اليوم بعد انتهاء الإجازة', window_passed: 'انتهت مهلة التعويض',
       leave_fully_compensated: 'هذه الإجازة عُوّضت بالكامل', no_attendance: 'لا يوجد تسجيل حضور في هذا اليوم', exempt: 'هذا الموظف بلا حضور', no_employee: 'الموظف غير موجود' },
     casualHint: 'الإجازة العارضة تُخصم من رصيد السنوية.',
+    leaveIo: 'استيراد / تصدير', exportLeaves: 'تصدير إلى Excel', exportExcel: 'تنزيل Excel', yearLbl: 'السنة', exportLeavesHint: 'ورقتان: الأرصدة لكل موظف وكل إجازات السنة.',
+    importLeaves: 'استيراد سجل الإجازات من Excel', importLeavesHint: 'ارفع ملف الإجازات الحالي. تصبح الصفوف إجازات معتمدة وتتحدث الأرصدة. إعادة رفع نفس الملف تُحدّث ولا تكرر.',
+    sheetLayout: 'شكل الورقة', layoutList: 'صف لكل إجازة (الموظف، النوع، من، إلى)', layoutTotals: 'إجماليات لكل موظف (سنوية مستخدمة، عارضة مستخدمة)', matchPeople: 'مطابقة الأسماء بالموظفين', otherLbl: 'أخرى',
     leavePolicy: 'استحقاق الإجازات', annualOneRest: 'أيام السنوية: يوم راحة واحد أسبوعياً', annualTwoRest: 'أيام السنوية: يوما راحة أسبوعياً', annualSecondHalf: 'أيام السنوية عند التعيين من يوليو إلى ديسمبر (السنة الأولى)', casualDays: 'أيام العارضة سنوياً (من رصيد السنوية)',
     leavePolicyHint: 'هذه هي القيم الافتراضية. يمكن إعطاء أي موظف رقماً مختلفاً من بطاقته.', annualOverride: 'أيام الإجازة السنوية (استثناء)', casualOverride: 'أيام الإجازة العارضة (استثناء)', overrideHint: 'اتركه فارغاً لاتباع القاعدة.',
     needSixMonths: 'أقل من 6 أشهر خدمة — لم تُستحق الإجازة السنوية بعد (قانون العمل).',
@@ -3752,6 +3758,248 @@ function JobsPage({ me, data, toast, audit }) {
 /* =====================================================================
    7e. Leave management
    ===================================================================== */
+/* ---------------------------------------------------------------------
+   Leave history: import from Excel (one row per leave, or totals per
+   employee) and export leaves + balances to Excel.
+   --------------------------------------------------------------------- */
+const LEAVE_FIELD_KEYS = {
+  employee: ['employee', 'name', 'staff', 'الموظف', 'الاسم', 'اسم'],
+  type: ['type', 'leave type', 'kind', 'النوع', 'نوع'],
+  start: ['from', 'start', 'date', 'من', 'البداية', 'تاريخ'],
+  end: ['to', 'end', 'إلى', 'الى', 'النهاية'],
+  days: ['days', 'duration', 'عدد', 'أيام', 'ايام', 'المدة'],
+  reason: ['reason', 'note', 'notes', 'remark', 'السبب', 'ملاحظ'],
+  annual: ['annual', 'سنوية', 'سنوي'],
+  casual: ['casual', 'عارضة', 'عارض'],
+  year: ['year', 'السنة', 'سنة'],
+};
+function guessLeaveType(txt, types) {
+  const n = norm(txt);
+  const rules = [['casual', ['casual', 'عارض']], ['sick', ['sick', 'مرض']], ['unpaid', ['unpaid', 'بدون']], ['maternity', ['matern', 'وضع']], ['annual', ['annual', 'سنوي', 'vacation', 'إجازة', 'اجازة']]];
+  for (const [code, keys] of rules) if (keys.some((k) => n.includes(k))) return types.find((x) => x.code === code) || null;
+  return types.find((x) => norm(x.name_en) === n || norm(x.name_ar) === n) || null;
+}
+
+function LeaveIoTab({ me, data, types, reqs, adjs, setReqs, setAdjs, balance, eName, tyName, year, toast, audit }) {
+  const { lang, t } = useL();
+  const [layout, setLayout] = useState('list');
+  const [file, setFile] = useState(null);
+  const [map, setMap] = useState({});
+  const [people, setPeople] = useState({});     // sheet name -> employee id
+  const [fixedType, setFixedType] = useState('');
+  const [yearIn, setYearIn] = useState(year);
+  const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [exportYear, setExportYear] = useState(year);
+  const fileRef = useRef(null);
+  const companyWeekend = (data.settings.work_week || {}).weekend_days || [5, 6];
+  const empWeekend = (emp) => (emp && emp.weekend_days) || companyWeekend;
+  const tyById = (id) => types.find((x) => x.id === id);
+
+  useEffect(() => { sb.from('leave_imports').select('*').order('created_at', { ascending: false }).limit(10).then(({ data: d }) => setHistory(d || [])); }, []);
+
+  async function onFile(e) {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    setBusy(true);
+    try {
+      await loadXLSX();
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+      if (!headers.length) throw new Error(t.noData);
+      const m = {};
+      for (const k of Object.keys(LEAVE_FIELD_KEYS)) m[k] = guessColumn(headers, LEAVE_FIELD_KEYS[k]);
+      if (m.start && m.end === m.start) m.end = '';
+      setMap(m); setFile({ name: f.name, headers, rows });
+      const empCol = m.employee;
+      if (empCol) {
+        const names = [...new Set(rows.map((r) => String(r[empCol] || '').trim()).filter(Boolean))];
+        setPeople(Object.fromEntries(names.map((n) => [n, guessEmployee(n, data.employees)])));
+      }
+    } catch (err) { toast(err.message, 'error'); }
+    setBusy(false);
+    e.target.value = '';
+  }
+  const names = file && map.employee ? [...new Set(file.rows.map((r) => String(r[map.employee] || '').trim()).filter(Boolean))] : [];
+
+  function build() {
+    const out = { reqs: [], adjs: [], skipped: 0, byEmp: {} };
+    if (!file || !map.employee) return out;
+    for (const r of file.rows) {
+      const nm = String(r[map.employee] || '').trim();
+      const empId = people[nm];
+      const emp = data.employees.find((e) => e.id === empId);
+      if (!emp) { out.skipped++; continue; }
+      const b = out.byEmp[empId] = out.byEmp[empId] || { annual: 0, casual: 0, other: 0 };
+      if (layout === 'list') {
+        const ty = map.type ? guessLeaveType(r[map.type], types) : tyById(fixedType);
+        const start = map.start ? parseAnyDate(r[map.start]) : null;
+        if (!ty || !start) { out.skipped++; continue; }
+        const end = (map.end && parseAnyDate(r[map.end])) || start;
+        const daysCell = map.days ? Number(r[map.days]) : 0;
+        const days = daysCell > 0 ? daysCell : countWorkingDays(start, end, empWeekend(emp), data.holidays, emp.branch_id);
+        if (days <= 0) { out.skipped++; continue; }
+        out.reqs.push({ employee_id: empId, leave_type_id: ty.id, start_date: start, end_date: end < start ? start : end, days,
+          reason: map.reason ? String(r[map.reason] || '').trim() || null : null, status: 'approved', hr_action_by: me.id, hr_action_at: new Date().toISOString(),
+          manager_action_by: me.id, manager_action_at: new Date().toISOString(), hr_note: 'Imported from ' + file.name,
+          import_key: 'xls:' + strHash([empId, ty.code, start, end].join('|')) });
+        b[ty.code === 'annual' || ty.code === 'casual' ? ty.code : 'other'] += days;
+      } else {
+        const yr = map.year && Number(r[map.year]) > 2000 ? Number(r[map.year]) : Number(yearIn);
+        for (const code of ['annual', 'casual']) {
+          const v = map[code] ? Number(r[map[code]]) : 0;
+          const ty = types.find((x) => x.code === code);
+          if (!ty || !(v > 0)) continue;
+          out.adjs.push({ employee_id: empId, leave_type_id: ty.id, year: yr, days: -v, reason: 'Taken before the system (imported from ' + file.name + ')', created_by: me.id,
+            import_key: 'xls:' + strHash([empId, code, yr, 'totals'].join('|')) });
+          b[code] += v;
+        }
+      }
+    }
+    return out;
+  }
+  const preview = file ? build() : null;
+
+  async function doImport() {
+    const p = build();
+    if (!p.reqs.length && !p.adjs.length) return toast(t.noData, 'error');
+    setBusy(true);
+    let imported = 0;
+    for (let i = 0; i < p.reqs.length; i += 200) {
+      const { data: rows, error } = await sb.from('leave_requests').upsert(p.reqs.slice(i, i + 200), { onConflict: 'import_key' }).select();
+      if (error) { setBusy(false); return toast(error.message, 'error'); }
+      imported += rows.length;
+      setReqs((prev) => [...rows, ...(prev || []).filter((x) => !rows.some((y) => y.id === x.id))]);
+    }
+    for (let i = 0; i < p.adjs.length; i += 200) {
+      const { data: rows, error } = await sb.from('leave_adjustments').upsert(p.adjs.slice(i, i + 200), { onConflict: 'import_key' }).select();
+      if (error) { setBusy(false); return toast(error.message, 'error'); }
+      imported += rows.length;
+      setAdjs((prev) => [...rows, ...(prev || []).filter((x) => !rows.some((y) => y.id === x.id))]);
+    }
+    const { data: log } = await sb.from('leave_imports').insert({ layout, file_name: file.name, rows_total: file.rows.length, rows_imported: imported, rows_skipped: p.skipped, created_by: me.id }).select().single();
+    if (log) setHistory((prev) => [log, ...prev]);
+    audit('insert', 'leave_imports', log ? log.id : file.name, null, { layout, imported, skipped: p.skipped });
+    setBusy(false); setFile(null);
+    toast(t.importedMsg + ': ' + imported + ' · ' + t.skippedLbl + ': ' + p.skipped);
+  }
+
+  async function doExport() {
+    setBusy(true);
+    try {
+      await loadXLSX();
+      const [{ data: rq }, { data: ad }] = await Promise.all([
+        sb.from('leave_requests').select('*').gte('start_date', exportYear + '-01-01').lte('start_date', exportYear + '-12-31').order('start_date'),
+        sb.from('leave_adjustments').select('*').eq('year', exportYear),
+      ]);
+      const leaves = (rq || []).map((r) => { const e = data.employees.find((x) => x.id === r.employee_id); return {
+        Employee: e ? (e.full_name_en || e.full_name_ar) : '', 'الموظف': e ? (e.full_name_ar || e.full_name_en) : '', Code: e ? e.employee_code : '',
+        Type: tyName(tyById(r.leave_type_id)), From: r.start_date, To: r.end_date, Days: Number(r.days), Status: t.lvStatus[r.status] || r.status, Reason: r.reason || '' }; });
+      const balances = data.employees.filter((e) => e.status === 'active').map((e) => { const b = leaveBalance(e, Number(exportYear), rq || [], ad || [], types, leavePolicyOf(data.settings)); return {
+        Employee: e.full_name_en || e.full_name_ar, 'الموظف': e.full_name_ar || e.full_name_en, Code: e.employee_code, 'Hire date': e.hire_date,
+        'Annual entitlement': b.ent.days, 'Annual taken': b.annualTaken, 'Casual taken': b.casualTaken, 'Casual allowed': b.ent.casual, 'Annual remaining': b.annualRemaining,
+        'Sick taken': b.sickTaken, 'Unpaid taken': b.unpaidTaken }; });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(balances), 'Balances ' + exportYear);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(leaves), 'Leaves ' + exportYear);
+      XLSX.writeFile(wb, 'HomeVacation-Leaves-' + exportYear + '.xlsx');
+    } catch (err) { toast(err.message, 'error'); }
+    setBusy(false);
+  }
+
+  const Sel = ({ f, label }) => (
+    <Field label={label}><Select value={map[f] || ''} onChange={(e) => setMap({ ...map, [f]: e.target.value })}><option value="">—</option>{file.headers.map((h) => <option key={h} value={h}>{h}</option>)}</Select></Field>
+  );
+
+  return (
+    <>
+      <Card title={'📤 ' + t.exportLeaves}>
+        <div className="flex items-end gap-2">
+          <Field label={t.yearLbl}><Input type="number" inputMode="numeric" value={exportYear} onChange={(e) => setExportYear(Number(e.target.value))} /></Field>
+          <Btn disabled={busy} onClick={doExport}>⬇️ {t.exportExcel}</Btn>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">{t.exportLeavesHint}</p>
+      </Card>
+
+      <Card title={'📥 ' + t.importLeaves}>
+        <p className="mb-3 text-xs text-slate-500">{t.importLeavesHint}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t.sheetLayout}>
+            <Select value={layout} onChange={(e) => setLayout(e.target.value)}>
+              <option value="list">{t.layoutList}</option>
+              <option value="totals">{t.layoutTotals}</option>
+            </Select>
+          </Field>
+          <Field label={t.chooseFile}>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={onFile} />
+            <Btn className="w-full" disabled={busy} onClick={() => fileRef.current && fileRef.current.click()}>📂 {busy ? t.loading : t.chooseFile}</Btn>
+          </Field>
+        </div>
+        {file && <p className="mt-2 text-xs text-slate-500">{file.name} · {file.rows.length} {t.rowsLbl}</p>}
+      </Card>
+
+      {file && (
+        <>
+          <Card title={t.mapCols}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Sel f="employee" label={t.selectEmployee + ' *'} />
+              {layout === 'list' ? (
+                <>
+                  <Sel f="type" label={t.leaveType} />
+                  {!map.type && <Field label={t.leaveType + ' (' + t.typeAuto.toLowerCase() + ')'}><Select value={fixedType} onChange={(e) => setFixedType(e.target.value)}><option value="">—</option>{types.map((ty) => <option key={ty.id} value={ty.id}>{tyName(ty)}</option>)}</Select></Field>}
+                  <Sel f="start" label={t.from + ' *'} />
+                  <Sel f="end" label={t.to} />
+                  <Sel f="days" label={t.daysLbl} />
+                  <Sel f="reason" label={t.reasonLbl} />
+                </>
+              ) : (
+                <>
+                  <Sel f="annual" label={t.annualShort + ' ' + t.taken} />
+                  <Sel f="casual" label={t.casualShort + ' ' + t.taken} />
+                  <Sel f="year" label={t.yearLbl} />
+                  {!map.year && <Field label={t.yearLbl}><Input type="number" value={yearIn} onChange={(e) => setYearIn(Number(e.target.value))} /></Field>}
+                </>
+              )}
+            </div>
+          </Card>
+          {map.employee && (
+            <Card title={t.matchPeople}>
+              <ul className="divide-y divide-slate-100">
+                {names.map((n) => (
+                  <li key={n} className="grid grid-cols-2 items-center gap-2 py-2">
+                    <span className="truncate text-sm font-semibold text-slate-800">{n}</span>
+                    <Select value={people[n] || ''} onChange={(e) => setPeople({ ...people, [n]: e.target.value })}>
+                      <option value="">{t.skipAgent}</option>
+                      {data.employees.map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+                    </Select>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          <Card title={t.previewLbl} action={<Btn size="sm" disabled={busy || !preview || (!preview.reqs.length && !preview.adjs.length)} onClick={doImport}>⬆️ {t.importBtn} ({preview ? preview.reqs.length + preview.adjs.length : 0})</Btn>}>
+            {!preview || !map.employee ? <Empty text={t.noData} /> : (
+              <>
+                <table className="w-full text-sm"><thead><tr>{[t.selectEmployee, t.annualShort, t.casualShort, t.otherLbl].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
+                  <tbody>{Object.entries(preview.byEmp).map(([id, b]) => <tr key={id} className="border-t border-slate-100"><td className="py-1.5 font-semibold text-slate-800">{eName(data.employees.find((e) => e.id === id))}</td><td>{b.annual || ''}</td><td>{b.casual || ''}</td><td>{b.other || ''}</td></tr>)}</tbody></table>
+                <p className="mt-2 text-xs text-slate-500">{t.skippedLbl}: {preview.skipped}</p>
+              </>
+            )}
+          </Card>
+        </>
+      )}
+
+      <Card title={t.lastImports}>
+        {history.length === 0 ? <Empty text={t.noData} /> : (
+          <ul className="divide-y divide-slate-100">{history.map((h) => <li key={h.id} className="py-2 text-sm"><p className="font-semibold text-slate-800">{h.file_name}</p><p className="text-xs text-slate-500">{localDay(h.created_at)} · {h.layout === 'list' ? t.layoutList : t.layoutTotals} · {t.importedMsg} {h.rows_imported} · {t.skippedLbl} {h.rows_skipped}</p></li>)}</ul>
+        )}
+      </Card>
+    </>
+  );
+}
+
 function LeavePage({ me, data, toast, audit }) {
   const { lang, t } = useL();
   const isHr = ['ceo', 'hr'].includes(me.role);
@@ -3775,6 +4023,7 @@ function LeavePage({ me, data, toast, audit }) {
     ...(admin ? [{ k: 'approvals', label: t.approvals }] : []),
     ...(myEmp || admin ? [{ k: 'makeup', label: t.makeup }] : []),
     ...(['ceo', 'hr', 'accountant'].includes(me.role) ? [{ k: 'balances', label: t.balances }] : []),
+    ...(isHr ? [{ k: 'io', label: '📥 ' + t.leaveIo }] : []),
   ];
   const [tab, setTab] = useState(tabs.length ? tabs[0].k : 'mine');
 
@@ -4122,6 +4371,8 @@ function LeavePage({ me, data, toast, audit }) {
           </>
         )}
       </Modal>
+
+      {tab === 'io' && <LeaveIoTab me={me} data={data} types={types} reqs={reqs} adjs={adjs} setReqs={setReqs} setAdjs={setAdjs} balance={balance} eName={eName} tyName={tyName} year={year} toast={toast} audit={audit} />}
 
       {tab === 'balances' && (
         <Card title={t.balances + ' — ' + year}>
