@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.13';
+const APP_VERSION = 'v3.14';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -196,6 +196,7 @@ const T = {
     lockMonth: 'Lock month', lockedMonths: 'Locked months', unlock: 'Unlock', monthLbl: 'Month', yearLbl: 'Year',
     lockWarn: 'Locking stops all punch changes for this branch and month — even for HR. Unlock to change.',
     shiftsLbl: 'Shifts', graceMin: 'Grace (min)', minOt: 'Min OT (min)', startTime: 'Start', endTime: 'End',
+    hoursByDay: 'Working hours by weekday', hoursByDayHint: 'Tick a day to give it its own start and end. Unticked days use the default hours above.', perDayLbl: 'per-day hours',
     shift: 'Shift', deviceCode: 'Device code', selectEmployee: 'Employee',
     geoDenied: 'Location permission is required — enable it for this site in your browser settings.',
     jobs: 'Jobs', addRole: 'Add role', duties: 'Duties & scope', requirementsLbl: 'Requirements',
@@ -401,6 +402,7 @@ const T = {
     lockMonth: 'قفل الشهر', lockedMonths: 'الشهور المقفلة', unlock: 'فتح', monthLbl: 'الشهر', yearLbl: 'السنة',
     lockWarn: 'القفل يمنع أي تعديل على البصمات لهذا الفرع والشهر — حتى للموارد البشرية. افتح القفل للتعديل.',
     shiftsLbl: 'الورديات', graceMin: 'سماح (د)', minOt: 'أدنى إضافي (د)', startTime: 'البداية', endTime: 'النهاية',
+    hoursByDay: 'ساعات العمل حسب اليوم', hoursByDayHint: 'حدد اليوم لتعطيه بداية ونهاية خاصة. الأيام غير المحددة تستخدم الساعات الأساسية أعلاه.', perDayLbl: 'ساعات مختلفة حسب اليوم',
     shift: 'الوردية', deviceCode: 'كود جهاز البصمة', selectEmployee: 'الموظف',
     geoDenied: 'إذن الموقع مطلوب — فعّله لهذا الموقع من إعدادات المتصفح.',
     jobs: 'الوظائف', addRole: 'إضافة وظيفة', duties: 'المهام ونطاق العمل', requirementsLbl: 'المتطلبات',
@@ -954,7 +956,14 @@ function shiftForDay(emp, dateStr, shifts) {
   if (!emp) return null;
   const dow = new Date(dateStr + 'T00:00:00').getDay();
   const id = (emp.day_shifts && emp.day_shifts[dow]) || emp.shift_id;
-  return (shifts || []).find((x) => x.id === id) || (shifts || []).find((x) => x.is_active) || (shifts || [])[0] || null;
+  const sh = (shifts || []).find((x) => x.id === id) || (shifts || []).find((x) => x.is_active) || (shifts || [])[0] || null;
+  return shiftHoursOn(sh, dow);
+}
+/** A shift with its weekday-specific start/end applied (shifts.day_hours). */
+function shiftHoursOn(sh, dow) {
+  if (!sh) return null;
+  const dh = sh.day_hours && sh.day_hours[dow];
+  return dh && dh.start ? { ...sh, start_time: dh.start, end_time: dh.end || sh.end_time } : sh;
 }
 const localDay = (ts) => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
@@ -5992,6 +6001,7 @@ function ShiftSettings({ data, refresh, toast, audit }) {
       grace_minutes: Number(edit.grace_minutes) || 0,
       min_overtime_minutes: Number(edit.min_overtime_minutes) || 0,
       is_active: edit.is_active !== false,
+      day_hours: (() => { const dh = {}; for (const [k, v] of Object.entries(edit.day_hours || {})) if (v && v.start && v.end) dh[k] = { start: v.start, end: v.end }; return Object.keys(dh).length ? dh : null; })(),
     };
     let res;
     if (edit.id) res = await sb.from('shifts').update(payload).eq('id', edit.id).select().single();
@@ -6013,7 +6023,7 @@ function ShiftSettings({ data, refresh, toast, audit }) {
             <li key={s.id} className="flex items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-800">{lang === 'ar' ? s.name_ar : s.name_en}</p>
-                <p className="text-xs text-slate-500" dir="ltr">{String(s.start_time).slice(0, 5)}–{String(s.end_time).slice(0, 5)} · +{s.grace_minutes}m</p>
+                <p className="text-xs text-slate-500" dir="ltr">{String(s.start_time).slice(0, 5)}–{String(s.end_time).slice(0, 5)} · +{s.grace_minutes}m{s.day_hours && Object.keys(s.day_hours).length ? ' · ' + Object.keys(s.day_hours).sort().map((k) => t.daysShort[Number(k)] + ' ' + s.day_hours[k].start + '–' + s.day_hours[k].end).join(', ') : ''}</p>
               </div>
               <Btn variant="ghost" size="sm" onClick={() => setEdit({ ...s, start_time: String(s.start_time).slice(0, 5), end_time: String(s.end_time).slice(0, 5) })}>{t.edit}</Btn>
             </li>
@@ -6031,6 +6041,27 @@ function ShiftSettings({ data, refresh, toast, audit }) {
               <Field label={t.endTime}><Input type="time" value={edit.end_time} onChange={(e) => setEdit({ ...edit, end_time: e.target.value })} /></Field>
               <Field label={t.graceMin}><Input type="number" inputMode="numeric" value={edit.grace_minutes} onChange={(e) => setEdit({ ...edit, grace_minutes: e.target.value })} /></Field>
               <Field label={t.minOt}><Input type="number" inputMode="numeric" value={edit.min_overtime_minutes} onChange={(e) => setEdit({ ...edit, min_overtime_minutes: e.target.value })} /></Field>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-600">{t.hoursByDay}</p>
+              <p className="mb-2 text-xs text-slate-400">{t.hoursByDayHint}</p>
+              <div className="space-y-1.5">
+                {t.daysShort.map((d, i) => {
+                  const dh = (edit.day_hours || {})[i];
+                  const on = !!dh;
+                  return (
+                    <div key={i} className="grid grid-cols-[5rem_1fr_1fr] items-center gap-2">
+                      <label className="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" className="h-4 w-4 rounded accent-brand-700" checked={on}
+                          onChange={(e) => { const all = { ...(edit.day_hours || {}) }; if (e.target.checked) all[i] = { start: edit.start_time, end: edit.end_time }; else delete all[i]; setEdit({ ...edit, day_hours: all }); }} />
+                        {d}
+                      </label>
+                      <Input type="time" disabled={!on} value={on ? dh.start : edit.start_time} onChange={(e) => setEdit({ ...edit, day_hours: { ...edit.day_hours, [i]: { ...dh, start: e.target.value } } })} />
+                      <Input type="time" disabled={!on} value={on ? dh.end : edit.end_time} onChange={(e) => setEdit({ ...edit, day_hours: { ...edit.day_hours, [i]: { ...dh, end: e.target.value } } })} />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={edit.is_active !== false}
