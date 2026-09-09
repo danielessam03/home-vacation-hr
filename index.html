@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.19';
+const APP_VERSION = 'v3.20';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -181,6 +181,7 @@ const T = {
     km: 'km', totalKm: 'Total km', thisMonth: 'This month',
     reviewTab: 'Review', lockTab: 'Lock',
     lateMin: 'Late', workedH: 'Hours', otMin: 'OT', missingOut: 'Missing punch', weekendLbl: 'Weekend',
+    breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
     earlyRules: 'Early-leave rules', earlyDedLbl: 'Left early', earlyMinLbl: 'Early', tierBefore: 'Minutes before the shift end', earlyRulesHint: 'Leaving before the shift end is penalised by the highest tier reached, once per day, unless a "leaving early" note was accepted. A missing check-out is flagged, not penalised.',
     breakRules: 'Break rules', breakMax: 'Daily break allowance (minutes)', tierOver: 'Over the allowance by (minutes)', breakDedLbl: 'Break overrun', breakOverLbl: 'over', breakLeft: 'left of your break', breakExceeded: 'Break allowance exceeded by',
     breakRulesHint: 'All breaks of the day add up. Minutes over the allowance are penalised by the highest tier reached, once per day. An accepted "longer break" note skips the break tiers for that day.',
@@ -399,6 +400,7 @@ const T = {
     km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
     reviewTab: 'المراجعة', lockTab: 'القفل',
     lateMin: 'تأخير', workedH: 'ساعات', otMin: 'إضافي', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية',
+    breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
     earlyRules: 'قواعد الانصراف المبكر', earlyDedLbl: 'انصراف مبكر', earlyMinLbl: 'مبكر', tierBefore: 'الدقائق قبل نهاية الوردية', earlyRulesHint: 'الانصراف قبل نهاية الوردية يُعاقب بأعلى شريحة يصل إليها الموظف مرة واحدة في اليوم، إلا إذا قُبل إذن "انصراف مبكر". البصمة الناقصة تُعلَّم ولا تُعاقب.',
     breakRules: 'قواعد الاستراحة', breakMax: 'الاستراحة المسموحة يومياً (دقائق)', tierOver: 'تجاوز المسموح بـ (دقائق)', breakDedLbl: 'تجاوز الاستراحة', breakOverLbl: 'تجاوز', breakLeft: 'متبقية من استراحتك', breakExceeded: 'تجاوزت الاستراحة المسموحة بـ',
     breakRulesHint: 'تُجمع كل استراحات اليوم. الدقائق الزائدة عن المسموح تُعاقب بأعلى شريحة يصل إليها الموظف مرة واحدة في اليوم. الإذن المقبول بـ"استراحة أطول" يلغي شرائح الاستراحة في ذلك اليوم.',
@@ -3042,6 +3044,36 @@ function TripsTab({ me, myEmp, data, toast, eName, admin }) {
   );
 }
 
+/** Breaks of one employee on one day, paired from the live-session events. */
+function DayBreaks({ empId, date }) {
+  const { t } = useL();
+  const [list, setList] = useState(null);
+  useEffect(() => {
+    const from = new Date(date + 'T00:00:00'), to = new Date(date + 'T00:00:00'); to.setDate(to.getDate() + 1);
+    sb.from('session_events').select('kind, at, meta').eq('employee_id', empId).in('kind', ['break_start', 'break_end', 'end']).gte('at', from.toISOString()).lt('at', to.toISOString()).order('at')
+      .then(({ data: d }) => {
+        const out = []; let open = null;
+        for (const ev of d || []) {
+          if (ev.kind === 'break_start') { if (open) out.push(open); open = { start: ev.at, reason: (ev.meta || {}).reason || 'manual', end: null }; }
+          else if (open) { open.end = ev.at; out.push(open); open = null; }
+        }
+        if (open) out.push(open);
+        setList(out);
+      });
+  }, [empId, date]);
+  const mins = (b) => Math.round(((b.end ? new Date(b.end) : new Date()) - new Date(b.start)) / 60000);
+  return (
+    <div className="mt-3 border-t border-slate-200 pt-3">
+      <p className="mb-1 text-xs font-semibold text-slate-600">☕ {t.breaksOfDay}{list && list.length ? ' · ' + list.reduce((s, b) => s + mins(b), 0) + ' ' + t.minutesLbl : ''}</p>
+      {list === null ? <p className="text-xs text-slate-400">…</p> : list.length === 0 ? <p className="text-xs text-slate-400">{t.noBreaks}</p> : (
+        <ul className="space-y-1 text-sm">
+          {list.map((b, i) => <li key={i} className="flex items-center justify-between"><span>{fmtTime(b.start)} → {b.end ? fmtTime(b.end) : t.stillOnBreak} · <b>{mins(b)} {t.minutesLbl}</b></span><span className="text-xs text-slate-500">{t.breakReasons[b.reason] || b.reason}</span></li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   const { lang, t } = useL();
   const first = todayISO().slice(0, 8) + '01';
@@ -3167,7 +3199,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead><tr className="text-start text-xs text-slate-400">
-                {[t.date, t.selectEmployee, t.firstIn, t.lastOut, t.lateMin, t.workedH, '☕', t.otMin, ''].map((h, i) => <th key={i} className="py-2 text-start font-semibold">{h}</th>)}
+                {[t.date, t.selectEmployee, t.firstIn, t.lastOut, t.lateMin, t.workedH, '☕ ' + t.breakTotal + ' (' + t.minutesLbl + ')', t.otMin, ''].map((h, i) => <th key={i} className="py-2 text-start font-semibold">{h}</th>)}
               </tr></thead>
               <tbody>
                 {rows.map((r, i) => (
@@ -3178,7 +3210,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                     <td>{r.lastOut ? fmtTime(r.lastOut.punch_time) : '—'}{r.early > 0 && <span className="ms-1 text-xs font-bold text-rose-600">-{r.early}</span>}{r.earlyTier && <Badge tone={r.earlyTier.kind === 'none' ? 'amber' : 'red'}> {(lang === 'ar' ? r.earlyTier.label_ar : r.earlyTier.label_en) || r.earlyTier.kind}</Badge>}</td>
                     <td className={r.late > 0 ? 'font-bold text-rose-600' : ''}>{r.late || ''}{r.tier && <Badge tone={r.tier.kind === 'none' ? 'amber' : 'red'}> {(lang === 'ar' ? r.tier.label_ar : r.tier.label_en) || r.tier.kind}</Badge>}</td>
                     <td>{r.hours || ''}</td>
-                    <td className={r.brkOver > 0 ? 'font-bold text-rose-600' : 'text-slate-500'}>{r.brkMin || ''}{r.brkTier && <Badge tone={r.brkTier.kind === 'none' ? 'amber' : 'red'}> +{r.brkOver} {(lang === 'ar' ? r.brkTier.label_ar : r.brkTier.label_en) || r.brkTier.kind}</Badge>}</td>
+                    <td className={r.brkOver > 0 ? 'font-bold text-rose-600' : 'text-slate-600'}>{r.weekend ? '' : r.brkMin}{r.brkTier && <Badge tone={r.brkTier.kind === 'none' ? 'amber' : 'red'}> +{r.brkOver} {(lang === 'ar' ? r.brkTier.label_ar : r.brkTier.label_en) || r.brkTier.kind}</Badge>}</td>
                     <td className={r.ot > 0 ? 'font-bold text-emerald-600' : ''}>{r.ot || ''}</td>
                     <td className="text-xs">
                       {r.weekend && <Badge>{t.weekendLbl}</Badge>}
@@ -3213,6 +3245,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
             ))}
           </ul>
         )}
+        {dayView && dayView.emp && <DayBreaks empId={dayView.emp.id} date={dayView.date} />}
       </Modal>
 
       <Modal open={!!manual} onClose={() => setManual(null)} title={t.manualPunch}
