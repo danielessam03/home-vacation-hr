@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.22';
+const APP_VERSION = 'v3.23';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -3221,7 +3221,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                     <td>{r.firstIn ? fmtTime(r.firstIn.punch_time) : '—'}</td>
                     <td>{r.lastOut ? fmtTime(r.lastOut.punch_time) : '—'}{r.early > 0 && <span className="ms-1 text-xs font-bold text-rose-600">-{r.early}</span>}{r.earlyTier && <Badge tone={r.earlyTier.kind === 'none' ? 'amber' : 'red'}> {(lang === 'ar' ? r.earlyTier.label_ar : r.earlyTier.label_en) || r.earlyTier.kind}</Badge>}</td>
                     <td className={r.late > 0 ? 'font-bold text-rose-600' : ''}>{r.late || ''}{r.tier && <Badge tone={r.tier.kind === 'none' ? 'amber' : 'red'}> {(lang === 'ar' ? r.tier.label_ar : r.tier.label_en) || r.tier.kind}</Badge>}</td>
-                    <td>{r.hours || ''}</td>
+                    <td className="whitespace-nowrap">{r.hours ? Math.floor(r.hours) + 'h ' + String(Math.round((r.hours % 1) * 60)).padStart(2, '0') + 'm' : ''}</td>
                     <td className={r.brkOver > 0 ? 'font-bold text-rose-600' : 'text-slate-600'}>{r.weekend ? '' : r.brkMin}{r.brkTier && <Badge tone={r.brkTier.kind === 'none' ? 'amber' : 'red'}> +{r.brkOver} {(lang === 'ar' ? r.brkTier.label_ar : r.brkTier.label_en) || r.brkTier.kind}</Badge>}</td>
                     <td className={r.ot > 0 ? 'font-bold text-emerald-600' : ''}>{r.ot || ''}</td>
                     <td className="text-xs">
