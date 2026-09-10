@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.21';
+const APP_VERSION = 'v3.22';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -223,6 +223,8 @@ const T = {
     delLeave: 'Delete leave', delLeaveConfirm: 'Delete this leave permanently? The days go back to the balance. A payroll already run for that month is not changed.',
     makeup: 'Make-up days', makeupHint: 'Worked on your own rest day within {w} weeks after a leave? Claim that leave day back. Only days with a fingerprint or GPS check-in count.',
     makeupClaim: 'Claim this day', makeupCandidates: 'Days you can claim', makeupNone: 'No claimable days right now.', makeupMine: 'My claims', makeupPending: 'Claims to approve',
+    calendarTab: 'Calendar', allEmployees: 'All employees', requestSelected: 'Request these days', calendarHint: 'Dots are approved leaves (lighter = pending). Click a day, then a second day, to select a range and request it. Shaded = company weekend, amber = holiday.',
+    makeupCredit: 'Credit', creditFull: 'Full day', creditHalf: 'Half day', creditNone: 'Hours only, no credit', autoMakeup: 'Detected from check-in', makeupFullH: 'Make-up: hours for a full day', makeupHalfH: 'Make-up: hours for a half day', makeupAutoHint: 'Working on your own rest day is detected from the check-in automatically and appears here for approval.',
     makeupFor: 'for leave', makeupAdd: 'Add a make-up day', makeupDate: 'Day worked', makeupLeave: 'Compensates leave', makeupWindow: 'Make-up window after a leave (weeks)',
     makeupApproved: 'Approved: one annual leave day credited', makeupWorked: 'worked', makeupNoPunch: 'no check-in that day',
     makeupErr: { not_rest_day: 'Not this employee\'s rest day', company_off: 'The company does not work that day', holiday: 'That day is a holiday', future: 'That day has not happened yet',
@@ -443,6 +445,8 @@ const T = {
     delLeave: 'حذف الإجازة', delLeaveConfirm: 'حذف هذه الإجازة نهائياً؟ تعود الأيام إلى الرصيد. ولا يتغير راتب سبق احتسابه لذلك الشهر.',
     makeup: 'أيام التعويض', makeupHint: 'عملت في يوم راحتك الخاص خلال {w} أسابيع بعد إجازة؟ استرد يوم الإجازة. تُحتسب فقط الأيام التي بها بصمة أو تسجيل حضور بالموقع.',
     makeupClaim: 'استرداد هذا اليوم', makeupCandidates: 'أيام يمكنك استردادها', makeupNone: 'لا توجد أيام قابلة للاسترداد حالياً.', makeupMine: 'طلباتي', makeupPending: 'طلبات بانتظار الاعتماد',
+    calendarTab: 'التقويم', allEmployees: 'كل الموظفين', requestSelected: 'طلب هذه الأيام', calendarHint: 'النقاط إجازات معتمدة (الأفتح = بانتظار الاعتماد). اضغط يوماً ثم يوماً آخر لتحديد مدة وطلبها. المظلل = إجازة الشركة الأسبوعية، الأصفر = عطلة رسمية.',
+    makeupCredit: 'الرصيد', creditFull: 'يوم كامل', creditHalf: 'نصف يوم', creditNone: 'ساعات فقط بلا رصيد', autoMakeup: 'رُصد من تسجيل الحضور', makeupFullH: 'التعويض: ساعات اليوم الكامل', makeupHalfH: 'التعويض: ساعات نصف اليوم', makeupAutoHint: 'العمل في يوم راحتك الخاص يُرصد تلقائياً من تسجيل الحضور ويظهر هنا للاعتماد.',
     makeupFor: 'عن إجازة', makeupAdd: 'إضافة يوم تعويض', makeupDate: 'يوم العمل', makeupLeave: 'يعوّض إجازة', makeupWindow: 'مهلة التعويض بعد الإجازة (أسابيع)',
     makeupApproved: 'تم الاعتماد: أُضيف يوم إجازة سنوية للرصيد', makeupWorked: 'عمل', makeupNoPunch: 'لا يوجد تسجيل حضور في هذا اليوم',
     makeupErr: { not_rest_day: 'ليس يوم راحة هذا الموظف', company_off: 'الشركة لا تعمل في هذا اليوم', holiday: 'هذا اليوم عطلة رسمية', future: 'هذا اليوم لم يأتِ بعد',
@@ -3880,6 +3884,136 @@ function guessLeaveType(txt, types) {
   return types.find((x) => norm(x.name_en) === n || norm(x.name_ar) === n) || null;
 }
 
+/* ---------------------------------------------------------------------
+   Year calendar of leaves: everyone's approved leaves highlighted, own
+   pending ones lighter, company weekends and holidays shaded. Click two
+   days to select a range and request it.
+   --------------------------------------------------------------------- */
+const CAL_COLORS = ['#1d6fa3', '#2e7d5b', '#c9963f', '#b23a3a', '#7c3aed', '#0e7490', '#be185d', '#4d7c0f', '#b45309', '#475569', '#0f766e', '#9333ea'];
+const colorOf = (id) => CAL_COLORS[parseInt(strHash(String(id)).slice(-4), 16) % CAL_COLORS.length];
+
+function LeaveCalendar({ me, myEmp, data, types, reqs, year, isHr, eName, tyName, onRequest, empWeekend, companyWeekend }) {
+  const { lang, t } = useL();
+  const [calYear, setCalYear] = useState(year);
+  const [other, setOther] = useState(null);      // requests of another year
+  const [filter, setFilter] = useState('');
+  const [sel, setSel] = useState(null);          // { a, b }
+  useEffect(() => {
+    if (calYear === year) { setOther(null); return; }
+    sb.from('leave_requests').select('*').gte('start_date', calYear + '-01-01').lte('start_date', calYear + '-12-31').then(({ data: d }) => setOther(d || []));
+  }, [calYear]);
+  const list = calYear === year ? (reqs || []) : (other || []);
+  const pad = (n) => String(n).padStart(2, '0');
+  const iso = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const today = todayISO();
+
+  /* date -> [{ emp, req, mine, pending }] */
+  const byDay = useMemo(() => {
+    const m = {};
+    for (const r of list) {
+      if (!['approved', 'pending', 'manager_approved'].includes(r.status)) continue;
+      const emp = data.employees.find((e) => e.id === r.employee_id);
+      if (!emp) continue;
+      const mine = myEmp && emp.id === myEmp.id;
+      const pending = r.status !== 'approved';
+      if (pending && !mine && !isHr) continue;
+      if (filter && emp.id !== filter) continue;
+      const wk = empWeekend(emp);
+      for (let d = new Date(r.start_date + 'T00:00:00'); iso(d) <= r.end_date; d.setDate(d.getDate() + 1)) {
+        if (wk.includes(d.getDay())) continue;
+        (m[iso(d)] = m[iso(d)] || []).push({ emp, req: r, mine, pending });
+      }
+    }
+    return m;
+  }, [list, filter, data.employees]);
+  const holiday = (d) => data.holidays.find((h) => h.holiday_date === d && (!h.branch_id || !myEmp || h.branch_id === myEmp.branch_id));
+  const people = useMemo(() => { const ids = new Set(); for (const arr of Object.values(byDay)) for (const x of arr) ids.add(x.emp.id); return data.employees.filter((e) => ids.has(e.id)); }, [byDay]);
+
+  const range = sel && sel.b ? [sel.a < sel.b ? sel.a : sel.b, sel.a < sel.b ? sel.b : sel.a] : sel ? [sel.a, sel.a] : null;
+  const inRange = (d) => range && d >= range[0] && d <= range[1];
+  function pick(d) {
+    if (!sel || sel.b) setSel({ a: d, b: null });
+    else setSel({ a: sel.a, b: d });
+  }
+  const monthNames = lang === 'ar' ? ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'] : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1">
+          <Btn size="sm" variant="outline" onClick={() => setCalYear(calYear - 1)}>‹</Btn>
+          <span className="w-16 text-center text-lg font-bold text-slate-800">{calYear}</span>
+          <Btn size="sm" variant="outline" onClick={() => setCalYear(calYear + 1)}>›</Btn>
+        </div>
+        <Select className="!w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="">{t.allEmployees}</option>
+          {data.employees.filter((e) => e.status === 'active').map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+        </Select>
+        {range && (
+          <div className="ms-auto flex items-center gap-2 rounded-xl bg-brand-50 px-3 py-1.5 text-sm">
+            <span className="font-semibold text-brand-900">{range[0]} → {range[1]}</span>
+            {myEmp || isHr ? <Btn size="sm" onClick={() => { onRequest(range[0], range[1]); setSel(null); }}>🌴 {t.requestSelected}</Btn> : null}
+            <button className="text-slate-400 hover:text-slate-600" onClick={() => setSel(null)}>&times;</button>
+          </div>
+        )}
+      </div>
+      <p className="text-xs text-slate-500">{t.calendarHint}</p>
+
+      {people.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {people.map((e) => (
+            <button key={e.id} onClick={() => setFilter(filter === e.id ? '' : e.id)} className={cx('flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs', filter === e.id ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-200 bg-white text-slate-700')}>
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: colorOf(e.id) }} />{eName(e)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {monthNames.map((mn, mi) => {
+          const first = new Date(calYear, mi, 1);
+          const dim = new Date(calYear, mi + 1, 0).getDate();
+          const lead = first.getDay();
+          const cells = [];
+          for (let i = 0; i < lead; i++) cells.push(null);
+          for (let d = 1; d <= dim; d++) cells.push(d);
+          return (
+            <div key={mi} className="rounded-2xl border border-slate-200 bg-white p-2.5">
+              <p className="mb-1 text-center text-sm font-bold text-slate-800">{mn}</p>
+              <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] text-slate-400">{t.daysShort.map((d, i) => <div key={i}>{d}</div>)}</div>
+              <div className="grid grid-cols-7 gap-0.5">
+                {cells.map((d, i) => {
+                  if (!d) return <div key={'e' + i} />;
+                  const ds = calYear + '-' + pad(mi + 1) + '-' + pad(d);
+                  const dow = (lead + d - 1) % 7;
+                  const entries = byDay[ds] || [];
+                  const hol = holiday(ds);
+                  const off = companyWeekend.includes(dow);
+                  const title = [hol ? (lang === 'ar' ? hol.name_ar : hol.name_en) : '', ...entries.map((x) => eName(x.emp) + ' · ' + tyName(types.find((ty) => ty.id === x.req.leave_type_id)) + (x.pending ? ' (' + t.lvStatus[x.req.status] + ')' : ''))].filter(Boolean).join('\n');
+                  return (
+                    <button key={ds} title={title} onClick={() => pick(ds)}
+                      className={cx('relative flex h-9 flex-col items-center justify-start rounded-md pt-0.5 text-[11px] leading-none transition',
+                        off ? 'bg-slate-100 text-slate-400' : 'text-slate-700 hover:bg-slate-50',
+                        hol && 'bg-amber-50 text-amber-800',
+                        inRange(ds) && 'ring-2 ring-brand-600 bg-brand-50',
+                        ds === today && 'font-black underline')}>
+                      {d}
+                      <span className="mt-0.5 flex flex-wrap justify-center gap-px">
+                        {entries.slice(0, 4).map((x, k) => <span key={k} className={cx('inline-block h-1.5 w-1.5 rounded-full', x.pending && 'opacity-40')} style={{ background: colorOf(x.emp.id) }} />)}
+                        {entries.length > 4 && <span className="text-[8px] text-slate-500">+{entries.length - 4}</span>}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function LeaveIoTab({ me, data, types, reqs, adjs, setReqs, setAdjs, balance, eName, tyName, year, toast, audit }) {
   const { lang, t } = useL();
   const [layout, setLayout] = useState('list');
@@ -4120,6 +4254,7 @@ function LeavePage({ me, data, toast, audit }) {
 
   const tabs = [
     ...(myEmp ? [{ k: 'mine', label: t.myLeave }] : []),
+    { k: 'calendar', label: '📅 ' + t.calendarTab },
     ...(admin ? [{ k: 'approvals', label: t.approvals }] : []),
     ...(myEmp || admin ? [{ k: 'makeup', label: t.makeup }] : []),
     ...(['ceo', 'hr', 'accountant'].includes(me.role) ? [{ k: 'balances', label: t.balances }] : []),
@@ -4152,8 +4287,8 @@ function LeavePage({ me, data, toast, audit }) {
   const balance = (emp) => leaveBalance(emp, year, reqs || [], adjs, types, leavePolicyOf(data.settings));
 
   /* ---------- create request ---------- */
-  function openForm() {
-    setForm({ employee_id: myEmp ? myEmp.id : '', leave_type_id: (tyByCode('annual') || types[0] || {}).id || '', start_date: todayISO(), end_date: todayISO(), reason: '' });
+  function openForm(start, end) {
+    setForm({ employee_id: myEmp ? myEmp.id : '', leave_type_id: (tyByCode('annual') || types[0] || {}).id || '', start_date: start || todayISO(), end_date: end || start || todayISO(), reason: '' });
   }
 
   const formEmp = form ? data.employees.find((e) => e.id === form.employee_id) : null;
@@ -4274,8 +4409,11 @@ function LeavePage({ me, data, toast, audit }) {
     setMkForm(null);
     toast(t.saved);
   }
+  const [creditPick, setCreditPick] = useState({});   // makeup id -> credit chosen by the approver
+  const creditLabel = (c) => Number(c) >= 1 ? t.creditFull : Number(c) >= 0.5 ? t.creditHalf : t.creditNone;
   async function decideMakeup(m, approve) {
-    const { data: row, error } = await sb.rpc('decide_leave_makeup', { p_id: m.id, p_approve: approve, p_note: null });
+    const credit = creditPick[m.id] !== undefined ? Number(creditPick[m.id]) : (m.credit_days != null ? Number(m.credit_days) : 1);
+    const { data: row, error } = await sb.rpc('decide_leave_makeup', { p_id: m.id, p_approve: approve, p_note: null, p_credit: approve ? credit : null });
     if (error) return toast(mkErr(error), 'error');
     setMakeups((prev) => prev.map((x) => (x.id === row.id ? row : x)));
     if (approve && row.adjustment_id) sb.from('leave_adjustments').select('*').eq('id', row.adjustment_id).single().then(({ data: a }) => { if (a) setAdjs((prev) => [...prev, a]); });
@@ -4307,12 +4445,14 @@ function LeavePage({ me, data, toast, audit }) {
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-800">{showName ? eName(emp) + ' · ' : ''}🔁 {m.work_date}</p>
-            <p className="text-xs text-slate-500">{t.makeupFor} {leaveLabel(m.leave_request_id)} · <DayPunches empId={m.employee_id} date={m.work_date} />{m.decision_note ? ' · ' + m.decision_note : ''}</p>
+            <p className="text-xs text-slate-500">{m.first_in ? fmtTime(m.first_in) + ' → ' + (m.last_out ? fmtTime(m.last_out) : '…') + ' · ' + Number(m.hours || 0) + ' h · ' + creditLabel(m.credit_days) : <DayPunches empId={m.employee_id} date={m.work_date} />}{m.leave_request_id ? ' · ' + t.makeupFor + ' ' + leaveLabel(m.leave_request_id) : ''}{m.auto ? ' · ' + t.autoMakeup : ''}{m.decision_note ? ' · ' + m.decision_note : ''}</p>
           </div>
           <Badge tone={lvTone(m.status)}>{t.kpiStatus[m.status]}</Badge>
         </div>
         {m.status === 'pending' && (canDecideMakeup(m) ? (
-          <div className="flex gap-2"><Btn size="sm" className="flex-1" onClick={() => decideMakeup(m, true)}>{t.approve}</Btn><Btn size="sm" variant="danger" className="flex-1" onClick={() => decideMakeup(m, false)}>{t.reject}</Btn></div>
+          <div className="flex gap-2">
+            <Select className="!w-auto" value={creditPick[m.id] !== undefined ? creditPick[m.id] : String(Number(m.credit_days != null ? m.credit_days : 1))} onChange={(e) => setCreditPick({ ...creditPick, [m.id]: e.target.value })}><option value="1">{t.creditFull}</option><option value="0.5">{t.creditHalf}</option><option value="0">{t.creditNone}</option></Select>
+            <Btn size="sm" className="flex-1" onClick={() => decideMakeup(m, true)}>{t.approve}</Btn><Btn size="sm" variant="danger" className="flex-1" onClick={() => decideMakeup(m, false)}>{t.reject}</Btn></div>
         ) : mine ? <Btn size="sm" variant="outline" onClick={() => removeMakeup(m)}>{t.cancelReq}</Btn> : null)}
       </li>
     );
@@ -4368,7 +4508,7 @@ function LeavePage({ me, data, toast, audit }) {
         {tabs.map((x) => (
           <button key={x.k} onClick={() => setTab(x.k)}
             className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
-            {x.label}{x.k === 'approvals' && pendingForMe.length > 0 ? ' (' + pendingForMe.length + ')' : ''}
+            {x.label}{x.k === 'approvals' && pendingForMe.length > 0 ? ' (' + pendingForMe.length + ')' : ''}{x.k === 'makeup' && pendingMakeups.length > 0 ? ' (' + pendingMakeups.length + ')' : ''}
           </button>
         ))}
       </div>
@@ -4419,7 +4559,7 @@ function LeavePage({ me, data, toast, audit }) {
 
       {tab === 'makeup' && (
         <>
-          <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.makeupHint.replace('{w}', makeupWeeks)}</p>
+          <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.makeupAutoHint} {t.makeupHint.replace('{w}', makeupWeeks)}</p>
           {myEmp && (
             <Card title={t.makeupCandidates}>
               {myPunchDays === null ? <Empty text={t.loading} /> : myCandidates.length === 0 ? <Empty text={t.makeupNone} /> : (
@@ -4472,6 +4612,7 @@ function LeavePage({ me, data, toast, audit }) {
         )}
       </Modal>
 
+      {tab === 'calendar' && <LeaveCalendar me={me} myEmp={myEmp} data={data} types={types} reqs={reqs} year={year} isHr={isHr} eName={eName} tyName={tyName} onRequest={(a, b) => openForm(a, b)} empWeekend={empWeekend} companyWeekend={companyWeekend} />}
       {tab === 'io' && <LeaveIoTab me={me} data={data} types={types} reqs={reqs} adjs={adjs} setReqs={setReqs} setAdjs={setAdjs} balance={balance} eName={eName} tyName={tyName} year={year} toast={toast} audit={audit} />}
 
       {tab === 'balances' && (
@@ -6696,6 +6837,8 @@ function WorkWeekSettings(props) {
           <Input type="number" inputMode="numeric" min="1" value={f.makeup_window_weeks ?? 4}
             onChange={(e) => setF({ ...f, makeup_window_weeks: Number(e.target.value) })} />
         </Field>
+        <Field label={t.makeupFullH}><Input type="number" inputMode="decimal" step="0.5" value={f.makeup_full_hours ?? 7} onChange={(e) => setF({ ...f, makeup_full_hours: Number(e.target.value) })} /></Field>
+        <Field label={t.makeupHalfH}><Input type="number" inputMode="decimal" step="0.5" value={f.makeup_half_hours ?? 4} onChange={(e) => setF({ ...f, makeup_half_hours: Number(e.target.value) })} /></Field>
       </div>
       <Btn className="mt-4" onClick={() => save('work_week', f, initial)}>{t.save}</Btn>
     </Card>
