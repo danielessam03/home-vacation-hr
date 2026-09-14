@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.24';
+const APP_VERSION = 'v3.25';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -182,6 +182,7 @@ const T = {
     reviewTab: 'Review', lockTab: 'Lock',
     lateMin: 'Late', workedH: 'Hours', otMin: 'OT', missingOut: 'Missing punch', weekendLbl: 'Weekend',
     breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
+    excuseDay: 'Excuse this day', excuseWhat: 'What to excuse', excuseSaved: 'Excused. No deduction for that day.', excuseExisting: 'Already excused', excuseHint: 'Creates an accepted note on the employee\'s behalf. The day then carries no deduction for the chosen item.',
     totalsTab: 'Totals', totalLbl: 'Total', totalLate: 'Late (total)', totalEarly: 'Left early (total)', totalBreakOver: 'Break overrun (total)', totalOt: 'Overtime (total)', totalDeducted: 'Deducted (EGP)',
     totalsHint: 'Same calculation as payroll: lateness, early-leave and break tiers after accepted notes; overtime after the shift end. Approved payroll runs are not changed by this view.',
     earlyRules: 'Early-leave rules', earlyDedLbl: 'Left early', earlyMinLbl: 'Early', tierBefore: 'Minutes before the shift end', earlyRulesHint: 'Leaving before the shift end is penalised by the highest tier reached, once per day, unless a "leaving early" note was accepted. A missing check-out is flagged, not penalised.',
@@ -406,6 +407,7 @@ const T = {
     reviewTab: 'المراجعة', lockTab: 'القفل',
     lateMin: 'تأخير', workedH: 'ساعات', otMin: 'إضافي', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية',
     breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
+    excuseDay: 'إعفاء هذا اليوم', excuseWhat: 'ما الذي يُعفى', excuseSaved: 'تم الإعفاء. لا خصم عن هذا اليوم.', excuseExisting: 'معفى بالفعل', excuseHint: 'ينشئ إذناً مقبولاً نيابة عن الموظف. لا يُخصم عن هذا اليوم للبند المختار.',
     totalsTab: 'الإجماليات', totalLbl: 'الإجمالي', totalLate: 'التأخير (إجمالي)', totalEarly: 'الانصراف المبكر (إجمالي)', totalBreakOver: 'تجاوز الاستراحة (إجمالي)', totalOt: 'الإضافي (إجمالي)', totalDeducted: 'المخصوم (جنيه)',
     totalsHint: 'نفس حساب الرواتب: شرائح التأخير والانصراف المبكر والاستراحة بعد الأذونات المقبولة؛ والإضافي بعد نهاية الوردية. مسيرات الرواتب المعتمدة لا تتغير من هنا.',
     earlyRules: 'قواعد الانصراف المبكر', earlyDedLbl: 'انصراف مبكر', earlyMinLbl: 'مبكر', tierBefore: 'الدقائق قبل نهاية الوردية', earlyRulesHint: 'الانصراف قبل نهاية الوردية يُعاقب بأعلى شريحة يصل إليها الموظف مرة واحدة في اليوم، إلا إذا قُبل إذن "انصراف مبكر". البصمة الناقصة تُعلَّم ولا تُعاقب.',
@@ -3208,6 +3210,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   const [punches, setPunches] = useState(null);
   const [dayView, setDayView] = useState(null);   // {emp, date, punches}
   const [manual, setManual] = useState(null);
+  const [excuse, setExcuse] = useState(null);      // { row, kinds: {late,early_leave,break}, reason }
   const [excused, setExcused] = useState({});   // 'empId|date' -> kind (approved late / early-leave notes)
   const [sessions, setSessions] = useState([]);  // live sessions in range (break minutes)
   const [excusedBreak, setExcusedBreak] = useState({});
@@ -3279,6 +3282,23 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut, flagged, excused: !!exc, tier, brkMin, brkOver, brkTier, early: earlyExc ? 0 : early, earlyTier };
     }).sort((a, b) => b.date.localeCompare(a.date) || eName(a.emp).localeCompare(eName(b.emp)));
   }, [punches, fEmp, data.employees, data.shifts, excused, breakByEmp, excusedBreak, excusedEarlyMap]);
+
+  /* HR / manager: excuse a day straight from the review (accepted note on the employee's behalf) */
+  async function saveExcuse() {
+    const kinds = Object.keys(excuse.kinds).filter((k) => excuse.kinds[k]);
+    if (!kinds.length) return toast(t.excuseWhat, 'error');
+    if (!excuse.reason.trim()) return toast(t.reasonLbl, 'error');
+    const empId = excuse.row.emp.id, date = excuse.row.date, now = new Date().toISOString();
+    const rows = kinds.map((kind) => ({ employee_id: empId, exc_date: date, kind, minutes: kind === 'late' ? excuse.row.late : kind === 'early_leave' ? excuse.row.early : excuse.row.brkOver, reason: excuse.reason.trim(), status: 'approved', decided_by: me.id, decided_at: now, created_by: me.id }));
+    const { data: saved, error } = await sb.from('attendance_exceptions').insert(rows).select();
+    if (error) return toast(error.message, 'error');
+    setExcused((prev) => { const m = { ...prev }; for (const x of saved) if (x.kind !== 'break') m[empId + '|' + date] = x.kind; return m; });
+    setExcusedBreak((prev) => saved.some((x) => x.kind === 'break') ? { ...prev, [empId + '|' + date]: true } : prev);
+    setExcusedEarlyMap((prev) => saved.some((x) => x.kind === 'early_leave') ? { ...prev, [empId + '|' + date]: true } : prev);
+    for (const x of saved) audit('approve', 'attendance_exceptions', x.id, null, x);
+    setExcuse(null); setDayView(null);
+    toast(t.excuseSaved);
+  }
 
   async function saveManual() {
     if (!manual.employee_id || !manual.note) return toast(t.punchNote, 'error');
@@ -3371,6 +3391,26 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
           </ul>
         )}
         {dayView && dayView.emp && <DayBreaks empId={dayView.emp.id} date={dayView.date} />}
+        {dayView && dayView.emp && (dayView.late > 0 || dayView.early > 0 || dayView.brkOver > 0) && (isHr || (dayView.emp.manager_id && data.employees.some((e) => e.user_id === me.id && e.id === dayView.emp.manager_id))) && (
+          <div className="mt-3 border-t border-slate-200 pt-3">
+            <Btn className="w-full" variant="soft" onClick={() => setExcuse({ row: dayView, kinds: { late: dayView.late > 0, early_leave: dayView.early > 0, break: dayView.brkOver > 0 }, reason: '' })}>✓ {t.excuseDay}</Btn>
+          </div>
+        )}
+        {dayView && dayView.excused && <p className="mt-2 text-center text-xs text-emerald-700">✓ {t.excuseExisting}</p>}
+      </Modal>
+
+      <Modal open={!!excuse} onClose={() => setExcuse(null)} title={excuse ? t.excuseDay + ' · ' + eName(excuse.row.emp) + ' · ' + excuse.row.date : ''}
+        footer={<><Btn className="flex-1" onClick={saveExcuse}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setExcuse(null)}>{t.cancel}</Btn></>}>
+        {excuse && (
+          <>
+            <p className="text-xs text-slate-500">{t.excuseHint}</p>
+            <p className="text-xs font-semibold text-slate-600">{t.excuseWhat}</p>
+            {[['late', t.excKinds.late, excuse.row.late], ['early_leave', t.excKinds.early_leave, excuse.row.early], ['break', t.excKinds.break, excuse.row.brkOver]].map(([k, l, m]) => m > 0 && (
+              <label key={k} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!excuse.kinds[k]} onChange={(e) => setExcuse({ ...excuse, kinds: { ...excuse.kinds, [k]: e.target.checked } })} />{l} · {m} {t.minutesLbl}</label>
+            ))}
+            <Field label={t.reasonLbl}><textarea className={cx(inputCls, 'min-h-[80px]')} value={excuse.reason} onChange={(e) => setExcuse({ ...excuse, reason: e.target.value })} /></Field>
+          </>
+        )}
       </Modal>
 
       <Modal open={!!manual} onClose={() => setManual(null)} title={t.manualPunch}
