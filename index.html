@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.25';
+const APP_VERSION = 'v3.26';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -109,7 +109,7 @@ const T = {
     appName: 'Home Vacation HR', appSub: 'HR & Payroll',
     email: 'Email', loginId: 'Username or email', unknownUser: 'Unknown username', password: 'Password', signIn: 'Sign in', signUp: 'Create account',
     signOut: 'Sign out', fullNameEn: 'Full name (English)', fullNameAr: 'Full name (Arabic)',
-    forgotPw: 'Forgot password?', resetSent: 'Password reset link sent to your email.',
+    forgotPw: 'Forgot password?', resetSent: 'Request sent. HR will set a new password and tell you.', pwRequests: 'Password reset requests', pwRequested: 'requested', pwDone: 'Done', pwOpenCard: 'Set a new password from the card, then mark done.',
     haveAccount: 'Already have an account?', noAccount: 'First time here?',
     signupHint: 'Your role is assigned by HR. If HR has not registered your email yet, ask them first.',
     checkEmail: 'Account created. Check your email to confirm, then sign in.',
@@ -334,7 +334,7 @@ const T = {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
     email: 'البريد الإلكتروني', loginId: 'اسم المستخدم أو البريد', unknownUser: 'اسم المستخدم غير معروف', password: 'كلمة المرور', signIn: 'تسجيل الدخول', signUp: 'إنشاء حساب',
     signOut: 'تسجيل الخروج', fullNameEn: 'الاسم بالإنجليزية', fullNameAr: 'الاسم بالعربية',
-    forgotPw: 'نسيت كلمة المرور؟', resetSent: 'تم إرسال رابط إعادة التعيين إلى بريدك.',
+    forgotPw: 'نسيت كلمة المرور؟', resetSent: 'تم إرسال الطلب. ستحدد الموارد البشرية كلمة مرور جديدة وتبلغك.', pwRequests: 'طلبات إعادة تعيين كلمة المرور', pwRequested: 'طُلب', pwDone: 'تم', pwOpenCard: 'حدد كلمة مرور جديدة من البطاقة ثم اضغط تم.',
     haveAccount: 'لديك حساب بالفعل؟', noAccount: 'أول مرة؟',
     signupHint: 'يتم تحديد صلاحيتك بواسطة الموارد البشرية. إذا لم يتم تسجيل بريدك بعد، تواصل معهم أولاً.',
     checkEmail: 'تم إنشاء الحساب. راجع بريدك للتأكيد ثم سجّل الدخول.',
@@ -1498,11 +1498,10 @@ function AuthScreen({ toast }) {
     return data;
   }
 
+  /* no email: HR gets a request and sets the password from the employee card */
   async function reset() {
     if (!email.trim()) return toast(t.loginId, 'error');
-    let target;
-    try { target = await resolveEmail(); } catch (err) { return toast(err.message, 'error'); }
-    const { error } = await sb.auth.resetPasswordForEmail(target, { redirectTo: window.location.href });
+    const { error } = await sb.rpc('request_password_reset', { p_username: email.trim() });
     toast(error ? error.message : t.resetSent, error ? 'error' : 'ok');
   }
 
@@ -2005,6 +2004,22 @@ function UsersPage({ me, data, refresh, toast, audit }) {
           </ul>
         )}
       </Card>
+
+      {(data.pwRequests || []).length > 0 && (
+        <Card title={'🔑 ' + t.pwRequests + ' (' + data.pwRequests.length + ')'}>
+          <p className="mb-2 text-xs text-slate-500">{t.pwOpenCard}</p>
+          <ul className="divide-y divide-slate-100">
+            {data.pwRequests.map((r) => { const u = data.users.find((x) => x.id === r.user_id); return (
+              <li key={r.id} className="flex items-center justify-between gap-2 py-2.5">
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-800">{u ? ((lang === 'ar' ? u.full_name_ar : u.full_name_en) || u.email) : r.username}</p><p className="text-xs text-slate-500">@{r.username} · {t.pwRequested} {localDay(r.requested_at)} {fmtTime(r.requested_at)}</p></div>
+                <div className="flex shrink-0 gap-2">
+                  {u && <Btn size="sm" onClick={() => setEditing({ ...u })}>{t.edit}</Btn>}
+                  <Btn size="sm" variant="outline" onClick={async () => { const { error } = await sb.from('password_reset_requests').update({ status: 'done', done_by: me.id, done_at: new Date().toISOString() }).eq('id', r.id); if (error) return toast(error.message, 'error'); refresh.pwRequests((prev) => prev.filter((x) => x.id !== r.id)); }}>✓ {t.pwDone}</Btn>
+                </div>
+              </li>); })}
+          </ul>
+        </Card>
+      )}
 
       <Card title={t.pending}>
         {data.invites.length === 0 ? <Empty text={t.noData} /> : (
@@ -7563,6 +7578,7 @@ function App() {
 
   const [users, setUsers] = useState([]);
   const [invites, setInvites] = useState([]);
+  const [pwRequests, setPwRequests] = useState([]);
   const [branches, setBranches] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [settings, setSettings] = useState({});
@@ -7653,14 +7669,16 @@ function App() {
 
       if (['ceo', 'hr', 'accountant', 'manager'].includes(profile.role)) {
         const in60 = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
-        const [u, inv, xd] = await Promise.all([
+        const [u, inv, pw, xd] = await Promise.all([
           sb.from('app_users').select('*').order('created_at'),
           sb.from('user_invites').select('*').order('created_at', { ascending: false }),
+          ['ceo', 'hr'].includes(profile.role) ? sb.from('password_reset_requests').select('*').eq('status', 'pending').order('requested_at', { ascending: false }) : Promise.resolve({ data: [] }),
           sb.from('employee_documents').select('*').not('expiry_date', 'is', null).lte('expiry_date', in60).order('expiry_date'),
         ]);
         if (cancelled) return;
         setUsers(u.data || []);
         setInvites(inv.data || []);
+        setPwRequests(pw.data || []);
         setExpiringDocs(xd.data || []);
       }
       setReady(true);
@@ -7700,9 +7718,9 @@ function App() {
     );
   }
 
-  const data = { users, invites, branches, holidays, settings, taxBrackets, taxSettings, insurance, employees, departments, expiringDocs, shifts };
+  const data = { users, invites, pwRequests, branches, holidays, settings, taxBrackets, taxSettings, insurance, employees, departments, expiringDocs, shifts };
   const refresh = {
-    users: setUsers, invites: setInvites, branches: setBranches, holidays: setHolidays,
+    users: setUsers, invites: setInvites, pwRequests: setPwRequests, branches: setBranches, holidays: setHolidays,
     settings: setSettings, taxBrackets: setTaxBrackets, taxSettings: setTaxSettings, insurance: setInsurance,
     employees: setEmployees, departments: setDepartments, expiringDocs: setExpiringDocs, shifts: setShifts,
   };
