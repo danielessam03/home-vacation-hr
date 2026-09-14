@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.27';
+const APP_VERSION = 'v3.28';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -113,6 +113,7 @@ const T = {
     haveAccount: 'Already have an account?', noAccount: 'First time here?',
     signupHint: 'Your role is assigned by HR. If HR has not registered your email yet, ask them first.',
     checkEmail: 'Account created. It stays locked until HR approves it in the system.', awaitingApproval: 'Your account is waiting for approval by HR. You will be told when it is ready.',
+    empCardLbl: 'Employee card', noCard: 'no card', createLoginNow: 'Employee saved. Create their login now?', syncHint: 'One person = one employee card + one login. Adding either creates the other; names stay in sync.',
     signupRequests: 'Sign-up requests', approveAcct: 'Approve', rejectAcct: 'Reject', signedUpAt: 'signed up', approveHint: 'Pick the role, branch and systems, then approve. Rejected accounts stay locked.',
     notConfigured: 'Supabase is not configured yet. Add your project URL and anon key at the top of index.html.',
     inactive: 'Your account is deactivated. Contact HR.',
@@ -339,6 +340,7 @@ const T = {
     haveAccount: 'لديك حساب بالفعل؟', noAccount: 'أول مرة؟',
     signupHint: 'يتم تحديد صلاحيتك بواسطة الموارد البشرية. إذا لم يتم تسجيل بريدك بعد، تواصل معهم أولاً.',
     checkEmail: 'تم إنشاء الحساب. يبقى مقفلاً حتى تعتمده الموارد البشرية من النظام.', awaitingApproval: 'حسابك بانتظار اعتماد الموارد البشرية. سيتم إبلاغك عند جاهزيته.',
+    empCardLbl: 'بطاقة الموظف', noCard: 'بلا بطاقة', createLoginNow: 'تم حفظ الموظف. إنشاء حساب الدخول الآن؟', syncHint: 'الشخص الواحد = بطاقة موظف + حساب دخول. إضافة أحدهما تنشئ الآخر، والأسماء تبقى متزامنة.',
     signupRequests: 'طلبات التسجيل', approveAcct: 'اعتماد', rejectAcct: 'رفض', signedUpAt: 'سجّل في', approveHint: 'اختر الدور والفرع والأنظمة ثم اعتمد. الحسابات المرفوضة تبقى مقفلة.',
     notConfigured: 'لم يتم ضبط Supabase بعد. أضف رابط المشروع والمفتاح في أعلى ملف index.html.',
     inactive: 'حسابك موقوف. تواصل مع الموارد البشرية.',
@@ -1981,7 +1983,7 @@ function UsersPage({ me, data, refresh, toast, audit }) {
     <>
       <div className="flex gap-2">
         <Input placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} />
-        <Btn onClick={() => setCreating(true)}>+ {t.createLogin}</Btn>
+        <Btn onClick={() => setCreating(true)} title={t.syncHint}>+ {t.createLogin}</Btn>
         <Btn variant="outline" onClick={() => setInviting({ email: '', role: 'staff', branch_id: '', full_name_en: '', full_name_ar: '' })}>{t.invite}</Btn>
       </div>
 
@@ -1994,7 +1996,7 @@ function UsersPage({ me, data, refresh, toast, audit }) {
                   <p className="truncate text-sm font-semibold text-slate-800">
                     {(lang === 'ar' ? u.full_name_ar : u.full_name_en) || u.email}
                   </p>
-                  <p className="truncate text-xs text-slate-500"><span dir="ltr">@{u.username || '?'}</span> &middot; {u.email} &middot; {branchName(u.branch_id)}</p>
+                  <p className="truncate text-xs text-slate-500">{(() => { const e = data.employees.find((x) => x.user_id === u.id); return <span className={e ? 'text-slate-500' : 'text-amber-600'}>🪪 {e ? e.employee_code : t.noCard} · </span>; })()}<span dir="ltr">@{u.username || '?'}</span> &middot; {u.email} &middot; {branchName(u.branch_id)}</p>
                   <p className="text-xs text-slate-400">{SYSTEMS.filter(([k]) => u[k]).map(([k, lbl, ic]) => ic + ' ' + t[lbl]).join(' · ') || '—'}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -2237,6 +2239,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
     if (view && view.id === row.id) setView(row);
     setForm(null);
     toast(t.saved);
+    if (!form.id && !row.user_id && canEdit) { setView(row); setTab('profile'); if (window.confirm(t.createLoginNow)) setCreatingLogin(true); }
   }
 
   async function uploadDoc(file) {
