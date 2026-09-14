@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.23';
+const APP_VERSION = 'v3.24';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -182,6 +182,8 @@ const T = {
     reviewTab: 'Review', lockTab: 'Lock',
     lateMin: 'Late', workedH: 'Hours', otMin: 'OT', missingOut: 'Missing punch', weekendLbl: 'Weekend',
     breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
+    totalsTab: 'Totals', totalLbl: 'Total', totalLate: 'Late (total)', totalEarly: 'Left early (total)', totalBreakOver: 'Break overrun (total)', totalOt: 'Overtime (total)', totalDeducted: 'Deducted (EGP)',
+    totalsHint: 'Same calculation as payroll: lateness, early-leave and break tiers after accepted notes; overtime after the shift end. Approved payroll runs are not changed by this view.',
     earlyRules: 'Early-leave rules', earlyDedLbl: 'Left early', earlyMinLbl: 'Early', tierBefore: 'Minutes before the shift end', earlyRulesHint: 'Leaving before the shift end is penalised by the highest tier reached, once per day, unless a "leaving early" note was accepted. A missing check-out is flagged, not penalised.',
     breakRules: 'Break rules', breakMax: 'Daily break allowance (minutes)', tierOver: 'Over the allowance by (minutes)', breakDedLbl: 'Break overrun', breakOverLbl: 'over', breakLeft: 'left of your break', breakExceeded: 'Break allowance exceeded by',
     breakRulesHint: 'All breaks of the day add up. Minutes over the allowance are penalised by the highest tier reached, once per day. An accepted "longer break" note skips the break tiers for that day.',
@@ -404,6 +406,8 @@ const T = {
     reviewTab: 'المراجعة', lockTab: 'القفل',
     lateMin: 'تأخير', workedH: 'ساعات', otMin: 'إضافي', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية',
     breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
+    totalsTab: 'الإجماليات', totalLbl: 'الإجمالي', totalLate: 'التأخير (إجمالي)', totalEarly: 'الانصراف المبكر (إجمالي)', totalBreakOver: 'تجاوز الاستراحة (إجمالي)', totalOt: 'الإضافي (إجمالي)', totalDeducted: 'المخصوم (جنيه)',
+    totalsHint: 'نفس حساب الرواتب: شرائح التأخير والانصراف المبكر والاستراحة بعد الأذونات المقبولة؛ والإضافي بعد نهاية الوردية. مسيرات الرواتب المعتمدة لا تتغير من هنا.',
     earlyRules: 'قواعد الانصراف المبكر', earlyDedLbl: 'انصراف مبكر', earlyMinLbl: 'مبكر', tierBefore: 'الدقائق قبل نهاية الوردية', earlyRulesHint: 'الانصراف قبل نهاية الوردية يُعاقب بأعلى شريحة يصل إليها الموظف مرة واحدة في اليوم، إلا إذا قُبل إذن "انصراف مبكر". البصمة الناقصة تُعلَّم ولا تُعاقب.',
     breakRules: 'قواعد الاستراحة', breakMax: 'الاستراحة المسموحة يومياً (دقائق)', tierOver: 'تجاوز المسموح بـ (دقائق)', breakDedLbl: 'تجاوز الاستراحة', breakOverLbl: 'تجاوز', breakLeft: 'متبقية من استراحتك', breakExceeded: 'تجاوزت الاستراحة المسموحة بـ',
     breakRulesHint: 'تُجمع كل استراحات اليوم. الدقائق الزائدة عن المسموح تُعاقب بأعلى شريحة يصل إليها الموظف مرة واحدة في اليوم. الإذن المقبول بـ"استراحة أطول" يلغي شرائح الاستراحة في ذلك اليوم.',
@@ -2594,6 +2598,7 @@ function AttendancePage({ me, data, refresh, toast, audit, live, initialTab }) {
     ...(myEmp ? [{ k: 'trips', label: t.tripsTab }] : []),
     ...(admin ? [{ k: 'live', label: '🟢 ' + t.liveBoard }, { k: 'review', label: t.reviewTab }] : []),
     ...((myEmp && !myEmp.attendance_exempt) || admin ? [{ k: 'exceptions', label: '⏰ ' + t.excTab }] : []),
+    ...(admin ? [{ k: 'totals', label: 'Σ ' + t.totalsTab }] : []),
     ...(isHr ? [{ k: 'lock', label: t.lockTab }, { k: 'rules', label: '⚙️ ' + t.attRules }] : []),
   ];
   const [tab, setTab] = useState(initialTab && tabs.some((x) => x.k === initialTab) ? initialTab : (tabs.length ? tabs[0].k : 'none'));
@@ -2617,12 +2622,120 @@ function AttendancePage({ me, data, refresh, toast, audit, live, initialTab }) {
       {tab === 'review' && <ReviewTab me={me} data={data} toast={toast} audit={audit} eName={eName} isHr={isHr} />}
       {tab === 'lock' && <LockTab me={me} data={data} toast={toast} audit={audit} />}
       {tab === 'exceptions' && <ExceptionsTab me={me} myEmp={myEmp} data={data} toast={toast} audit={audit} eName={eName} admin={admin} isHr={isHr} />}
+      {tab === 'totals' && <AttendanceTotalsTab me={me} data={data} eName={eName} />}
       {tab === 'rules' && <AttendanceRulesTab me={me} data={data} refresh={refresh} toast={toast} audit={audit} />}
     </>
   );
 }
 
 /* Lateness tiers, edited in place by HR / CEO. */
+/* ---------------------------------------------------------------------
+   Attendance totals for a month: late / early / break-overrun minutes,
+   overtime minutes, and the money each one adds or deducts, computed
+   with the same engine payroll uses. Money is shown to CEO/accounting.
+   --------------------------------------------------------------------- */
+function AttendanceTotalsTab({ me, data, eName }) {
+  const { lang, t } = useL();
+  const canMoney = ['ceo', 'accountant'].includes(me.role);
+  const now = new Date();
+  const [ym, setYm] = useState(now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
+  const [rows, setRows] = useState(null);
+  const [fEmp, setFEmp] = useState('');
+  const hm = (m) => { const n = Math.round(Number(m) || 0); return Math.floor(n / 60) + 'h ' + String(n % 60).padStart(2, '0') + 'm'; };
+
+  useEffect(() => {
+    setRows(null);
+    const [y, m] = ym.split('-').map(Number);
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const from = y + '-' + pad2(m) + '-01';
+    const nextM = m === 12 ? (y + 1) + '-01-01' : y + '-' + pad2(m + 1) + '-01';
+    (async () => {
+      const [pu, lv, ty, exc, ws] = await Promise.all([
+        sb.from('attendance_punches').select('employee_id, punch_time, direction').gte('punch_time', new Date(from + 'T00:00:00').toISOString()).lt('punch_time', new Date(nextM + 'T00:00:00').toISOString()),
+        sb.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', y + '-' + pad2(m) + '-31').gte('end_date', from),
+        sb.from('leave_types').select('*'),
+        sb.from('attendance_exceptions').select('employee_id, exc_date, kind, status').eq('status', 'approved').gte('exc_date', from).lt('exc_date', nextM),
+        sb.from('work_sessions').select('employee_id, started_at, ended_at, status, break_seconds, break_started_at').gte('started_at', new Date(from + 'T00:00:00').toISOString()).lt('started_at', new Date(nextM + 'T00:00:00').toISOString()),
+      ]);
+      const ctx = {
+        year: y, month: m, shifts: data.shifts, holidays: data.holidays,
+        companyWeekend: (data.settings.work_week || {}).weekend_days || [5, 6], workWeek: data.settings.work_week || {},
+        policy: data.settings.payroll_policy || {}, attendancePolicy: data.settings.attendance_policy || {},
+        insurance: data.insurance, taxBrackets: data.taxBrackets, taxSettings: data.taxSettings,
+        leaves: lv.data || [], leaveTypes: ty.data || [], loans: [], exceptions: exc.data || [], sessions: ws.data || [],
+      };
+      const out = data.employees.filter((e) => e.status === 'active' && !e.attendance_exempt).map((emp) => {
+        const punches = (pu.data || []).filter((p) => p.employee_id === emp.id);
+        const it = computePayrollItem(emp, { ...ctx, punches });
+        const days = new Set(punches.map((p) => localDay(p.punch_time))).size;
+        return { emp, days, late: it.late_minutes, lateDays: it.late_days, lateDed: it.late_deduction, early: it.early_minutes, earlyDed: it.early_deduction,
+          brk: it.break_over_minutes, brkDed: it.break_deduction, ot: it.ot_minutes, otAmt: it.ot_amount,
+          ded: r2(it.late_deduction + (it.early_deduction || 0) + (it.break_deduction || 0)) };
+      }).filter((r) => r.days > 0).sort((a, b) => b.ded - a.ded || b.late - a.late);
+      setRows(out);
+    })();
+  }, [ym, data.employees]);
+
+  const shown = rows ? rows.filter((r) => !fEmp || r.emp.id === fEmp) : [];
+  const sum = (k) => shown.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+  const Tile = ({ label, value, tone }) => (
+    <div className={cx('rounded-2xl border p-3 text-center', tone === 'red' ? 'border-rose-200 bg-rose-50' : tone === 'green' ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white')}>
+      <div className={cx('text-xl font-bold', tone === 'red' ? 'text-rose-700' : tone === 'green' ? 'text-emerald-700' : 'text-slate-800')}>{value}</div>
+      <div className="text-[11px] text-slate-500">{label}</div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input type="month" className="!w-auto" value={ym} onChange={(e) => e.target.value && setYm(e.target.value)} />
+        <Select className="!w-auto" value={fEmp} onChange={(e) => setFEmp(e.target.value)}>
+          <option value="">{t.allEmployees}</option>
+          {data.employees.filter((e) => e.status === 'active' && !e.attendance_exempt).map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+        </Select>
+      </div>
+      <p className="text-xs text-slate-500">{t.totalsHint}</p>
+      {rows === null ? <Empty text={t.loading} /> : (
+        <>
+          <div className={cx('grid grid-cols-2 gap-2', canMoney ? 'sm:grid-cols-5' : 'sm:grid-cols-4')}>
+            <Tile label={t.totalLate} value={hm(sum('late'))} tone="red" />
+            <Tile label={t.totalEarly} value={hm(sum('early'))} tone="red" />
+            <Tile label={t.totalBreakOver} value={hm(sum('brk'))} tone="red" />
+            <Tile label={t.totalOt} value={hm(sum('ot'))} tone="green" />
+            {canMoney && <Tile label={t.totalDeducted} value={money(sum('ded'))} tone="red" />}
+          </div>
+          <Card title={t.totalsTab}>
+            {shown.length === 0 ? <Empty text={t.noData} /> : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead><tr>{[t.selectEmployee, t.presentDays, t.lateMin, t.earlyMinLbl, '☕ ' + t.breakOverLbl, t.otMin, ...(canMoney ? [t.lateDedLbl, t.earlyDedLbl, t.breakDedLbl, t.totalDeducted, t.otLbl] : [])].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
+                  <tbody>
+                    {shown.map((r) => (
+                      <tr key={r.emp.id} className="border-t border-slate-100">
+                        <td className="py-2 font-semibold text-slate-800">{eName(r.emp)}</td>
+                        <td>{r.days}</td>
+                        <td className={r.late > 0 ? 'font-semibold text-rose-600' : ''}>{r.late ? hm(r.late) + (r.lateDays ? ' · ' + r.lateDays + ' ' + t.daysUnit : '') : ''}</td>
+                        <td className={r.early > 0 ? 'font-semibold text-rose-600' : ''}>{r.early ? hm(r.early) : ''}</td>
+                        <td className={r.brk > 0 ? 'font-semibold text-rose-600' : ''}>{r.brk ? hm(r.brk) : ''}</td>
+                        <td className={r.ot > 0 ? 'font-semibold text-emerald-600' : ''}>{r.ot ? hm(r.ot) : ''}</td>
+                        {canMoney && <><td>{r.lateDed ? money(r.lateDed) : ''}</td><td>{r.earlyDed ? money(r.earlyDed) : ''}</td><td>{r.brkDed ? money(r.brkDed) : ''}</td><td className="font-bold text-rose-700">{r.ded ? money(r.ded) : ''}</td><td className="text-emerald-700">{r.otAmt ? money(r.otAmt) : ''}</td></>}
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-slate-300 font-bold">
+                      <td className="py-2">{t.totalLbl}</td><td>{sum('days')}</td><td className="text-rose-700">{hm(sum('late'))}</td><td className="text-rose-700">{hm(sum('early'))}</td><td className="text-rose-700">{hm(sum('brk'))}</td><td className="text-emerald-700">{hm(sum('ot'))}</td>
+                      {canMoney && <><td>{money(sum('lateDed'))}</td><td>{money(sum('earlyDed'))}</td><td>{money(sum('brkDed'))}</td><td className="text-rose-700">{money(sum('ded'))}</td><td className="text-emerald-700">{money(sum('otAmt'))}</td></>}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </>
+      )}
+    </>
+  );
+}
+
 function AttendanceRulesTab(props) {
   const { lang, t } = useL();
   const save = useSettingSaver(props);
