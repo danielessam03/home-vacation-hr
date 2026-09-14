@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.26';
+const APP_VERSION = 'v3.27';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -112,7 +112,8 @@ const T = {
     forgotPw: 'Forgot password?', resetSent: 'Request sent. HR will set a new password and tell you.', pwRequests: 'Password reset requests', pwRequested: 'requested', pwDone: 'Done', pwOpenCard: 'Set a new password from the card, then mark done.',
     haveAccount: 'Already have an account?', noAccount: 'First time here?',
     signupHint: 'Your role is assigned by HR. If HR has not registered your email yet, ask them first.',
-    checkEmail: 'Account created. Check your email to confirm, then sign in.',
+    checkEmail: 'Account created. It stays locked until HR approves it in the system.', awaitingApproval: 'Your account is waiting for approval by HR. You will be told when it is ready.',
+    signupRequests: 'Sign-up requests', approveAcct: 'Approve', rejectAcct: 'Reject', signedUpAt: 'signed up', approveHint: 'Pick the role, branch and systems, then approve. Rejected accounts stay locked.',
     notConfigured: 'Supabase is not configured yet. Add your project URL and anon key at the top of index.html.',
     inactive: 'Your account is deactivated. Contact HR.',
     dashboard: 'Dashboard', settings: 'Settings', users: 'Users & roles', audit: 'Audit log', profile: 'My profile',
@@ -337,7 +338,8 @@ const T = {
     forgotPw: 'نسيت كلمة المرور؟', resetSent: 'تم إرسال الطلب. ستحدد الموارد البشرية كلمة مرور جديدة وتبلغك.', pwRequests: 'طلبات إعادة تعيين كلمة المرور', pwRequested: 'طُلب', pwDone: 'تم', pwOpenCard: 'حدد كلمة مرور جديدة من البطاقة ثم اضغط تم.',
     haveAccount: 'لديك حساب بالفعل؟', noAccount: 'أول مرة؟',
     signupHint: 'يتم تحديد صلاحيتك بواسطة الموارد البشرية. إذا لم يتم تسجيل بريدك بعد، تواصل معهم أولاً.',
-    checkEmail: 'تم إنشاء الحساب. راجع بريدك للتأكيد ثم سجّل الدخول.',
+    checkEmail: 'تم إنشاء الحساب. يبقى مقفلاً حتى تعتمده الموارد البشرية من النظام.', awaitingApproval: 'حسابك بانتظار اعتماد الموارد البشرية. سيتم إبلاغك عند جاهزيته.',
+    signupRequests: 'طلبات التسجيل', approveAcct: 'اعتماد', rejectAcct: 'رفض', signedUpAt: 'سجّل في', approveHint: 'اختر الدور والفرع والأنظمة ثم اعتمد. الحسابات المرفوضة تبقى مقفلة.',
     notConfigured: 'لم يتم ضبط Supabase بعد. أضف رابط المشروع والمفتاح في أعلى ملف index.html.',
     inactive: 'حسابك موقوف. تواصل مع الموارد البشرية.',
     dashboard: 'الرئيسية', settings: 'الإعدادات', users: 'المستخدمون والصلاحيات', audit: 'سجل التدقيق', profile: 'ملفي',
@@ -1996,6 +1998,7 @@ function UsersPage({ me, data, refresh, toast, audit }) {
                   <p className="text-xs text-slate-400">{SYSTEMS.filter(([k]) => u[k]).map(([k, lbl, ic]) => ic + ' ' + t[lbl]).join(' · ') || '—'}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  {u.approval_status === 'pending' && <Badge tone="amber">⏳</Badge>}{u.approval_status === 'rejected' && <Badge tone="red">✕</Badge>}
                   <Badge tone={u.is_active ? 'teal' : 'red'}>{t.roles[u.role]}</Badge>
                   <Btn variant="ghost" size="sm" onClick={() => setEditing({ ...u })}>{t.edit}</Btn>
                 </div>
@@ -2004,6 +2007,24 @@ function UsersPage({ me, data, refresh, toast, audit }) {
           </ul>
         )}
       </Card>
+
+      {data.users.some((u) => u.approval_status === 'pending') && (
+        <Card title={'🆕 ' + t.signupRequests + ' (' + data.users.filter((u) => u.approval_status === 'pending').length + ')'}>
+          <p className="mb-2 text-xs text-slate-500">{t.approveHint}</p>
+          <ul className="divide-y divide-slate-100">
+            {data.users.filter((u) => u.approval_status === 'pending').map((u) => (
+              <li key={u.id} className="flex items-center justify-between gap-2 py-2.5">
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-800">{(lang === 'ar' ? u.full_name_ar : u.full_name_en) || u.email}</p><p className="truncate text-xs text-slate-500">{u.email} · {t.signedUpAt} {localDay(u.created_at)}</p></div>
+                <div className="flex shrink-0 gap-2">
+                  <Btn size="sm" variant="outline" onClick={() => setEditing({ ...u })}>{t.edit}</Btn>
+                  <Btn size="sm" onClick={async () => { const { data: row, error } = await sb.from('app_users').update({ approval_status: 'approved', is_active: true, approved_by: me.id, approved_at: new Date().toISOString() }).eq('id', u.id).select().single(); if (error) return toast(error.message, 'error'); refresh.users((prev) => prev.map((x) => (x.id === row.id ? row : x))); audit('approve', 'app_users', row.id, u, row); toast(t.saved); }}>✓ {t.approveAcct}</Btn>
+                  <Btn size="sm" variant="danger" onClick={async () => { if (!window.confirm(t.rejectAcct + '?')) return; const { data: row, error } = await sb.from('app_users').update({ approval_status: 'rejected', is_active: false, approved_by: me.id, approved_at: new Date().toISOString() }).eq('id', u.id).select().single(); if (error) return toast(error.message, 'error'); refresh.users((prev) => prev.map((x) => (x.id === row.id ? row : x))); audit('reject', 'app_users', row.id, u, row); toast(t.saved); }}>{t.rejectAcct}</Btn>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {(data.pwRequests || []).length > 0 && (
         <Card title={'🔑 ' + t.pwRequests + ' (' + data.pwRequests.length + ')'}>
@@ -7632,6 +7653,7 @@ function App() {
       if (cancelled) return;
       if (error) { toast(error.message, 'error'); return; }
       if (!profile) { toast('Profile not found. Run migration_001.sql first.', 'error'); return; }
+      if (profile.approval_status && profile.approval_status !== 'approved') { toast(t.awaitingApproval, 'error'); await sb.auth.signOut(); return; }
       if (!profile.is_active) { toast(t.inactive, 'error'); await sb.auth.signOut(); return; }
       if (profile.access_hr === false) { toast(t.noHrAccess, 'error'); await sb.auth.signOut(); return; }
 
