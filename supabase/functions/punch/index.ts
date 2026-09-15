@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     .from("attendance_punches")
     .upsert(rows, {
       onConflict: "employee_device_code,punch_time,device_id",
-      ignoreDuplicates: true,
+      ignoreDuplicates: false,   // a re-sent punch may carry a corrected direction
     });
   if (error) {
     // a locked month raises ATTENDANCE_LOCKED from the trigger
