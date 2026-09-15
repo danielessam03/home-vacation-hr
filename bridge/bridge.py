@@ -103,8 +103,8 @@ def main() -> int:
             "employee_device_code": str(r.user_id),
             # device clock is local time; astimezone() stamps this PC/device timezone
             "punch_time": r.timestamp.astimezone().isoformat(),
-            # TX628 punch codes: 0=check-in, 1=check-out (others -> unknown)
-            "direction": {0: "in", 1: "out"}.get(getattr(r, "punch", None), "unknown"),
+            # TX628 punch codes: 0=check-in, 1=check-out, 2=break-out, 3=break-in, 4=OT-in, 5=OT-out
+            "direction": {0: "in", 1: "out", 2: "break_out", 3: "break_in", 4: "ot_in", 5: "ot_out"}.get(getattr(r, "punch", None), "unknown"),
             "device_id": DEVICE_ID,
         }
         for r in sorted(fresh, key=lambda r: r.timestamp)

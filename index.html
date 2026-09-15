@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.29';
+const APP_VERSION = 'v3.30';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -184,7 +184,7 @@ const T = {
     km: 'km', totalKm: 'Total km', thisMonth: 'This month',
     reviewTab: 'Review', lockTab: 'Lock',
     lateMin: 'Late', workedH: 'Hours', otMin: 'OT', missingOut: 'Missing punch', weekendLbl: 'Weekend',
-    breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
+    breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle', device: 'Fingerprint device' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
     excuseDay: 'Excuse this day', excuseWhat: 'What to excuse', excuseSaved: 'Excused. No deduction for that day.', excuseExisting: 'Already excused', excuseHint: 'Creates an accepted note on the employee\'s behalf. The day then carries no deduction for the chosen item.',
     totalsTab: 'Totals', totalLbl: 'Total', totalLate: 'Late (total)', totalEarly: 'Left early (total)', totalBreakOver: 'Break overrun (total)', totalOt: 'Overtime (total)', totalDeducted: 'Deducted (EGP)',
     totalsHint: 'Same calculation as payroll: lateness, early-leave and break tiers after accepted notes; overtime after the shift end. Approved payroll runs are not changed by this view.',
@@ -199,7 +199,7 @@ const T = {
     excHint: 'Write the note before it happens (today or a later date). If it is accepted, that day carries no lateness deduction and no violation.', excused: 'Excused', excPending: 'Notes to approve', excMine: 'My notes', excAll: 'All notes',
     excTooLate: 'The note must be sent before the day, not after it.', excApprovedMsg: 'Accepted. The day is excused.',
     startBreak: 'Start break', onBreakSince: 'On break since', breakManualHint: 'You are on break. Take a live selfie to end it and resume work.', breakBig: 'Break',
-    dirIn: 'In', dirOut: 'Out', firstIn: 'First in', lastOut: 'Last out',
+    dirIn: 'In', dirOut: 'Out', dirBreakOut: 'Break start', dirBreakIn: 'Break end', dirOtIn: 'Overtime in', dirOtOut: 'Overtime out', dirUnknown: 'Unknown button', deviceBreak: 'Fingerprint device', firstIn: 'First in', lastOut: 'Last out',
     manualPunch: 'Manual punch', punchNote: 'Reason (required)', punchTime: 'Time',
     lockMonth: 'Lock month', lockedMonths: 'Locked months', unlock: 'Unlock', monthLbl: 'Month', yearLbl: 'Year',
     lockWarn: 'Locking stops all punch changes for this branch and month — even for HR. Unlock to change.',
@@ -412,7 +412,7 @@ const T = {
     km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
     reviewTab: 'المراجعة', lockTab: 'القفل',
     lateMin: 'تأخير', workedH: 'ساعات', otMin: 'إضافي', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية',
-    breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
+    breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط', device: 'جهاز البصمة' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
     excuseDay: 'إعفاء هذا اليوم', excuseWhat: 'ما الذي يُعفى', excuseSaved: 'تم الإعفاء. لا خصم عن هذا اليوم.', excuseExisting: 'معفى بالفعل', excuseHint: 'ينشئ إذناً مقبولاً نيابة عن الموظف. لا يُخصم عن هذا اليوم للبند المختار.',
     totalsTab: 'الإجماليات', totalLbl: 'الإجمالي', totalLate: 'التأخير (إجمالي)', totalEarly: 'الانصراف المبكر (إجمالي)', totalBreakOver: 'تجاوز الاستراحة (إجمالي)', totalOt: 'الإضافي (إجمالي)', totalDeducted: 'المخصوم (جنيه)',
     totalsHint: 'نفس حساب الرواتب: شرائح التأخير والانصراف المبكر والاستراحة بعد الأذونات المقبولة؛ والإضافي بعد نهاية الوردية. مسيرات الرواتب المعتمدة لا تتغير من هنا.',
@@ -427,7 +427,7 @@ const T = {
     excHint: 'اكتب الإذن قبل حدوثه (اليوم أو تاريخ لاحق). إذا قُبل، لا يُخصم تأخير ولا تُسجَّل مخالفة في ذلك اليوم.', excused: 'معذور', excPending: 'أذونات بانتظار الاعتماد', excMine: 'أذوناتي', excAll: 'كل الأذونات',
     excTooLate: 'يجب إرسال الإذن قبل اليوم لا بعده.', excApprovedMsg: 'تم القبول. اليوم معذور.',
     startBreak: 'بدء استراحة', onBreakSince: 'في استراحة منذ', breakManualHint: 'أنت في استراحة. التقط سيلفي حية لإنهائها والعودة للعمل.', breakBig: 'استراحة',
-    dirIn: 'حضور', dirOut: 'انصراف', firstIn: 'أول حضور', lastOut: 'آخر انصراف',
+    dirIn: 'حضور', dirOut: 'انصراف', dirBreakOut: 'بداية استراحة', dirBreakIn: 'نهاية استراحة', dirOtIn: 'دخول إضافي', dirOtOut: 'خروج إضافي', dirUnknown: 'زر غير معروف', deviceBreak: 'جهاز البصمة', firstIn: 'أول حضور', lastOut: 'آخر انصراف',
     manualPunch: 'بصمة يدوية', punchNote: 'السبب (إلزامي)', punchTime: 'الوقت',
     lockMonth: 'قفل الشهر', lockedMonths: 'الشهور المقفلة', unlock: 'فتح', monthLbl: 'الشهر', yearLbl: 'السنة',
     lockWarn: 'القفل يمنع أي تعديل على البصمات لهذا الفرع والشهر — حتى للموارد البشرية. افتح القفل للتعديل.',
@@ -1096,6 +1096,29 @@ function breakTierAmount(tier, overMinutes, hourRate, dayRate) {
   return 0;
 }
 /** Break minutes per local day from live sessions (ended or still open). */
+const dirLabel = (t, d) => ({ in: t.dirIn, out: t.dirOut, break_out: t.dirBreakOut, break_in: t.dirBreakIn, ot_in: t.dirOtIn, ot_out: t.dirOtOut })[d] || t.dirUnknown;
+const isBreakPunch = (p) => p.direction === 'break_out' || p.direction === 'break_in';
+/** First in / last out of a day from the real in/out presses (break presses never end the day). */
+function dayBounds(list) {
+  const work = list.filter((p) => !isBreakPunch(p) && p.direction !== 'ot_in' && p.direction !== 'ot_out');
+  const ins = work.filter((p) => p.direction === 'in');
+  const outs = work.filter((p) => p.direction === 'out');
+  const firstIn = ins[0] || work[0] || null;
+  const lastOut = outs.length ? outs[outs.length - 1] : (work.length > 1 ? work[work.length - 1] : null);
+  return { firstIn, lastOut };
+}
+/** Device breaks (break_out -> next break_in) in minutes per local day, from a punch list of one employee. */
+function deviceBreaksByDay(punches) {
+  const out = {};
+  const sorted = [...(punches || [])].sort((a, b) => a.punch_time.localeCompare(b.punch_time));
+  let open = null;
+  for (const p of sorted) {
+    if (p.direction === 'break_out') open = p;
+    else if (p.direction === 'break_in' && open && localDay(open.punch_time) === localDay(p.punch_time)) { const d = localDay(p.punch_time); out[d] = (out[d] || 0) + Math.round((new Date(p.punch_time) - new Date(open.punch_time)) / 60000); open = null; }
+  }
+  if (open) { const d = localDay(open.punch_time); if (d === todayISO()) out[d] = (out[d] || 0) + Math.round((Date.now() - new Date(open.punch_time)) / 60000); }
+  return out;
+}
 function breakMinutesByDay(sessions) {
   const out = {};
   for (const ws of sessions || []) {
@@ -1146,6 +1169,7 @@ function computePayrollItem(emp, ctx) {
     const allow = breakAllowance(attPolicy);
     const excusedBreak = new Set((ctx.exceptions || []).filter((x) => x.employee_id === emp.id && x.status === 'approved' && x.kind === 'break').map((x) => x.exc_date));
     const perDay = breakMinutesByDay((ctx.sessions || []).filter((w) => w.employee_id === emp.id));
+    for (const [d, m] of Object.entries(deviceBreaksByDay(ctx.punches || []))) perDay[d] = (perDay[d] || 0) + m;
     for (const [d, mins] of Object.entries(perDay)) {
       breakMin += mins;
       const over = Math.max(0, mins - allow);
@@ -1161,10 +1185,8 @@ function computePayrollItem(emp, ctx) {
   if (!emp.attendance_exempt) for (const [date, list] of Object.entries(byDay)) {
     if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
     list.sort((a, b) => a.punch_time.localeCompare(b.punch_time));
-    const ins = list.filter((p) => p.direction === 'in');
-    const outs = list.filter((p) => p.direction === 'out');
-    const firstIn = ins[0] || list[0];
-    const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
+    const { firstIn, lastOut } = dayBounds(list);
+    if (!firstIn) continue;
     const dShift = shiftForDay(emp, date, ctx.shifts) || shift;
     if (dShift && firstIn && !excusedDays.has(date)) {
       const raw = Math.max(0, minutesOf(firstIn.punch_time) - timeToMin(dShift.start_time));
@@ -3012,7 +3034,8 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
   }, [myEmp.id]);
 
   const last = todays && todays.length ? todays[todays.length - 1] : null;
-  const nextDir = last && last.direction === 'in' ? 'out' : 'in';
+  const lastWork = todays ? [...todays].reverse().find((p) => p.direction === 'in' || p.direction === 'out') : null;
+  const nextDir = lastWork && lastWork.direction === 'in' ? 'out' : 'in';
 
   async function punch() {
     setBusy(true);
@@ -3081,7 +3104,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
           <ul className="divide-y divide-slate-100">
             {todays.map((p) => (
               <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
-                <span className="font-semibold text-slate-800">{p.direction === 'in' ? t.dirIn : p.direction === 'out' ? t.dirOut : '—'} · {fmtTime(p.punch_time)}</span>
+                <span className="font-semibold text-slate-800">{isBreakPunch(p) ? '☕ ' : ''}{dirLabel(t, p.direction)} · {fmtTime(p.punch_time)}</span>
                 {p.source === 'web'
                   ? <Badge tone={p.within_geofence ? 'green' : 'red'}>{p.within_geofence ? t.insideBranch : t.outsideBranch}</Badge>
                   : <Badge>{p.source}</Badge>}
@@ -3221,13 +3244,21 @@ function DayBreaks({ empId, date }) {
   useEffect(() => {
     const from = new Date(date + 'T00:00:00'), to = new Date(date + 'T00:00:00'); to.setDate(to.getDate() + 1);
     sb.from('session_events').select('kind, at, meta').eq('employee_id', empId).in('kind', ['break_start', 'break_end', 'end']).gte('at', from.toISOString()).lt('at', to.toISOString()).order('at')
-      .then(({ data: d }) => {
+      .then(async ({ data: d }) => {
         const out = []; let open = null;
         for (const ev of d || []) {
           if (ev.kind === 'break_start') { if (open) out.push(open); open = { start: ev.at, reason: (ev.meta || {}).reason || 'manual', end: null }; }
           else if (open) { open.end = ev.at; out.push(open); open = null; }
         }
         if (open) out.push(open);
+        const { data: pp } = await sb.from('attendance_punches').select('punch_time, direction').eq('employee_id', empId).in('direction', ['break_out', 'break_in']).gte('punch_time', from.toISOString()).lt('punch_time', to.toISOString()).order('punch_time');
+        let o2 = null;
+        for (const p of pp || []) {
+          if (p.direction === 'break_out') { if (o2) out.push(o2); o2 = { start: p.punch_time, reason: 'device', end: null }; }
+          else if (o2) { o2.end = p.punch_time; out.push(o2); o2 = null; }
+        }
+        if (o2) out.push(o2);
+        out.sort((a, b) => a.start.localeCompare(b.start));
         setList(out);
       });
   }, [empId, date]);
@@ -3284,7 +3315,12 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   const companyWeekend = (data.settings.work_week || {}).weekend_days || [5, 6];
   const defShift = data.shifts[0];
 
-  const breakByEmp = useMemo(() => { const m = {}; for (const w of sessions) (m[w.employee_id] = m[w.employee_id] || []).push(w); for (const k of Object.keys(m)) m[k] = breakMinutesByDay(m[k]); return m; }, [sessions]);
+  const breakByEmp = useMemo(() => {
+    const m = {}; for (const w of sessions) (m[w.employee_id] = m[w.employee_id] || []).push(w); for (const k of Object.keys(m)) m[k] = breakMinutesByDay(m[k]);
+    const byEmpP = {}; for (const p of punches || []) if (p.employee_id) (byEmpP[p.employee_id] = byEmpP[p.employee_id] || []).push(p);
+    for (const [id, list] of Object.entries(byEmpP)) { const dev = deviceBreaksByDay(list); m[id] = m[id] || {}; for (const [d, v] of Object.entries(dev)) m[id][d] = (m[id][d] || 0) + v; }
+    return m;
+  }, [sessions, punches]);
   const rows = useMemo(() => {
     if (!punches) return [];
     const groups = {};
@@ -3300,10 +3336,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const [empId, date] = k.split('|');
       const emp = data.employees.find((e) => e.id === empId);
       const shift = (emp && shiftForDay(emp, date, data.shifts)) || defShift;
-      const ins = list.filter((p) => p.direction === 'in');
-      const outs = list.filter((p) => p.direction === 'out');
-      const firstIn = ins.length ? ins[0] : list[0];
-      const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
+      const { firstIn, lastOut } = dayBounds(list);
       const weekend = (emp && emp.weekend_days ? emp.weekend_days : companyWeekend).includes(new Date(date + 'T00:00:00').getDay());
       let late = 0, ot = 0, hours = 0;
       if (shift && firstIn) late = Math.max(0, minutesOf(firstIn.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes));
@@ -3420,7 +3453,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
             {dayView.list.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
                 <div>
-                  <p className="font-semibold text-slate-800">{p.direction === 'in' ? t.dirIn : p.direction === 'out' ? t.dirOut : '—'} · {fmtTime(p.punch_time)}</p>
+                  <p className="font-semibold text-slate-800">{isBreakPunch(p) ? '☕ ' : ''}{dirLabel(t, p.direction)} · {fmtTime(p.punch_time)}</p>
                   <p className="text-xs text-slate-500">
                     {p.source}{p.note ? ' · ' + p.note : ''}
                     {p.source === 'web' && p.within_geofence === false ? ' · ' + t.outsideBranch : ''}
@@ -3472,7 +3505,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
             </div>
             <Field label={t.direction || ''}>
               <Select value={manual.direction} onChange={(e) => setManual({ ...manual, direction: e.target.value })}>
-                <option value="in">{t.dirIn}</option><option value="out">{t.dirOut}</option>
+                <option value="in">{t.dirIn}</option><option value="out">{t.dirOut}</option><option value="break_out">{t.dirBreakOut}</option><option value="break_in">{t.dirBreakIn}</option>
               </Select>
             </Field>
             <Field label={t.punchNote}><Input value={manual.note} onChange={(e) => setManual({ ...manual, note: e.target.value })} /></Field>
@@ -5752,7 +5785,7 @@ function MyPage({ me, data, toast, setPage, live }) {
                 {d.punches.slice(0, 10).map((p) => (
                   <li key={p.id} className="flex items-center justify-between py-2 text-sm">
                     <span className="text-slate-700">{localDay(p.punch_time)} · {fmtTime(p.punch_time)}</span>
-                    <span className="text-xs text-slate-500">{p.direction === 'in' ? t.dirIn : p.direction === 'out' ? t.dirOut : '—'} · {p.source}</span>
+                    <span className="text-xs text-slate-500">{isBreakPunch(p) ? '☕ ' : ''}{dirLabel(t, p.direction)} · {p.source}</span>
                   </li>
                 ))}
               </ul>
@@ -5906,9 +5939,8 @@ function ReportsPage({ me, data, toast }) {
       const weekend = emp.weekend_days || weekendC;
       if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
       const shift = shiftForDay(emp, date, data.shifts) || data.shifts[0];
-      const ins = list.filter((p) => p.direction === 'in'), outs = list.filter((p) => p.direction === 'out');
-      const firstIn = ins[0] || list[0];
-      const lastOut = outs.length ? outs[outs.length - 1] : (list.length > 1 ? list[list.length - 1] : null);
+      const { firstIn, lastOut } = dayBounds(list);
+      if (!firstIn) continue;
       const o = out[empId] = out[empId] || { emp, days: 0, late: 0, ot: 0, missing: 0 };
       o.days++;
       if (shift && firstIn) o.late += Math.max(0, minutesOf(firstIn.punch_time) - (timeToMin(shift.start_time) + shift.grace_minutes));

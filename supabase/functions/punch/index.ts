@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     employee_id: byCode[String(p.employee_device_code)] ?? null,
     employee_device_code: String(p.employee_device_code),
     punch_time: p.punch_time,
-    direction: ["in", "out"].includes(p.direction ?? "") ? p.direction : "unknown",
+    direction: ["in", "out", "break_out", "break_in", "ot_in", "ot_out"].includes(p.direction ?? "") ? p.direction : "unknown",
     device_id: p.device_id ?? "tx628",
     source: "bridge",
   }));
