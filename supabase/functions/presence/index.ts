@@ -37,7 +37,9 @@ Deno.serve(async (req) => {
       .neq("status", "ended").order("started_at", { ascending: false }).limit(1).maybeSingle();
     if (!ses) return json({ ok: true, session: null });
     const now = Date.now();
-    const lastAct = new Date(now - idle * 1000).toISOString();
+    // out on a trip: the laptop being idle means nothing, keep the session alive
+    const { data: trip } = await admin.from("trips").select("id").eq("employee_id", emp.id).eq("status", "open").limit(1).maybeSingle();
+    const lastAct = trip ? new Date(now).toISOString() : new Date(now - idle * 1000).toISOString();
     const patch: Record<string, unknown> = { agent_seen_at: new Date(now).toISOString(), last_heartbeat_at: new Date(now).toISOString() };
     // the agent can only push last_activity forward, never back
     if (new Date(lastAct) > new Date(ses.last_activity_at)) patch.last_activity_at = lastAct;

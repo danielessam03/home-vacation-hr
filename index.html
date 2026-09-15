@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.28';
+const APP_VERSION = 'v3.29';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -178,6 +178,7 @@ const T = {
     noEmpLink: 'Your account is not linked to an employee record yet. Ask HR.',
     noBranchGeo: 'No branch location set yet (Settings → Branches → use my current location).',
     nearest: 'Nearest branch', mAway: 'm away', monthLocked: 'This month is locked.',
+    onTripLbl: 'On a trip', onTripHint: 'No idle prompts while a trip is open. The trip counts as working time.',
     tripsTab: 'Trips', startTrip: 'Start trip', endTrip: 'End trip', recordPoint: 'Record point',
     tripPurpose: 'Trip purpose (client / site)', openTripLbl: 'Trip in progress', pointsN: 'points',
     km: 'km', totalKm: 'Total km', thisMonth: 'This month',
@@ -405,6 +406,7 @@ const T = {
     noEmpLink: 'حسابك غير مرتبط بملف موظف بعد. تواصل مع الموارد البشرية.',
     noBranchGeo: 'لم يتم تحديد موقع الفرع بعد (الإعدادات ← الفروع ← استخدم موقعي الحالي).',
     nearest: 'أقرب فرع', mAway: 'متر', monthLocked: 'هذا الشهر مقفل.',
+    onTripLbl: 'في مشوار', onTripHint: 'لا تنبيهات خمول أثناء المشوار. المشوار يُحتسب وقت عمل.',
     tripsTab: 'المشاوير', startTrip: 'بدء مشوار', endTrip: 'إنهاء المشوار', recordPoint: 'تسجيل نقطة',
     tripPurpose: 'سبب المشوار (عميل / موقع)', openTripLbl: 'مشوار جارٍ', pointsN: 'نقاط',
     km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
@@ -2659,7 +2661,7 @@ function AttendancePage({ me, data, refresh, toast, audit, live, initialTab }) {
       </div>
       {tab === 'checkin' && <CheckInTab me={me} myEmp={myEmp} data={data} toast={toast} live={live} />}
       {tab === 'live' && <LiveBoardTab data={data} />}
-      {tab === 'trips' && <TripsTab me={me} myEmp={myEmp} data={data} toast={toast} eName={eName} admin={admin} />}
+      {tab === 'trips' && <TripsTab me={me} myEmp={myEmp} data={data} toast={toast} eName={eName} admin={admin} live={live} />}
       {tab === 'review' && <ReviewTab me={me} data={data} toast={toast} audit={audit} eName={eName} isHr={isHr} />}
       {tab === 'lock' && <LockTab me={me} data={data} toast={toast} audit={audit} />}
       {tab === 'exceptions' && <ExceptionsTab me={me} myEmp={myEmp} data={data} toast={toast} audit={audit} eName={eName} admin={admin} isHr={isHr} />}
@@ -3066,8 +3068,8 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
           ) : (
             <div className="flex items-center justify-between gap-2">
               <div>
-                <Badge tone={ses.status === 'break' ? 'red' : idleMin >= 10 ? 'amber' : 'green'}>{ses.status === 'break' ? t.onBreak : t.working}</Badge>
-                <p className="mt-1 text-xs text-slate-500">{t.sessionSince} {fmtTime(ses.started_at)} · {t.idleFor} {idleMin} {t.minutesLbl}{ses.agent_seen_at ? ' · 💻' : ''}</p>
+                <Badge tone={ses.status === 'break' ? 'red' : live.onTrip ? 'teal' : idleMin >= 10 ? 'amber' : 'green'}>{ses.status === 'break' ? t.onBreak : live.onTrip ? '🚗 ' + t.onTripLbl : t.working}</Badge>
+                <p className="mt-1 text-xs text-slate-500">{t.sessionSince} {fmtTime(ses.started_at)}{live.onTrip ? ' · ' + t.onTripHint : ' · ' + t.idleFor + ' ' + idleMin + ' ' + t.minutesLbl}{ses.agent_seen_at ? ' · 💻' : ''}</p>
               </div>
               <Btn size="sm" variant="outline" onClick={live.endSession}>⏹ {t.endSession}</Btn>
             </div>
@@ -3092,7 +3094,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
   );
 }
 
-function TripsTab({ me, myEmp, data, toast, eName, admin }) {
+function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
   const { t } = useL();
   const [open, setOpen] = useState(undefined);   // undefined = loading
   const [trips, setTrips] = useState([]);
@@ -3129,6 +3131,7 @@ function TripsTab({ me, myEmp, data, toast, eName, admin }) {
     if (error) return toast(error.message, 'error');
     setOpen(row); setPurpose('');
     setTrips((prev) => [row, ...prev]);
+    if (live && live.refresh) live.refresh();
     toast(t.saved);
   });
 
@@ -3149,6 +3152,7 @@ function TripsTab({ me, myEmp, data, toast, eName, admin }) {
     if (error) return toast(error.message, 'error');
     setOpen(null);
     setTrips((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    if (live && live.refresh) live.refresh();
     toast(t.saved + ' — ' + chainKm(pts) + ' ' + t.km);
   });
 
@@ -6727,6 +6731,7 @@ function SelfieCapture({ onDescriptor, label, toast }) {
 function useLiveSession({ me, myEmp, settings, toast, ready }) {
   const [session, setSession] = useState(null);
   const [challenge, setChallenge] = useState(null);
+  const [onTrip, setOnTrip] = useState(false);
   const lastActRef = useRef(Date.now());
   const policy = settings.presence_policy || {};
   const idleMs = (Number(policy.idle_minutes) || 10) * 60000;
@@ -6784,6 +6789,10 @@ function useLiveSession({ me, myEmp, settings, toast, ready }) {
           setChallenge(null);
         } else setChallenge(c);
       } else if (cur.status === 'working') {
+        /* out of the office on a trip: no prompts, and the trip keeps the session alive */
+        const { data: trip } = await sb.from('trips').select('id').eq('employee_id', empId).eq('status', 'open').limit(1).maybeSingle();
+        if (trip) { lastActRef.current = now; setChallenge(null); setOnTrip(true); return; }
+        setOnTrip(false);
         const idle = now - Math.max(new Date(cur.last_activity_at).getTime(), lastActRef.current);
         if (idle >= idleMs) {
           const { data: nc } = await sb.from('presence_challenges').insert({ session_id: cur.id, employee_id: empId, expires_at: new Date(now + timeoutMs).toISOString() }).select().single();
@@ -6837,7 +6846,7 @@ function useLiveSession({ me, myEmp, settings, toast, ready }) {
     await refresh();
     return res;
   }
-  return { session, challenge, startSession, startBreak, endSession, verify, refresh };
+  return { session, challenge, onTrip, startSession, startBreak, endSession, verify, refresh };
 }
 
 /** Global prompt: shown for an open challenge or while on break. */
