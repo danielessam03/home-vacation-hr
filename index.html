@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.31';
+const APP_VERSION = 'v3.32';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -1612,7 +1612,9 @@ const HV_APPS = [
   { key: 'appCrm', icon: '🏠', url: 'https://property-management-crm.pages.dev' },
 ];
 
+const WIDE_PAGES = ['attendance', 'payroll', 'reports', 'kpi', 'leave'];
 function Shell({ me, page, setPage, onSignOut, children }) {
+  const wide = WIDE_PAGES.includes(page);
   const { lang, t, setLang } = useL();
   const items = NAV.filter((n) => n.roles.includes(me.role));
   const label = (k) => t[k];
@@ -1652,7 +1654,7 @@ function Shell({ me, page, setPage, onSignOut, children }) {
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 pb-28 sm:pb-8">{children}</main>
+      <main className={cx('mx-auto w-full flex-1 space-y-4 p-4 pb-28 sm:pb-8', wide ? 'max-w-[1600px]' : 'max-w-5xl')}>{children}</main>
 
       <Modal open={apps} onClose={() => setApps(false)} title={'🏢 ' + t.apps}>
         <ul className="divide-y divide-slate-100">
@@ -3444,12 +3446,12 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
         action={rows.length > 0 && <Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn>}>
         {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] border-separate border-spacing-0 text-sm tabular-nums">
+            <table className="w-full min-w-[1100px] border-separate border-spacing-0 text-sm tabular-nums">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-slate-400">
-                  {[[t.date, 'w-16'], [t.selectEmployee, 'min-w-[150px]'], [t.firstIn, 'w-16 text-center'], [t.lastOut, 'w-16 text-center'], [t.workedH, 'w-20 text-end'],
-                    [t.lateMin, 'w-24 text-end'], [t.earlyMinLbl, 'w-24 text-end'], ['☕ ' + t.breakTotal, 'w-24 text-end'], [t.otMin, 'w-16 text-end'], [t.statusLbl, 'min-w-[170px]']].map(([h, cls], i) =>
-                    <th key={i} className={cx('sticky top-0 border-b border-slate-200 bg-white px-2 py-2 text-start font-semibold', cls)}>{h}</th>)}
+                  {[[t.date, 'w-24 whitespace-nowrap'], [t.selectEmployee, 'min-w-[170px]'], [t.firstIn, 'w-20 text-center whitespace-nowrap'], [t.lastOut, 'w-20 text-center whitespace-nowrap'], [t.workedH, 'w-24 text-end whitespace-nowrap'],
+                    [t.lateMin, 'w-44 text-end whitespace-nowrap'], [t.earlyMinLbl, 'w-44 text-end whitespace-nowrap'], ['☕ ' + t.breakTotal, 'w-48 text-end whitespace-nowrap'], [t.otMin, 'w-20 text-end whitespace-nowrap'], [t.statusLbl, 'min-w-[190px]']].map(([h, cls], i) =>
+                    <th key={i} className={cx('sticky top-0 border-b border-slate-200 bg-white px-3 py-2.5 text-start font-semibold', cls)}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -3460,16 +3462,16 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                   const bad = r.late > 0 || r.early > 0 || r.brkOver > 0;
                   return (
                     <tr key={i} onClick={() => setDayView(r)} className={cx('cursor-pointer hover:bg-brand-50/40', i % 2 ? 'bg-slate-50/60' : 'bg-white', r.weekend && 'text-slate-400')}>
-                      <td className="border-b border-slate-100 px-2 py-2 text-xs text-slate-500">{r.date.slice(5)} <span className="text-[10px] text-slate-400">{t.daysShort[new Date(r.date + 'T00:00:00').getDay()]}</span></td>
-                      <td className="border-b border-slate-100 px-2 py-2 font-semibold text-slate-800"><span className="block max-w-[170px] truncate">{eName(r.emp)}</span></td>
-                      <td className="border-b border-slate-100 px-2 py-2 text-center">{r.firstIn ? fmtTime(r.firstIn.punch_time) : <span className="text-slate-300">—</span>}</td>
-                      <td className="border-b border-slate-100 px-2 py-2 text-center">{r.lastOut ? fmtTime(r.lastOut.punch_time) : <span className="text-slate-300">—</span>}</td>
-                      <td className="border-b border-slate-100 px-2 py-2 text-end text-slate-700">{hm}</td>
-                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end whitespace-nowrap', r.late > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.late > 0 ? r.late : '·'}<Pen tier={r.tier} /></td>
-                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end whitespace-nowrap', r.early > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.early > 0 ? r.early : '·'}<Pen tier={r.earlyTier} /></td>
-                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end whitespace-nowrap', r.brkOver > 0 ? 'font-bold text-rose-600' : r.brkMin > 0 ? 'text-slate-700' : 'text-slate-300')}>{r.weekend ? '' : (r.brkMin > 0 ? r.brkMin : '·')}{r.brkOver > 0 && <span className="text-[10px]"> (+{r.brkOver})</span>}<Pen tier={r.brkTier} /></td>
-                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end', r.ot > 0 ? 'font-bold text-emerald-600' : 'text-slate-300')}>{r.ot > 0 ? r.ot : '·'}</td>
-                      <td className="border-b border-slate-100 px-2 py-2">
+                      <td className="whitespace-nowrap border-b border-slate-100 px-3 py-2.5 text-xs text-slate-500">{r.date.slice(5)} <span className="text-[10px] text-slate-400">{t.daysShort[new Date(r.date + 'T00:00:00').getDay()]}</span></td>
+                      <td className="whitespace-nowrap border-b border-slate-100 px-3 py-2.5 font-semibold text-slate-800">{eName(r.emp)}</td>
+                      <td className="border-b border-slate-100 px-3 py-2.5 text-center">{r.firstIn ? fmtTime(r.firstIn.punch_time) : <span className="text-slate-300">—</span>}</td>
+                      <td className="border-b border-slate-100 px-3 py-2.5 text-center">{r.lastOut ? fmtTime(r.lastOut.punch_time) : <span className="text-slate-300">—</span>}</td>
+                      <td className="border-b border-slate-100 px-3 py-2.5 text-end text-slate-700">{hm}</td>
+                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.late > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.late > 0 ? r.late : '·'}<Pen tier={r.tier} /></td>
+                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.early > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.early > 0 ? r.early : '·'}<Pen tier={r.earlyTier} /></td>
+                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.brkOver > 0 ? 'font-bold text-rose-600' : r.brkMin > 0 ? 'text-slate-700' : 'text-slate-300')}>{r.weekend ? '' : (r.brkMin > 0 ? r.brkMin : '·')}{r.brkOver > 0 && <span className="text-[10px]"> (+{r.brkOver})</span>}<Pen tier={r.brkTier} /></td>
+                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end', r.ot > 0 ? 'font-bold text-emerald-600' : 'text-slate-300')}>{r.ot > 0 ? r.ot : '·'}</td>
+                      <td className="border-b border-slate-100 px-3 py-2.5">
                         <span className="flex flex-wrap gap-1">
                           {r.weekend && <Badge>{t.weekendLbl}</Badge>}
                           {r.excused && <Badge tone="green">✓ {t.excused}</Badge>}
