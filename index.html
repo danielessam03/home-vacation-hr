@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.30';
+const APP_VERSION = 'v3.31';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -183,7 +183,7 @@ const T = {
     tripPurpose: 'Trip purpose (client / site)', openTripLbl: 'Trip in progress', pointsN: 'points',
     km: 'km', totalKm: 'Total km', thisMonth: 'This month',
     reviewTab: 'Review', lockTab: 'Lock',
-    lateMin: 'Late', workedH: 'Hours', otMin: 'OT', missingOut: 'Missing punch', weekendLbl: 'Weekend',
+    lateMin: 'Late (min)', workedH: 'Worked', otMin: 'OT (min)', missingOut: 'Missing punch', weekendLbl: 'Weekend', statusLbl: 'Status', penaltyLbl: 'Penalty',
     breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle', device: 'Fingerprint device' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
     excuseDay: 'Excuse this day', excuseWhat: 'What to excuse', excuseSaved: 'Excused. No deduction for that day.', excuseExisting: 'Already excused', excuseHint: 'Creates an accepted note on the employee\'s behalf. The day then carries no deduction for the chosen item.',
     totalsTab: 'Totals', totalLbl: 'Total', totalLate: 'Late (total)', totalEarly: 'Left early (total)', totalBreakOver: 'Break overrun (total)', totalOt: 'Overtime (total)', totalDeducted: 'Deducted (EGP)',
@@ -411,7 +411,7 @@ const T = {
     tripPurpose: 'سبب المشوار (عميل / موقع)', openTripLbl: 'مشوار جارٍ', pointsN: 'نقاط',
     km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
     reviewTab: 'المراجعة', lockTab: 'القفل',
-    lateMin: 'تأخير', workedH: 'ساعات', otMin: 'إضافي', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية',
+    lateMin: 'تأخير (د)', workedH: 'ساعات العمل', otMin: 'إضافي (د)', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية', statusLbl: 'الحالة', penaltyLbl: 'الجزاء',
     breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط', device: 'جهاز البصمة' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
     excuseDay: 'إعفاء هذا اليوم', excuseWhat: 'ما الذي يُعفى', excuseSaved: 'تم الإعفاء. لا خصم عن هذا اليوم.', excuseExisting: 'معفى بالفعل', excuseHint: 'ينشئ إذناً مقبولاً نيابة عن الموظف. لا يُخصم عن هذا اليوم للبند المختار.',
     totalsTab: 'الإجماليات', totalLbl: 'الإجمالي', totalLate: 'التأخير (إجمالي)', totalEarly: 'الانصراف المبكر (إجمالي)', totalBreakOver: 'تجاوز الاستراحة (إجمالي)', totalOt: 'الإضافي (إجمالي)', totalDeducted: 'المخصوم (جنيه)',
@@ -3359,6 +3359,31 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     }).sort((a, b) => b.date.localeCompare(a.date) || eName(a.emp).localeCompare(eName(b.emp)));
   }, [punches, fEmp, data.employees, data.shifts, excused, breakByEmp, excusedBreak, excusedEarlyMap]);
 
+  const [exporting, setExporting] = useState(false);
+  /* Excel of the rows on screen, one line per employee-day */
+  async function exportReview() {
+    setExporting(true);
+    try {
+      await loadXLSX();
+      const lbl = (tier) => tier ? ((lang === 'ar' ? tier.label_ar : tier.label_en) || tier.kind) : '';
+      const out = rows.map((r) => ({
+        [t.date]: r.date, [t.selectEmployee]: eName(r.emp), [t.empCode]: r.emp ? r.emp.employee_code : '',
+        [t.firstIn]: r.firstIn ? fmtTime(r.firstIn.punch_time) : '', [t.lastOut]: r.lastOut ? fmtTime(r.lastOut.punch_time) : '',
+        [t.workedH + ' (h)']: r.hours ? Math.round(r.hours * 100) / 100 : '', [t.lateMin]: r.late || 0, [t.lateMin + ' · ' + t.penaltyLbl]: lbl(r.tier),
+        [t.earlyMinLbl + ' (min)']: r.early || 0, [t.earlyMinLbl + ' · ' + t.penaltyLbl]: lbl(r.earlyTier),
+        [t.breakTotal + ' (min)']: r.weekend ? '' : (r.brkMin || 0), [t.breakOverLbl + ' (min)']: r.brkOver || 0, [t.breakTotal + ' · ' + t.penaltyLbl]: lbl(r.brkTier),
+        [t.otMin]: r.ot || 0,
+        [t.statusLbl]: [r.weekend ? t.weekendLbl : '', r.excused ? t.excused : '', r.missing && !r.weekend ? t.missingOut : '', r.flagged ? t.outsideBranch : ''].filter(Boolean).join(', '),
+      }));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(out);
+      ws['!cols'] = Object.keys(out[0] || {}).map((k) => ({ wch: Math.max(10, Math.min(28, k.length + 2)) }));
+      XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+      XLSX.writeFile(wb, 'HomeVacation-Attendance-' + from + '_' + to + '.xlsx');
+    } catch (e) { toast(e.message, 'error'); }
+    setExporting(false);
+  }
+
   /* HR / manager: excuse a day straight from the review (accepted note on the employee's behalf) */
   async function saveExcuse() {
     const kinds = Object.keys(excuse.kinds).filter((k) => excuse.kinds[k]);
@@ -3415,32 +3440,47 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
         {isHr && <Btn onClick={() => setManual({ employee_id: fEmp || '', date: todayISO(), time: '09:00', direction: 'in', note: '' })}>+ {t.manualPunch}</Btn>}
       </div>
 
-      <Card title={t.reviewTab}>
+      <Card title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
+        action={rows.length > 0 && <Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn>}>
         {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
-              <thead><tr className="text-start text-xs text-slate-400">
-                {[t.date, t.selectEmployee, t.firstIn, t.lastOut, t.lateMin, t.workedH, '☕ ' + t.breakTotal + ' (' + t.minutesLbl + ')', t.otMin, ''].map((h, i) => <th key={i} className="py-2 text-start font-semibold">{h}</th>)}
-              </tr></thead>
+            <table className="w-full min-w-[860px] border-separate border-spacing-0 text-sm tabular-nums">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wide text-slate-400">
+                  {[[t.date, 'w-16'], [t.selectEmployee, 'min-w-[150px]'], [t.firstIn, 'w-16 text-center'], [t.lastOut, 'w-16 text-center'], [t.workedH, 'w-20 text-end'],
+                    [t.lateMin, 'w-24 text-end'], [t.earlyMinLbl, 'w-24 text-end'], ['☕ ' + t.breakTotal, 'w-24 text-end'], [t.otMin, 'w-16 text-end'], [t.statusLbl, 'min-w-[170px]']].map(([h, cls], i) =>
+                    <th key={i} className={cx('sticky top-0 border-b border-slate-200 bg-white px-2 py-2 text-start font-semibold', cls)}>{h}</th>)}
+                </tr>
+              </thead>
               <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i} className="cursor-pointer border-t border-slate-100 hover:bg-slate-50" onClick={() => setDayView(r)}>
-                    <td className="py-2 text-xs">{r.date.slice(5)}</td>
-                    <td className="max-w-[130px] truncate font-semibold text-slate-800">{eName(r.emp)}</td>
-                    <td>{r.firstIn ? fmtTime(r.firstIn.punch_time) : '—'}</td>
-                    <td>{r.lastOut ? fmtTime(r.lastOut.punch_time) : '—'}{r.early > 0 && <span className="ms-1 text-xs font-bold text-rose-600">-{r.early}</span>}{r.earlyTier && <Badge tone={r.earlyTier.kind === 'none' ? 'amber' : 'red'}> {(lang === 'ar' ? r.earlyTier.label_ar : r.earlyTier.label_en) || r.earlyTier.kind}</Badge>}</td>
-                    <td className={r.late > 0 ? 'font-bold text-rose-600' : ''}>{r.late || ''}{r.tier && <Badge tone={r.tier.kind === 'none' ? 'amber' : 'red'}> {(lang === 'ar' ? r.tier.label_ar : r.tier.label_en) || r.tier.kind}</Badge>}</td>
-                    <td className="whitespace-nowrap">{r.hours ? Math.floor(r.hours) + 'h ' + String(Math.round((r.hours % 1) * 60)).padStart(2, '0') + 'm' : ''}</td>
-                    <td className={r.brkOver > 0 ? 'font-bold text-rose-600' : 'text-slate-600'}>{r.weekend ? '' : r.brkMin}{r.brkTier && <Badge tone={r.brkTier.kind === 'none' ? 'amber' : 'red'}> +{r.brkOver} {(lang === 'ar' ? r.brkTier.label_ar : r.brkTier.label_en) || r.brkTier.kind}</Badge>}</td>
-                    <td className={r.ot > 0 ? 'font-bold text-emerald-600' : ''}>{r.ot || ''}</td>
-                    <td className="text-xs">
-                      {r.weekend && <Badge>{t.weekendLbl}</Badge>}
-                      {r.excused && <Badge tone="green">✓ {t.excused}</Badge>}
-                      {r.missing && !r.weekend && <Badge tone="amber">{t.missingOut}</Badge>}
-                      {r.flagged && <Badge tone="red">📍</Badge>}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((r, i) => {
+                  const lbl = (tier) => tier ? ((lang === 'ar' ? tier.label_ar : tier.label_en) || tier.kind) : '';
+                  const Pen = ({ tier }) => tier ? <span className={cx('ms-1 inline-block rounded px-1 py-px text-[10px] font-semibold leading-tight', tier.kind === 'none' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-700')}>{lbl(tier)}</span> : null;
+                  const hm = r.hours ? Math.floor(r.hours) + 'h ' + String(Math.round((r.hours % 1) * 60)).padStart(2, '0') + 'm' : '';
+                  const bad = r.late > 0 || r.early > 0 || r.brkOver > 0;
+                  return (
+                    <tr key={i} onClick={() => setDayView(r)} className={cx('cursor-pointer hover:bg-brand-50/40', i % 2 ? 'bg-slate-50/60' : 'bg-white', r.weekend && 'text-slate-400')}>
+                      <td className="border-b border-slate-100 px-2 py-2 text-xs text-slate-500">{r.date.slice(5)} <span className="text-[10px] text-slate-400">{t.daysShort[new Date(r.date + 'T00:00:00').getDay()]}</span></td>
+                      <td className="border-b border-slate-100 px-2 py-2 font-semibold text-slate-800"><span className="block max-w-[170px] truncate">{eName(r.emp)}</span></td>
+                      <td className="border-b border-slate-100 px-2 py-2 text-center">{r.firstIn ? fmtTime(r.firstIn.punch_time) : <span className="text-slate-300">—</span>}</td>
+                      <td className="border-b border-slate-100 px-2 py-2 text-center">{r.lastOut ? fmtTime(r.lastOut.punch_time) : <span className="text-slate-300">—</span>}</td>
+                      <td className="border-b border-slate-100 px-2 py-2 text-end text-slate-700">{hm}</td>
+                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end whitespace-nowrap', r.late > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.late > 0 ? r.late : '·'}<Pen tier={r.tier} /></td>
+                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end whitespace-nowrap', r.early > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.early > 0 ? r.early : '·'}<Pen tier={r.earlyTier} /></td>
+                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end whitespace-nowrap', r.brkOver > 0 ? 'font-bold text-rose-600' : r.brkMin > 0 ? 'text-slate-700' : 'text-slate-300')}>{r.weekend ? '' : (r.brkMin > 0 ? r.brkMin : '·')}{r.brkOver > 0 && <span className="text-[10px]"> (+{r.brkOver})</span>}<Pen tier={r.brkTier} /></td>
+                      <td className={cx('border-b border-slate-100 px-2 py-2 text-end', r.ot > 0 ? 'font-bold text-emerald-600' : 'text-slate-300')}>{r.ot > 0 ? r.ot : '·'}</td>
+                      <td className="border-b border-slate-100 px-2 py-2">
+                        <span className="flex flex-wrap gap-1">
+                          {r.weekend && <Badge>{t.weekendLbl}</Badge>}
+                          {r.excused && <Badge tone="green">✓ {t.excused}</Badge>}
+                          {r.missing && !r.weekend && <Badge tone="amber">{t.missingOut}</Badge>}
+                          {r.flagged && <Badge tone="red">📍 {t.outsideBranch}</Badge>}
+                          {!r.weekend && !r.missing && !bad && !r.excused && <span className="text-xs text-emerald-600">✓</span>}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
