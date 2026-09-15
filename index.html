@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.32';
+const APP_VERSION = 'v3.33';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -1654,7 +1654,7 @@ function Shell({ me, page, setPage, onSignOut, children }) {
         </nav>
       </header>
 
-      <main className={cx('mx-auto w-full flex-1 space-y-4 p-4 pb-28 sm:pb-8', wide ? 'max-w-[1600px]' : 'max-w-5xl')}>{children}</main>
+      <main className={cx('mx-auto w-full flex-1 space-y-4 p-4 pb-28 sm:pb-8', wide ? 'max-w-7xl' : 'max-w-5xl')}>{children}</main>
 
       <Modal open={apps} onClose={() => setApps(false)} title={'🏢 ' + t.apps}>
         <ul className="divide-y divide-slate-100">
@@ -3277,6 +3277,22 @@ function DayBreaks({ empId, date }) {
   );
 }
 
+/** Drag a column's right edge to resize it; widths are remembered on this device. */
+function useColumnWidths(key, defaults) {
+  const [w, setW] = useState(() => { try { const saved = JSON.parse(safeStorage.getItem('hv_cols_' + key) || 'null'); return Array.isArray(saved) && saved.length === defaults.length ? saved : defaults; } catch (e) { return defaults; } });
+  const drag = useRef(null);
+  useEffect(() => {
+    const move = (e) => { if (!drag.current) return; const x = e.touches ? e.touches[0].clientX : e.clientX; const dx = (x - drag.current.x) * (document.dir === 'rtl' ? -1 : 1); setW((prev) => prev.map((v, i) => (i === drag.current.i ? Math.max(48, drag.current.w + dx) : v))); };
+    const up = () => { if (!drag.current) return; drag.current = null; document.body.style.cursor = ''; document.body.style.userSelect = ''; setW((prev) => { try { safeStorage.setItem('hv_cols_' + key, JSON.stringify(prev)); } catch (e) {} return prev; }); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up); window.addEventListener('touchmove', move, { passive: true }); window.addEventListener('touchend', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); window.removeEventListener('touchmove', move); window.removeEventListener('touchend', up); };
+  }, [key]);
+  const start = (i) => (e) => { e.preventDefault(); e.stopPropagation(); const x = e.touches ? e.touches[0].clientX : e.clientX; drag.current = { i, x, w: w[i] }; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; };
+  const reset = () => { setW(defaults); try { safeStorage.removeItem('hv_cols_' + key); } catch (e) {} };
+  return { widths: w, start, reset };
+}
+const ResizeGrip = ({ onStart }) => <span onMouseDown={onStart} onTouchStart={onStart} className="absolute inset-y-0 -end-1 z-10 w-2 cursor-col-resize select-none hover:bg-brand-300/60 active:bg-brand-500/60" title="↔" />;
+
 function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   const { lang, t } = useL();
   const first = todayISO().slice(0, 8) + '01';
@@ -3362,6 +3378,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   }, [punches, fEmp, data.employees, data.shifts, excused, breakByEmp, excusedBreak, excusedEarlyMap]);
 
   const [exporting, setExporting] = useState(false);
+  const cols = useColumnWidths('review', [96, 180, 80, 80, 96, 170, 170, 190, 80, 200]);
   /* Excel of the rows on screen, one line per employee-day */
   async function exportReview() {
     setExporting(true);
@@ -3443,15 +3460,16 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       </div>
 
       <Card title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
-        action={rows.length > 0 && <Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn>}>
+        action={rows.length > 0 && <span className="flex gap-2"><Btn size="sm" variant="ghost" onClick={cols.reset} title={t.resetDefaults}>↔</Btn><Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn></span>}>
         {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-separate border-spacing-0 text-sm tabular-nums">
+            <table className="border-separate border-spacing-0 text-sm tabular-nums" style={{ tableLayout: 'fixed', width: cols.widths.reduce((a, b) => a + b, 0) + 'px' }}>
+              <colgroup>{cols.widths.map((w, i) => <col key={i} style={{ width: w + 'px' }} />)}</colgroup>
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-slate-400">
-                  {[[t.date, 'w-24 whitespace-nowrap'], [t.selectEmployee, 'min-w-[170px]'], [t.firstIn, 'w-20 text-center whitespace-nowrap'], [t.lastOut, 'w-20 text-center whitespace-nowrap'], [t.workedH, 'w-24 text-end whitespace-nowrap'],
-                    [t.lateMin, 'w-44 text-end whitespace-nowrap'], [t.earlyMinLbl, 'w-44 text-end whitespace-nowrap'], ['☕ ' + t.breakTotal, 'w-48 text-end whitespace-nowrap'], [t.otMin, 'w-20 text-end whitespace-nowrap'], [t.statusLbl, 'min-w-[190px]']].map(([h, cls], i) =>
-                    <th key={i} className={cx('sticky top-0 border-b border-slate-200 bg-white px-3 py-2.5 text-start font-semibold', cls)}>{h}</th>)}
+                  {[[t.date, ''], [t.selectEmployee, ''], [t.firstIn, 'text-center'], [t.lastOut, 'text-center'], [t.workedH, 'text-end'],
+                    [t.lateMin, 'text-end'], [t.earlyMinLbl, 'text-end'], ['☕ ' + t.breakTotal, 'text-end'], [t.otMin, 'text-end'], [t.statusLbl, '']].map(([h, cls], i) =>
+                    <th key={i} className={cx('relative sticky top-0 overflow-hidden text-ellipsis whitespace-nowrap border-b border-e border-slate-200 bg-white px-3 py-2.5 text-start font-semibold', cls)}>{h}<ResizeGrip onStart={cols.start(i)} /></th>)}
                 </tr>
               </thead>
               <tbody>
@@ -3462,16 +3480,16 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                   const bad = r.late > 0 || r.early > 0 || r.brkOver > 0;
                   return (
                     <tr key={i} onClick={() => setDayView(r)} className={cx('cursor-pointer hover:bg-brand-50/40', i % 2 ? 'bg-slate-50/60' : 'bg-white', r.weekend && 'text-slate-400')}>
-                      <td className="whitespace-nowrap border-b border-slate-100 px-3 py-2.5 text-xs text-slate-500">{r.date.slice(5)} <span className="text-[10px] text-slate-400">{t.daysShort[new Date(r.date + 'T00:00:00').getDay()]}</span></td>
-                      <td className="whitespace-nowrap border-b border-slate-100 px-3 py-2.5 font-semibold text-slate-800">{eName(r.emp)}</td>
-                      <td className="border-b border-slate-100 px-3 py-2.5 text-center">{r.firstIn ? fmtTime(r.firstIn.punch_time) : <span className="text-slate-300">—</span>}</td>
-                      <td className="border-b border-slate-100 px-3 py-2.5 text-center">{r.lastOut ? fmtTime(r.lastOut.punch_time) : <span className="text-slate-300">—</span>}</td>
-                      <td className="border-b border-slate-100 px-3 py-2.5 text-end text-slate-700">{hm}</td>
-                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.late > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.late > 0 ? r.late : '·'}<Pen tier={r.tier} /></td>
-                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.early > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.early > 0 ? r.early : '·'}<Pen tier={r.earlyTier} /></td>
-                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.brkOver > 0 ? 'font-bold text-rose-600' : r.brkMin > 0 ? 'text-slate-700' : 'text-slate-300')}>{r.weekend ? '' : (r.brkMin > 0 ? r.brkMin : '·')}{r.brkOver > 0 && <span className="text-[10px]"> (+{r.brkOver})</span>}<Pen tier={r.brkTier} /></td>
-                      <td className={cx('border-b border-slate-100 px-3 py-2.5 text-end', r.ot > 0 ? 'font-bold text-emerald-600' : 'text-slate-300')}>{r.ot > 0 ? r.ot : '·'}</td>
-                      <td className="border-b border-slate-100 px-3 py-2.5">
+                      <td className="whitespace-nowrap overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-xs text-slate-500">{r.date.slice(5)} <span className="text-[10px] text-slate-400">{t.daysShort[new Date(r.date + 'T00:00:00').getDay()]}</span></td>
+                      <td className="whitespace-nowrap overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 font-semibold text-slate-800">{eName(r.emp)}</td>
+                      <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-center">{r.firstIn ? fmtTime(r.firstIn.punch_time) : <span className="text-slate-300">—</span>}</td>
+                      <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-center">{r.lastOut ? fmtTime(r.lastOut.punch_time) : <span className="text-slate-300">—</span>}</td>
+                      <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end text-slate-700">{hm}</td>
+                      <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.late > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.late > 0 ? r.late : '·'}<Pen tier={r.tier} /></td>
+                      <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.early > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.early > 0 ? r.early : '·'}<Pen tier={r.earlyTier} /></td>
+                      <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.brkOver > 0 ? 'font-bold text-rose-600' : r.brkMin > 0 ? 'text-slate-700' : 'text-slate-300')}>{r.weekend ? '' : (r.brkMin > 0 ? r.brkMin : '·')}{r.brkOver > 0 && <span className="text-[10px]"> (+{r.brkOver})</span>}<Pen tier={r.brkTier} /></td>
+                      <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end', r.ot > 0 ? 'font-bold text-emerald-600' : 'text-slate-300')}>{r.ot > 0 ? r.ot : '·'}</td>
+                      <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5">
                         <span className="flex flex-wrap gap-1">
                           {r.weekend && <Badge>{t.weekendLbl}</Badge>}
                           {r.excused && <Badge tone="green">✓ {t.excused}</Badge>}
