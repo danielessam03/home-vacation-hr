@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.34';
+const APP_VERSION = 'v3.35';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -288,9 +288,9 @@ const T = {
     myPunches: 'My attendance', myTrips: 'My trips', myDocs: 'My documents', quickActions: 'Quick actions',
     presentDays: 'Days present', lateTotal: 'Late minutes', noPayslips: 'No approved payslips yet.',
     goCheckIn: 'Check in / out', goLeave: 'Request leave', goTrip: 'Log a trip',
-    apps: 'Systems', appHr: 'HR & Payroll', appMaint: 'Maintenance management', appCrm: 'Property management (CRM)', currentApp: 'You are here',
+    apps: 'Systems', appHr: 'HR & Payroll', appMaint: 'Maintenance management', appCrm: 'Property management (CRM)', appOps: 'HV Ops (marketing & data entry)', currentApp: 'You are here',
     myTasks: 'My maintenance tasks', openTasksLbl: 'open', linkedSystems: 'Linked systems', maintUser: 'Maintenance username', crmUser: 'CRM profile', notLinked: 'not linked',
-    username: 'Username', loginAccess: 'Login & system access', systemsAccess: 'Systems this person can open', sysHr: 'HR & Payroll', sysMaint: 'Maintenance', sysCrm: 'CRM',
+    username: 'Username', loginAccess: 'Login & system access', systemsAccess: 'Systems this person can open', sysHr: 'HR & Payroll', sysMaint: 'Maintenance', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'Role inside HV Ops', opsRoles: { admin: 'Admin', manager: 'Marketing manager (approves)', data_entry: 'Data entry', marketing: 'Marketing' },
     newPassword: 'New password (8+ characters)', setPassword: 'Set password', pwSaved: 'Password updated. It now opens every ticked system.', createLogin: 'Create login', loginEmail: 'Login email', loginCreated: 'Login created',
     emailSaved: 'Email updated', noLoginYet: 'No login yet. Create one so this employee can use the systems.', accessHint: 'One username and one password for all systems. Tick the systems this person may open. Passwords are set only here.',
     noHrAccess: 'Your login is not enabled for the HR system. Contact HR.', usernameRule: 'Letters, numbers, dot, dash or underscore (2 to 32).', minPw: 'Password must be at least 8 characters.', loginOff: 'Login disabled', loginOn: 'Login enabled', disableLogin: 'Disable login', enableLogin: 'Enable login', generatePw: 'Generate',
@@ -310,7 +310,7 @@ const T = {
     matchAgents: 'Match Engaz agents to employees', skipAgent: 'Not matched (skipped)', previewLbl: 'Preview', importBtn: 'Import', importedMsg: 'Imported', skippedLbl: 'skipped', lastImports: 'Previous imports',
     leadsLbl: 'Leads', viewingsLbl: 'Viewings', dealsLbl: 'Deals', convLbl: 'Closing %', salesCnt: 'Sales', rentalsCnt: 'Rentals', rentalValue: 'Rental value', noAgentCol: 'Choose the agent and date columns first.',
     engazHint: 'Upload the weekly Engaz export. Column matching and agent names are remembered after the first time. Rows already imported are updated, never counted twice.',
-    kpiCats: { sales: 'Sales', property: 'Property & bookings', maintenance: 'Maintenance', attendance: 'Attendance', general: 'General' },
+    kpiCats: { sales: 'Sales', property: 'Property & bookings', maintenance: 'Maintenance', attendance: 'Attendance', general: 'General', operations: 'Marketing & data entry (HV Ops)' },
     onTimeDays: 'on-time days', lateDays: 'late', noSalesTeam: 'Nobody is in the Sales department yet. Open each sales rep\'s employee card and set the department to Sales.',
     salesBoardHint: 'Sales results only, for employees in the Sales department.', companyBoardHint: 'Everyone, all categories. Attendance points come automatically from the fingerprint device and GPS check-ins; maintenance tasks and bookings from the other systems.',
     metricsTab: 'Metrics & points', pointsLbl: 'Points', rankLbl: 'Rank', winner: 'Leader of the month',
@@ -516,9 +516,9 @@ const T = {
     myPunches: 'حضوري', myTrips: 'مشاويري', myDocs: 'مستنداتي', quickActions: 'إجراءات سريعة',
     presentDays: 'أيام الحضور', lateTotal: 'دقائق التأخير', noPayslips: 'لا توجد قسائم راتب معتمدة بعد.',
     goCheckIn: 'تسجيل حضور / انصراف', goLeave: 'طلب إجازة', goTrip: 'تسجيل مشوار',
-    apps: 'الأنظمة', appHr: 'الموارد البشرية والرواتب', appMaint: 'إدارة الصيانة', appCrm: 'إدارة العقارات (CRM)', currentApp: 'أنت هنا',
+    apps: 'الأنظمة', appHr: 'الموارد البشرية والرواتب', appMaint: 'إدارة الصيانة', appCrm: 'إدارة العقارات (CRM)', appOps: 'HV Ops (التسويق وإدخال البيانات)', currentApp: 'أنت هنا',
     myTasks: 'مهام الصيانة الخاصة بي', openTasksLbl: 'مفتوحة', linkedSystems: 'الأنظمة المرتبطة', maintUser: 'مستخدم نظام الصيانة', crmUser: 'حساب CRM', notLinked: 'غير مرتبط',
-    username: 'اسم المستخدم', loginAccess: 'الدخول وصلاحية الأنظمة', systemsAccess: 'الأنظمة المسموح بدخولها', sysHr: 'الموارد البشرية والرواتب', sysMaint: 'الصيانة', sysCrm: 'CRM',
+    username: 'اسم المستخدم', loginAccess: 'الدخول وصلاحية الأنظمة', systemsAccess: 'الأنظمة المسموح بدخولها', sysHr: 'الموارد البشرية والرواتب', sysMaint: 'الصيانة', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'الدور داخل HV Ops', opsRoles: { admin: 'مدير النظام', manager: 'مدير التسويق (يعتمد)', data_entry: 'إدخال بيانات', marketing: 'تسويق' },
     newPassword: 'كلمة مرور جديدة (8 أحرف على الأقل)', setPassword: 'حفظ كلمة المرور', pwSaved: 'تم تحديث كلمة المرور. تفتح الآن كل الأنظمة المحددة.', createLogin: 'إنشاء حساب دخول', loginEmail: 'بريد الدخول', loginCreated: 'تم إنشاء حساب الدخول',
     emailSaved: 'تم تحديث البريد', noLoginYet: 'لا يوجد حساب دخول بعد. أنشئ واحداً ليتمكن الموظف من استخدام الأنظمة.', accessHint: 'اسم مستخدم واحد وكلمة مرور واحدة لكل الأنظمة. حدد الأنظمة المسموح بدخولها. كلمات المرور تُضبط من هنا فقط.',
     noHrAccess: 'حسابك غير مفعّل في نظام الموارد البشرية. تواصل مع الموارد البشرية.', usernameRule: 'أحرف إنجليزية وأرقام ونقطة وشرطة فقط (2 إلى 32).', minPw: 'كلمة المرور 8 أحرف على الأقل.', loginOff: 'الدخول موقوف', loginOn: 'الدخول مفعّل', disableLogin: 'إيقاف الدخول', enableLogin: 'تفعيل الدخول', generatePw: 'توليد',
@@ -538,7 +538,7 @@ const T = {
     matchAgents: 'مطابقة مندوبي إنجاز بالموظفين', skipAgent: 'غير مطابق (يُتخطى)', previewLbl: 'معاينة', importBtn: 'استيراد', importedMsg: 'تم استيراد', skippedLbl: 'تم تخطي', lastImports: 'عمليات الاستيراد السابقة',
     leadsLbl: 'عملاء محتملون', viewingsLbl: 'معاينات', dealsLbl: 'صفقات', convLbl: 'نسبة الإغلاق', salesCnt: 'مبيعات', rentalsCnt: 'إيجارات', rentalValue: 'قيمة الإيجارات', noAgentCol: 'اختر عمودي المندوب والتاريخ أولاً.',
     engazHint: 'ارفع تصدير إنجاز الأسبوعي. تُحفظ مطابقة الأعمدة وأسماء المندوبين بعد المرة الأولى. الصفوف المستوردة سابقاً تُحدَّث ولا تُحسب مرتين.',
-    kpiCats: { sales: 'مبيعات', property: 'عقارات وحجوزات', maintenance: 'صيانة', attendance: 'حضور', general: 'عام' },
+    kpiCats: { sales: 'مبيعات', property: 'عقارات وحجوزات', maintenance: 'صيانة', attendance: 'حضور', general: 'عام', operations: 'التسويق وإدخال البيانات (HV Ops)' },
     onTimeDays: 'يوم في الموعد', lateDays: 'تأخير', noSalesTeam: 'لا يوجد أحد في قسم المبيعات بعد. افتح بطاقة كل مندوب مبيعات واختر قسم المبيعات.',
     salesBoardHint: 'نتائج المبيعات فقط، لموظفي قسم المبيعات.', companyBoardHint: 'الجميع، كل الفئات. نقاط الحضور تُحسب تلقائياً من جهاز البصمة وتسجيل الحضور بالموقع؛ ومهام الصيانة والحجوزات من الأنظمة الأخرى.',
     metricsTab: 'المؤشرات والنقاط', pointsLbl: 'نقاط', rankLbl: 'الترتيب', winner: 'متصدر الشهر',
@@ -1610,6 +1610,7 @@ const HV_APPS = [
   { key: 'appHr', icon: '👥', url: 'https://home-vacation-hr.pages.dev', here: true },
   { key: 'appMaint', icon: '🔧', url: 'https://hv-maintenance-system.pages.dev' },
   { key: 'appCrm', icon: '🏠', url: 'https://property-management-crm.pages.dev' },
+  { key: 'appOps', icon: '📋', url: 'https://home-vacation-ops.pages.dev' },
 ];
 
 const WIDE_PAGES = ['attendance', 'payroll', 'reports', 'kpi', 'leave'];
@@ -1789,7 +1790,7 @@ function genPassword() {
   return Array.from(crypto.getRandomValues(new Uint8Array(10))).map((b) => chars[b % chars.length]).join('');
 }
 const USERNAME_RE = /^[A-Za-z0-9._-]{2,32}$/;
-const SYSTEMS = [['access_hr', 'sysHr', '🧑‍💼'], ['access_maint', 'sysMaint', '🔧'], ['access_crm', 'sysCrm', '🏠']];
+const SYSTEMS = [['access_hr', 'sysHr', '🧑‍💼'], ['access_maint', 'sysMaint', '🔧'], ['access_crm', 'sysCrm', '🏠'], ['access_ops', 'sysOps', '📋']];
 
 function SystemPicker({ value, onChange, disabledKeys = [] }) {
   const { t } = useL();
@@ -1880,7 +1881,14 @@ function AccessEditor({ user, me, refresh, toast, audit }) {
           </div>
         </Field>
       </div>
-      <SystemPicker value={user} disabledKeys={self ? ['access_hr'] : []} onChange={(k, v) => patch({ [k]: v })} />
+      <SystemPicker value={user} disabledKeys={self ? ['access_hr'] : []} onChange={(k, v) => patch(k === 'access_ops' && v && !user.ops_role ? { access_ops: true, ops_role: user.role === 'ceo' ? 'admin' : 'data_entry' } : { [k]: v })} />
+      {user.access_ops && (
+        <Field label={t.opsRoleLbl}>
+          <Select value={user.ops_role || (user.role === 'ceo' ? 'admin' : 'data_entry')} onChange={(e) => patch({ ops_role: e.target.value })}>
+            {Object.keys(t.opsRoles).map((r) => <option key={r} value={r}>{t.opsRoles[r]}</option>)}
+          </Select>
+        </Field>
+      )}
       <Field label={t.newPassword}>
         <div className="flex gap-2">
           <Input dir="ltr" type="text" autoComplete="off" value={pw} onChange={(e) => setPw(e.target.value)} />
@@ -1922,7 +1930,11 @@ function CreateLoginModal({ open, onClose, me, data, refresh, toast, audit, empl
     const r = await callAdmin({ action: 'create', ...f, username: f.username.trim(), branch_id: f.branch_id || null, employee_id: employee ? employee.id : null });
     setBusy(false);
     if (!r.ok) return toast(r.error, 'error');
-    const row = r.data.user;
+    let row = r.data.user;
+    if (f.access_ops) {
+      const { data: withOps } = await sb.from('app_users').update({ access_ops: true, ops_role: f.role === 'ceo' ? 'admin' : 'data_entry' }).eq('id', row.id).select().single();
+      if (withOps) row = withOps;
+    }
     refresh.users((prev) => [...prev.filter((u) => u.id !== row.id), row]);
     if (employee) refresh.employees((prev) => prev.map((e) => (e.id === employee.id ? { ...e, user_id: row.id } : e)));
     audit('insert', 'app_users', row.id, null, row);
