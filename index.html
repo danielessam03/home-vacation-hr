@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.35';
+const APP_VERSION = 'v3.36';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -1607,10 +1607,11 @@ const NAV = [
 ];
 
 const HV_APPS = [
-  { key: 'appHr', icon: '👥', url: 'https://home-vacation-hr.pages.dev', here: true },
-  { key: 'appMaint', icon: '🔧', url: 'https://hv-maintenance-system.pages.dev' },
-  { key: 'appCrm', icon: '🏠', url: 'https://property-management-crm.pages.dev' },
-  { key: 'appOps', icon: '📋', url: 'https://home-vacation-ops.pages.dev' },
+  /* `access` = the app_users checkbox that opens the system; the menu only lists what is ticked for the signed-in account */
+  { key: 'appHr', icon: '👥', url: 'https://home-vacation-hr.pages.dev', here: true, access: 'access_hr' },
+  { key: 'appMaint', icon: '🔧', url: 'https://hv-maintenance-system.pages.dev', access: 'access_maint' },
+  { key: 'appCrm', icon: '🏠', url: 'https://property-management-crm.pages.dev', access: 'access_crm' },
+  { key: 'appOps', icon: '📋', url: 'https://home-vacation-ops.pages.dev', access: 'access_ops' },
 ];
 
 const WIDE_PAGES = ['attendance', 'payroll', 'reports', 'kpi', 'leave'];
@@ -1659,7 +1660,7 @@ function Shell({ me, page, setPage, onSignOut, children }) {
 
       <Modal open={apps} onClose={() => setApps(false)} title={'🏢 ' + t.apps}>
         <ul className="divide-y divide-slate-100">
-          {HV_APPS.map((a) => (
+          {HV_APPS.filter((a) => a.here || me[a.access]).map((a) => (
             <li key={a.key}>
               {a.here ? (
                 <div className="flex items-center justify-between py-3 text-sm"><span className="font-semibold text-slate-800">{a.icon} {t[a.key]}</span><Badge tone="teal">{t.currentApp}</Badge></div>
