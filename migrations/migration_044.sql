@@ -1,0 +1,9 @@
+-- =====================================================================
+-- Home Vacation HR & Payroll  --  migration_044.sql
+-- WhatsApp task messages for ALL systems: outbox table hv_notifications,
+-- hv_notify(), hv_phone_e164() (+ phone normalising trigger on app_users)
+-- and the assignment triggers on hv_tasks / ops_*.
+-- The full, tested file lives in the HV Ops repo:
+--   home-vacation-ops/sql/013_whatsapp_outbox.sql
+-- Run THAT file (additive, safe to re-run). Applied to the live project 2026-09-23.
+-- =====================================================================
