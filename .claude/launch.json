@@ -1,0 +1,53 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "maintenance-static",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--directory",
+        "C:/Users/Essam/hv-maintenance-system"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "hv-ops",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8767",
+        "--directory",
+        "C:/Users/Essam/home-vacation-ops"
+      ],
+      "port": 8767
+    },
+    {
+      "name": "hv-ops-harness",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8766",
+        "--directory",
+        "C:/Users/Essam/AppData/Local/Temp/claude/C--Users-Essam-home-vacation-hr/dbcf4dc0-08af-41fa-b858-54209bb54043/scratchpad"
+      ],
+      "port": 8766
+    },
+    {
+      "name": "hv-finance-smoke",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8768",
+        "--directory",
+        "C:/Users/Essam/home-vacation-finance/tests"
+      ],
+      "port": 8768
+    }
+  ]
+}

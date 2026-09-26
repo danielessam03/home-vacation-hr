@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.36';
+const APP_VERSION = 'v3.37';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -288,9 +288,9 @@ const T = {
     myPunches: 'My attendance', myTrips: 'My trips', myDocs: 'My documents', quickActions: 'Quick actions',
     presentDays: 'Days present', lateTotal: 'Late minutes', noPayslips: 'No approved payslips yet.',
     goCheckIn: 'Check in / out', goLeave: 'Request leave', goTrip: 'Log a trip',
-    apps: 'Systems', appHr: 'HR & Payroll', appMaint: 'Maintenance management', appCrm: 'Property management (CRM)', appOps: 'HV Ops (marketing & data entry)', currentApp: 'You are here',
+    apps: 'Systems', appHr: 'HR & Payroll', appMaint: 'Maintenance management', appCrm: 'Property management (CRM)', appOps: 'HV Ops (marketing & data entry)', appFin: 'HV Finance (accounting)', currentApp: 'You are here',
     myTasks: 'My maintenance tasks', openTasksLbl: 'open', linkedSystems: 'Linked systems', maintUser: 'Maintenance username', crmUser: 'CRM profile', notLinked: 'not linked',
-    username: 'Username', loginAccess: 'Login & system access', systemsAccess: 'Systems this person can open', sysHr: 'HR & Payroll', sysMaint: 'Maintenance', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'Role inside HV Ops', opsRoles: { admin: 'Admin', manager: 'Marketing manager (approves)', data_entry: 'Data entry', marketing: 'Marketing' },
+    username: 'Username', loginAccess: 'Login & system access', systemsAccess: 'Systems this person can open', sysHr: 'HR & Payroll', sysMaint: 'Maintenance', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'Role inside HV Ops', opsRoles: { admin: 'Admin', manager: 'Marketing manager (approves)', data_entry: 'Data entry', marketing: 'Marketing' }, sysFin: 'HV Finance', finRoleLbl: 'Role inside HV Finance', finRoles: { admin: 'Admin (everything)', accountant: 'Accountant (enters & posts)', approver: 'Approver (posts big payments, reversals, closes months)', viewer: 'Viewer (read only)' },
     newPassword: 'New password (8+ characters)', setPassword: 'Set password', pwSaved: 'Password updated. It now opens every ticked system.', createLogin: 'Create login', loginEmail: 'Login email', loginCreated: 'Login created',
     emailSaved: 'Email updated', noLoginYet: 'No login yet. Create one so this employee can use the systems.', accessHint: 'One username and one password for all systems. Tick the systems this person may open. Passwords are set only here.',
     noHrAccess: 'Your login is not enabled for the HR system. Contact HR.', usernameRule: 'Letters, numbers, dot, dash or underscore (2 to 32).', minPw: 'Password must be at least 8 characters.', loginOff: 'Login disabled', loginOn: 'Login enabled', disableLogin: 'Disable login', enableLogin: 'Enable login', generatePw: 'Generate',
@@ -516,9 +516,9 @@ const T = {
     myPunches: 'حضوري', myTrips: 'مشاويري', myDocs: 'مستنداتي', quickActions: 'إجراءات سريعة',
     presentDays: 'أيام الحضور', lateTotal: 'دقائق التأخير', noPayslips: 'لا توجد قسائم راتب معتمدة بعد.',
     goCheckIn: 'تسجيل حضور / انصراف', goLeave: 'طلب إجازة', goTrip: 'تسجيل مشوار',
-    apps: 'الأنظمة', appHr: 'الموارد البشرية والرواتب', appMaint: 'إدارة الصيانة', appCrm: 'إدارة العقارات (CRM)', appOps: 'HV Ops (التسويق وإدخال البيانات)', currentApp: 'أنت هنا',
+    apps: 'الأنظمة', appHr: 'الموارد البشرية والرواتب', appMaint: 'إدارة الصيانة', appCrm: 'إدارة العقارات (CRM)', appOps: 'HV Ops (التسويق وإدخال البيانات)', appFin: 'HV Finance (الحسابات والمالية)', currentApp: 'أنت هنا',
     myTasks: 'مهام الصيانة الخاصة بي', openTasksLbl: 'مفتوحة', linkedSystems: 'الأنظمة المرتبطة', maintUser: 'مستخدم نظام الصيانة', crmUser: 'حساب CRM', notLinked: 'غير مرتبط',
-    username: 'اسم المستخدم', loginAccess: 'الدخول وصلاحية الأنظمة', systemsAccess: 'الأنظمة المسموح بدخولها', sysHr: 'الموارد البشرية والرواتب', sysMaint: 'الصيانة', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'الدور داخل HV Ops', opsRoles: { admin: 'مدير النظام', manager: 'مدير التسويق (يعتمد)', data_entry: 'إدخال بيانات', marketing: 'تسويق' },
+    username: 'اسم المستخدم', loginAccess: 'الدخول وصلاحية الأنظمة', systemsAccess: 'الأنظمة المسموح بدخولها', sysHr: 'الموارد البشرية والرواتب', sysMaint: 'الصيانة', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'الدور داخل HV Ops', opsRoles: { admin: 'مدير النظام', manager: 'مدير التسويق (يعتمد)', data_entry: 'إدخال بيانات', marketing: 'تسويق' }, sysFin: 'HV Finance', finRoleLbl: 'الدور داخل HV Finance', finRoles: { admin: 'مدير النظام (كل الصلاحيات)', accountant: 'محاسب (يدخل ويرحّل)', approver: 'معتمد (يرحّل المدفوعات الكبيرة والقيود العكسية ويقفل الشهور)', viewer: 'مشاهدة فقط' },
     newPassword: 'كلمة مرور جديدة (8 أحرف على الأقل)', setPassword: 'حفظ كلمة المرور', pwSaved: 'تم تحديث كلمة المرور. تفتح الآن كل الأنظمة المحددة.', createLogin: 'إنشاء حساب دخول', loginEmail: 'بريد الدخول', loginCreated: 'تم إنشاء حساب الدخول',
     emailSaved: 'تم تحديث البريد', noLoginYet: 'لا يوجد حساب دخول بعد. أنشئ واحداً ليتمكن الموظف من استخدام الأنظمة.', accessHint: 'اسم مستخدم واحد وكلمة مرور واحدة لكل الأنظمة. حدد الأنظمة المسموح بدخولها. كلمات المرور تُضبط من هنا فقط.',
     noHrAccess: 'حسابك غير مفعّل في نظام الموارد البشرية. تواصل مع الموارد البشرية.', usernameRule: 'أحرف إنجليزية وأرقام ونقطة وشرطة فقط (2 إلى 32).', minPw: 'كلمة المرور 8 أحرف على الأقل.', loginOff: 'الدخول موقوف', loginOn: 'الدخول مفعّل', disableLogin: 'إيقاف الدخول', enableLogin: 'تفعيل الدخول', generatePw: 'توليد',
@@ -1612,6 +1612,7 @@ const HV_APPS = [
   { key: 'appMaint', icon: '🔧', url: 'https://hv-maintenance-system.pages.dev', access: 'access_maint' },
   { key: 'appCrm', icon: '🏠', url: 'https://property-management-crm.pages.dev', access: 'access_crm' },
   { key: 'appOps', icon: '📋', url: 'https://home-vacation-ops.pages.dev', access: 'access_ops' },
+  { key: 'appFin', icon: '💰', url: 'https://home-vacation-finance.pages.dev', access: 'access_fin' },
 ];
 
 const WIDE_PAGES = ['attendance', 'payroll', 'reports', 'kpi', 'leave'];
@@ -1791,7 +1792,10 @@ function genPassword() {
   return Array.from(crypto.getRandomValues(new Uint8Array(10))).map((b) => chars[b % chars.length]).join('');
 }
 const USERNAME_RE = /^[A-Za-z0-9._-]{2,32}$/;
-const SYSTEMS = [['access_hr', 'sysHr', '🧑‍💼'], ['access_maint', 'sysMaint', '🔧'], ['access_crm', 'sysCrm', '🏠'], ['access_ops', 'sysOps', '📋']];
+const SYSTEMS = [['access_hr', 'sysHr', '🧑‍💼'], ['access_maint', 'sysMaint', '🔧'], ['access_crm', 'sysCrm', '🏠'], ['access_ops', 'sysOps', '📋'], ['access_fin', 'sysFin', '💰']];
+
+/* default HV Finance role from the HR role: CEO = admin, accountant = accountant, everyone else read-only */
+const finRoleFor = (role) => (role === 'ceo' ? 'admin' : role === 'accountant' ? 'accountant' : 'viewer');
 
 function SystemPicker({ value, onChange, disabledKeys = [] }) {
   const { t } = useL();
@@ -1882,11 +1886,18 @@ function AccessEditor({ user, me, refresh, toast, audit }) {
           </div>
         </Field>
       </div>
-      <SystemPicker value={user} disabledKeys={self ? ['access_hr'] : []} onChange={(k, v) => patch(k === 'access_ops' && v && !user.ops_role ? { access_ops: true, ops_role: user.role === 'ceo' ? 'admin' : 'data_entry' } : { [k]: v })} />
+      <SystemPicker value={user} disabledKeys={self ? ['access_hr'] : []} onChange={(k, v) => patch(k === 'access_ops' && v && !user.ops_role ? { access_ops: true, ops_role: user.role === 'ceo' ? 'admin' : 'data_entry' } : k === 'access_fin' && v && !user.fin_role ? { access_fin: true, fin_role: finRoleFor(user.role) } : { [k]: v })} />
       {user.access_ops && (
         <Field label={t.opsRoleLbl}>
           <Select value={user.ops_role || (user.role === 'ceo' ? 'admin' : 'data_entry')} onChange={(e) => patch({ ops_role: e.target.value })}>
             {Object.keys(t.opsRoles).map((r) => <option key={r} value={r}>{t.opsRoles[r]}</option>)}
+          </Select>
+        </Field>
+      )}
+      {user.access_fin && (
+        <Field label={t.finRoleLbl}>
+          <Select value={user.fin_role || finRoleFor(user.role)} onChange={(e) => patch({ fin_role: e.target.value })}>
+            {Object.keys(t.finRoles).map((r) => <option key={r} value={r}>{t.finRoles[r]}</option>)}
           </Select>
         </Field>
       )}
@@ -1935,6 +1946,10 @@ function CreateLoginModal({ open, onClose, me, data, refresh, toast, audit, empl
     if (f.access_ops) {
       const { data: withOps } = await sb.from('app_users').update({ access_ops: true, ops_role: f.role === 'ceo' ? 'admin' : 'data_entry' }).eq('id', row.id).select().single();
       if (withOps) row = withOps;
+    }
+    if (f.access_fin) {
+      const { data: withFin } = await sb.from('app_users').update({ access_fin: true, fin_role: finRoleFor(f.role) }).eq('id', row.id).select().single();
+      if (withFin) row = withFin;
     }
     refresh.users((prev) => [...prev.filter((u) => u.id !== row.id), row]);
     if (employee) refresh.employees((prev) => prev.map((e) => (e.id === employee.id ? { ...e, user_id: row.id } : e)));
