@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.37';
+const APP_VERSION = 'v3.38';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -292,7 +292,7 @@ const T = {
     myTasks: 'My maintenance tasks', openTasksLbl: 'open', linkedSystems: 'Linked systems', maintUser: 'Maintenance username', crmUser: 'CRM profile', notLinked: 'not linked',
     username: 'Username', loginAccess: 'Login & system access', systemsAccess: 'Systems this person can open', sysHr: 'HR & Payroll', sysMaint: 'Maintenance', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'Role inside HV Ops', opsRoles: { admin: 'Admin', manager: 'Marketing manager (approves)', data_entry: 'Data entry', marketing: 'Marketing' }, sysFin: 'HV Finance', finRoleLbl: 'Role inside HV Finance', finRoles: { admin: 'Admin (everything)', accountant: 'Accountant (enters & posts)', approver: 'Approver (posts big payments, reversals, closes months)', viewer: 'Viewer (read only)' },
     newPassword: 'New password (8+ characters)', setPassword: 'Set password', pwSaved: 'Password updated. It now opens every ticked system.', createLogin: 'Create login', loginEmail: 'Login email', loginCreated: 'Login created',
-    emailSaved: 'Email updated', noLoginYet: 'No login yet. Create one so this employee can use the systems.', accessHint: 'One username and one password for all systems. Tick the systems this person may open. Passwords are set only here.',
+    emailSaved: 'Email updated', noLoginYet: 'No login yet. Create one so this employee can use the systems.', noLoginShort: 'no login', openAccess: 'Systems & access', accessHint: 'One username and one password for all systems. Tick the systems this person may open. Passwords are set only here.',
     noHrAccess: 'Your login is not enabled for the HR system. Contact HR.', usernameRule: 'Letters, numbers, dot, dash or underscore (2 to 32).', minPw: 'Password must be at least 8 characters.', loginOff: 'Login disabled', loginOn: 'Login enabled', disableLogin: 'Disable login', enableLogin: 'Enable login', generatePw: 'Generate',
     attendanceExempt: 'Exempt from attendance (no check-in, lateness or overtime — CEOs automatically)', exemptBadge: 'Attendance exempt',
     reports: 'Reports', rptPayroll: 'Payroll cost', rptHeadcount: 'Headcount', rptOvertime: 'Overtime & lateness',
@@ -520,7 +520,7 @@ const T = {
     myTasks: 'مهام الصيانة الخاصة بي', openTasksLbl: 'مفتوحة', linkedSystems: 'الأنظمة المرتبطة', maintUser: 'مستخدم نظام الصيانة', crmUser: 'حساب CRM', notLinked: 'غير مرتبط',
     username: 'اسم المستخدم', loginAccess: 'الدخول وصلاحية الأنظمة', systemsAccess: 'الأنظمة المسموح بدخولها', sysHr: 'الموارد البشرية والرواتب', sysMaint: 'الصيانة', sysCrm: 'CRM', sysOps: 'HV Ops', opsRoleLbl: 'الدور داخل HV Ops', opsRoles: { admin: 'مدير النظام', manager: 'مدير التسويق (يعتمد)', data_entry: 'إدخال بيانات', marketing: 'تسويق' }, sysFin: 'HV Finance', finRoleLbl: 'الدور داخل HV Finance', finRoles: { admin: 'مدير النظام (كل الصلاحيات)', accountant: 'محاسب (يدخل ويرحّل)', approver: 'معتمد (يرحّل المدفوعات الكبيرة والقيود العكسية ويقفل الشهور)', viewer: 'مشاهدة فقط' },
     newPassword: 'كلمة مرور جديدة (8 أحرف على الأقل)', setPassword: 'حفظ كلمة المرور', pwSaved: 'تم تحديث كلمة المرور. تفتح الآن كل الأنظمة المحددة.', createLogin: 'إنشاء حساب دخول', loginEmail: 'بريد الدخول', loginCreated: 'تم إنشاء حساب الدخول',
-    emailSaved: 'تم تحديث البريد', noLoginYet: 'لا يوجد حساب دخول بعد. أنشئ واحداً ليتمكن الموظف من استخدام الأنظمة.', accessHint: 'اسم مستخدم واحد وكلمة مرور واحدة لكل الأنظمة. حدد الأنظمة المسموح بدخولها. كلمات المرور تُضبط من هنا فقط.',
+    emailSaved: 'تم تحديث البريد', noLoginYet: 'لا يوجد حساب دخول بعد. أنشئ واحداً ليتمكن الموظف من استخدام الأنظمة.', noLoginShort: 'بدون حساب دخول', openAccess: 'الأنظمة والصلاحيات', accessHint: 'اسم مستخدم واحد وكلمة مرور واحدة لكل الأنظمة. حدد الأنظمة المسموح بدخولها. كلمات المرور تُضبط من هنا فقط.',
     noHrAccess: 'حسابك غير مفعّل في نظام الموارد البشرية. تواصل مع الموارد البشرية.', usernameRule: 'أحرف إنجليزية وأرقام ونقطة وشرطة فقط (2 إلى 32).', minPw: 'كلمة المرور 8 أحرف على الأقل.', loginOff: 'الدخول موقوف', loginOn: 'الدخول مفعّل', disableLogin: 'إيقاف الدخول', enableLogin: 'تفعيل الدخول', generatePw: 'توليد',
     attendanceExempt: 'معفى من الحضور (بدون تسجيل حضور أو تأخير أو إضافي — المدراء التنفيذيون تلقائياً)', exemptBadge: 'معفى من الحضور',
     reports: 'التقارير', rptPayroll: 'تكلفة الرواتب', rptHeadcount: 'عدد الموظفين', rptOvertime: 'الإضافي والتأخير',
@@ -1797,6 +1797,19 @@ const SYSTEMS = [['access_hr', 'sysHr', '🧑‍💼'], ['access_maint', 'sysMai
 /* default HV Finance role from the HR role: CEO = admin, accountant = accountant, everyone else read-only */
 const finRoleFor = (role) => (role === 'ceo' ? 'admin' : role === 'accountant' ? 'accountant' : 'viewer');
 
+/* the systems a login can open, as icons (bright = ticked, faded = not). Used on the employee list and card. */
+function SystemIcons({ user, onClick }) {
+  const { t } = useL();
+  if (!user) return <span className="text-xs text-amber-600">🔑 {t.noLoginShort}</span>;
+  return (
+    <span className="inline-flex items-center gap-1" onClick={onClick} title={SYSTEMS.map(([k, lbl]) => (user[k] ? '✓ ' : '✗ ') + t[lbl]).join('\n')}>
+      {SYSTEMS.map(([k, lbl, ic]) => (
+        <span key={k} className={cx('rounded-md px-1 text-sm', user[k] && user.is_active ? 'bg-brand-50' : 'opacity-25 grayscale')}>{ic}</span>
+      ))}
+    </span>
+  );
+}
+
 function SystemPicker({ value, onChange, disabledKeys = [] }) {
   const { t } = useL();
   return (
@@ -1931,7 +1944,7 @@ function CreateLoginModal({ open, onClose, me, data, refresh, toast, audit, empl
     let uname = base, n = 1;
     while (uname && data.users.some((u) => (u.username || '').toLowerCase() === uname)) { n += 1; uname = base + n; }
     setF({ email: '', username: uname, password: genPassword(), full_name_en: en, full_name_ar: employee ? (employee.full_name_ar || '') : '',
-           role: 'staff', branch_id: employee ? (employee.branch_id || '') : '', access_hr: true, access_maint: false, access_crm: false });
+           role: 'staff', branch_id: employee ? (employee.branch_id || '') : '', access_hr: true, access_maint: false, access_crm: false, access_ops: false, access_fin: false });
   }, [open]);
 
   async function create() {
@@ -2367,7 +2380,10 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                     &middot; 🗓 {e.weekend_days && e.weekend_days.length === 0 ? t.noRestDay : (e.weekend_days || (data.settings.work_week || {}).weekend_days || [5, 6]).map((d) => t.daysShort[d]).join('، ')}
                   </p>
                 </div>
-                <Badge tone={e.status === 'active' ? 'teal' : e.status === 'suspended' ? 'amber' : 'red'}>{t.empStatus[e.status]}</Badge>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <Badge tone={e.status === 'active' ? 'teal' : e.status === 'suspended' ? 'amber' : 'red'}>{t.empStatus[e.status]}</Badge>
+                  <SystemIcons user={e.user_id ? data.users.find((u) => u.id === e.user_id) : null} />
+                </div>
               </li>
             ))}
           </ul>
@@ -2379,6 +2395,11 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
         footer={canEdit && view ? <><Btn className="flex-1" onClick={() => setForm({ ...view, allowances: view.allowances || [] })}>{t.edit}</Btn><Btn variant="outline" className="flex-1" onClick={() => setView(null)}>{t.close}</Btn></> : null}>
         {view && (
           <>
+            <button type="button" className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-start text-xs text-slate-600 hover:border-brand-300"
+              onClick={() => { setTab('profile'); setTimeout(() => { const el = document.getElementById('emp-access'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60); }}>
+              <span className="font-semibold">🔑 {t.openAccess}</span>
+              <SystemIcons user={viewUser} />
+            </button>
             <div className="flex gap-2">
               {['profile', ...(canSalary ? ['salary'] : []), 'docs'].map((k) => (
                 <button key={k} onClick={() => setTab(k)}
@@ -2428,7 +2449,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   <Btn size="sm" variant="soft" onClick={genToken}>{t.genToken}</Btn>
                 </div>
                 <p className="text-xs text-slate-400">{t.tokenHint}</p>
-                <div className="border-t border-slate-200 pt-3">
+                <div className="border-t border-slate-200 pt-3" id="emp-access">
                   <p className="mb-2 text-sm font-semibold text-slate-800">🔑 {t.loginAccess}</p>
                   {viewUser ? (
                     <AccessEditor user={viewUser} me={me} refresh={refresh} toast={toast} audit={audit} />
@@ -2437,6 +2458,9 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                       <p className="text-xs text-slate-500">{t.noLoginYet}</p>
                       <Btn size="sm" onClick={() => setCreatingLogin(true)}>+ {t.createLogin}</Btn>
                     </div>
+                  )}
+                  {viewUser && (viewUser.access_fin || viewUser.access_ops) && (
+                    <p className="mt-2 text-xs text-slate-500">{viewUser.access_fin && <>💰 HV Finance: <b>{(t.finRoles || {})[viewUser.fin_role || finRoleFor(viewUser.role)]}</b></>}{viewUser.access_fin && viewUser.access_ops ? ' · ' : ''}{viewUser.access_ops && <>📋 HV Ops: <b>{(t.opsRoles || {})[viewUser.ops_role || (viewUser.role === 'ceo' ? 'admin' : 'data_entry')]}</b></>}</p>
                   )}
                   {links && (links.maint || links.crm) && (
                     <p className="mt-2 text-xs text-slate-500">
