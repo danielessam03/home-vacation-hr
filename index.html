@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.39';
+const APP_VERSION = 'v3.40';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -186,6 +186,7 @@ const T = {
     lateMin: 'Late (min)', workedH: 'Worked', otMin: 'OT (min)', missingOut: 'Missing punch', weekendLbl: 'Weekend', statusLbl: 'Status', penaltyLbl: 'Penalty',
     breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle', device: 'Fingerprint device' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
     excuseDay: 'Excuse this day', excuseWhat: 'What to excuse', excuseSaved: 'Excused. No deduction for that day.', excuseExisting: 'Already excused', excuseHint: 'Creates an accepted note on the employee\'s behalf. The day then carries no deduction for the chosen item.',
+    prAttTitle: 'Attendance report', prList: 'All in one list', prListHint: 'Every employee-day on screen, in date order, with the totals on top.', prPerEmp: 'One sheet per employee', prPerEmpHint: 'Each employee on their own page with their totals and signature lines.', prSigEmp: 'Employee signature', prSigMgr: 'Direct manager', prSigHr: 'HR', prPopup: 'Allow pop-ups for this site to print.', prDays: 'Days', prChoose: 'What do you want to print?',
     totalsTab: 'Totals', totalLbl: 'Total', totalLate: 'Late (total)', totalEarly: 'Left early (total)', totalBreakOver: 'Break overrun (total)', totalOt: 'Overtime (total)', totalDeducted: 'Deducted (EGP)',
     totalsHint: 'Same calculation as payroll: lateness, early-leave and break tiers after accepted notes; overtime after the shift end. Approved payroll runs are not changed by this view.',
     earlyRules: 'Early-leave rules', earlyDedLbl: 'Left early', earlyMinLbl: 'Early', tierBefore: 'Minutes before the shift end', earlyRulesHint: 'Leaving before the shift end is penalised by the highest tier reached, once per day, unless a "leaving early" note was accepted. A missing check-out is flagged, not penalised.',
@@ -422,6 +423,7 @@ const T = {
     lateMin: 'تأخير (د)', workedH: 'ساعات العمل', otMin: 'إضافي (د)', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية', statusLbl: 'الحالة', penaltyLbl: 'الجزاء',
     breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط', device: 'جهاز البصمة' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
     excuseDay: 'إعفاء هذا اليوم', excuseWhat: 'ما الذي يُعفى', excuseSaved: 'تم الإعفاء. لا خصم عن هذا اليوم.', excuseExisting: 'معفى بالفعل', excuseHint: 'ينشئ إذناً مقبولاً نيابة عن الموظف. لا يُخصم عن هذا اليوم للبند المختار.',
+    prAttTitle: 'تقرير الحضور والانصراف', prList: 'قائمة واحدة للجميع', prListHint: 'كل أيام الموظفين المعروضة بترتيب التاريخ مع الإجماليات في الأعلى.', prPerEmp: 'ورقة لكل موظف', prPerEmpHint: 'كل موظف في صفحة مستقلة مع إجمالياته وأماكن التوقيع.', prSigEmp: 'توقيع الموظف', prSigMgr: 'المدير المباشر', prSigHr: 'الموارد البشرية', prPopup: 'اسمح بالنوافذ المنبثقة لهذا الموقع للطباعة.', prDays: 'أيام', prChoose: 'ماذا تريد أن تطبع؟',
     totalsTab: 'الإجماليات', totalLbl: 'الإجمالي', totalLate: 'التأخير (إجمالي)', totalEarly: 'الانصراف المبكر (إجمالي)', totalBreakOver: 'تجاوز الاستراحة (إجمالي)', totalOt: 'الإضافي (إجمالي)', totalDeducted: 'المخصوم (جنيه)',
     totalsHint: 'نفس حساب الرواتب: شرائح التأخير والانصراف المبكر والاستراحة بعد الأذونات المقبولة؛ والإضافي بعد نهاية الوردية. مسيرات الرواتب المعتمدة لا تتغير من هنا.',
     earlyRules: 'قواعد الانصراف المبكر', earlyDedLbl: 'انصراف مبكر', earlyMinLbl: 'مبكر', tierBefore: 'الدقائق قبل نهاية الوردية', earlyRulesHint: 'الانصراف قبل نهاية الوردية يُعاقب بأعلى شريحة يصل إليها الموظف مرة واحدة في اليوم، إلا إذا قُبل إذن "انصراف مبكر". البصمة الناقصة تُعلَّم ولا تُعاقب.',
@@ -1314,6 +1316,56 @@ function downloadCsv(filename, rows) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+/** Print-ready report in a new window: logo header, period line, optional
+    summary tiles, tables whose header row repeats on every printed page,
+    optional signature lines. A cell is a value or { v, c } where c is
+    'bad' | 'good' | 'muted' | 'b'. A section with pageBreak starts a new page
+    (one sheet per employee). */
+function printReport({ title, subtitle, company, rtl, landscape, tiles, sections, signatures, printedBy }) {
+  const w = window.open('', '_blank');
+  if (!w) return false;
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const fmt = (v) => (typeof v === 'number' ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v);
+  const cell = (x, tag) => { const o = x && typeof x === 'object' && 'v' in x ? x : { v: x }; return '<' + tag + (o.c ? ' class="' + o.c + '"' : '') + '>' + esc(fmt(o.v)) + '</' + tag + '>'; };
+  const tileHtml = (ts) => ts && ts.length ? '<div class="tiles">' + ts.map((x) => '<div class="tile ' + (x.c || '') + '"><b>' + esc(fmt(x.v)) + '</b><span>' + esc(x.label) + '</span></div>').join('') + '</div>' : '';
+  const sec = (s) => '<section' + (s.pageBreak ? ' class="pb"' : '') + '>' +
+    (s.title ? '<h2>' + esc(s.title) + '</h2>' : '') + (s.info ? '<p class="info">' + s.info.map(esc).join(' &nbsp;·&nbsp; ') + '</p>' : '') + tileHtml(s.tiles) +
+    '<table><thead><tr>' + s.head.map((h) => cell(h, 'th')).join('') + '</tr></thead><tbody>' +
+    (s.rows.length ? s.rows.map((r) => '<tr' + (r._cls ? ' class="' + r._cls + '"' : '') + '>' + (r.cells || r).map((c) => cell(c, 'td')).join('') + '</tr>').join('') : '<tr><td colspan="' + s.head.length + '" class="muted">—</td></tr>') +
+    (s.total ? '<tr class="tot">' + s.total.map((c) => cell(c, 'td')).join('') + '</tr>' : '') +
+    '</tbody></table>' +
+    (s.signatures ? '<div class="sig">' + s.signatures.map((x) => '<span>' + esc(x) + '<i></i></span>').join('') + '</div>' : '') + '</section>';
+  const co = company || {};
+  const now = new Date();
+  w.document.write('<!doctype html><html dir="' + (rtl ? 'rtl' : 'ltr') + '"><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">' +
+    '<style>@page{size:A4 ' + (landscape ? 'landscape' : 'portrait') + ';margin:11mm 10mm}' +
+    '*{box-sizing:border-box}body{font-family:Cairo,Inter,Arial,sans-serif;color:#0f172a;font-size:11px;margin:0;padding:18px;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'header{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:3px solid #1d6fa3;padding-bottom:8px;margin-bottom:10px}' +
+    'header img{height:40px}h1{font-size:17px;color:#12405c;margin:0}header .sub{color:#475569;font-size:12px}header .co{font-size:11px;color:#64748b}' +
+    'h2{font-size:14px;color:#12405c;margin:6px 0 4px}.info{margin:0 0 6px;color:#475569}' +
+    '.tiles{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}.tile{border:1px solid #dbe4ec;border-radius:8px;padding:5px 10px;min-width:92px;text-align:center}' +
+    '.tile b{display:block;font-size:14px}.tile span{font-size:10px;color:#64748b}.tile.bad b{color:#be123c}.tile.good b{color:#047857}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:6px}thead{display:table-header-group}tr{page-break-inside:avoid;break-inside:avoid}' +
+    'th{background:#eef6fa;color:#1a4a60;font-weight:700;text-align:start;padding:4px 6px;border:1px solid #cfdbe5;font-size:10.5px}' +
+    'td{padding:3.5px 6px;border:1px solid #dfe7ee;vertical-align:top;white-space:nowrap}td:last-child{white-space:normal}tbody tr:nth-child(even) td{background:#f8fafc}' +
+    '.bad{color:#be123c;font-weight:600}.good{color:#047857;font-weight:600}.muted{color:#94a3b8}.b{font-weight:700}' +
+    'tr.wk td{color:#94a3b8}tr.tot td{background:#eef2f6!important;font-weight:700;border-top:2px solid #94a3b8}' +
+    'section.pb{break-before:page;page-break-before:always}section.pb:first-of-type{break-before:auto;page-break-before:auto}' +
+    '.sig{display:flex;justify-content:space-between;gap:24px;margin-top:26px}.sig span{flex:1;color:#475569}.sig i{display:block;border-bottom:1px solid #64748b;height:28px}' +
+    'footer{margin-top:10px;color:#94a3b8;font-size:9.5px;display:flex;justify-content:space-between}' +
+    '.bar{position:sticky;top:0;background:#fff;padding:6px 0 10px;display:flex;gap:8px}.bar button{font:inherit;font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid #1d6fa3;background:#1d6fa3;color:#fff;cursor:pointer}' +
+    '.bar button+button{background:#fff;color:#1d6fa3}@media print{.bar{display:none}body{padding:0}}</style></head><body>' +
+    '<div class="bar"><button onclick="window.print()">🖨️ Print / طباعة</button><button onclick="window.close()">✕</button></div>' +
+    '<header><div><h1>' + esc(title) + '</h1>' + (subtitle ? '<div class="sub">' + esc(subtitle) + '</div>' : '') +
+    '<div class="co">' + esc([co.name_en, co.name_ar].filter(Boolean).join(' — ')) + '</div></div><img src="' + LOGO_LOCKUP + '"/></header>' +
+    tileHtml(tiles) + sections.map(sec).join('') + (signatures ? '<div class="sig">' + signatures.map((x) => '<span>' + esc(x) + '<i></i></span>').join('') + '</div>' : '') +
+    '<footer><span>' + esc(now.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })) + (printedBy ? ' · ' + esc(printedBy) : '') + '</span><span>Home Vacation HR</span></footer>' +
+    '<script>window.onload=function(){setTimeout(function(){window.print()},350)}<\/script></body></html>');
+  w.document.close();
+  return true;
 }
 
 /** Print a bilingual data sheet (NOSI forms): sections of label/value rows. */
@@ -2813,6 +2865,20 @@ function AttendanceTotalsTab({ me, data, eName }) {
 
   const shown = rows ? rows.filter((r) => !fEmp || r.emp.id === fEmp) : [];
   const sum = (k) => shown.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+  function printTotals() {
+    const mny = (v, c) => v ? { v: money(v), c } : '';
+    const tm = (v, c) => v ? { v: hm(v), c } : '';
+    const head = [t.selectEmployee, t.presentDays, t.lateMin, t.earlyMinLbl, '☕ ' + t.breakOverLbl, t.otMin, ...(canMoney ? [t.lateDedLbl, t.earlyDedLbl, t.breakDedLbl, t.totalDeducted, t.otLbl] : [])];
+    const body = shown.map((r) => [{ v: eName(r.emp), c: 'b' }, r.days, r.late ? { v: hm(r.late) + (r.lateDays ? ' · ' + r.lateDays + ' ' + t.daysUnit : ''), c: 'bad' } : '', tm(r.early, 'bad'), tm(r.brk, 'bad'), tm(r.ot, 'good'),
+      ...(canMoney ? [mny(r.lateDed), mny(r.earlyDed), mny(r.brkDed), mny(r.ded, 'bad'), mny(r.otAmt, 'good')] : [])]);
+    const total = [t.totalLbl, sum('days'), hm(sum('late')), hm(sum('early')), hm(sum('brk')), hm(sum('ot')), ...(canMoney ? [money(sum('lateDed')), money(sum('earlyDed')), money(sum('brkDed')), money(sum('ded')), money(sum('otAmt'))] : [])];
+    const tiles = [{ label: t.totalLate, v: hm(sum('late')), c: 'bad' }, { label: t.totalEarly, v: hm(sum('early')), c: 'bad' }, { label: t.totalBreakOver, v: hm(sum('brk')), c: 'bad' }, { label: t.totalOt, v: hm(sum('ot')), c: 'good' }, ...(canMoney ? [{ label: t.totalDeducted, v: money(sum('ded')), c: 'bad' }] : [])];
+    const month = new Date(ym + '-01T00:00:00').toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-GB', { month: 'long', year: 'numeric' });
+    const who = fEmp ? eName(data.employees.find((e) => e.id === fEmp)) : '';
+    const ok = printReport({ title: t.prAttTitle + ' — ' + t.totalsTab, subtitle: month + (who ? ' · ' + who : ''), company: data.settings.company, rtl: lang === 'ar', landscape: canMoney, tiles,
+      sections: [{ head, rows: body, total }], signatures: [t.prSigHr, t.prSigMgr], printedBy: (lang === 'ar' ? me.full_name_ar : me.full_name_en) || me.full_name_en || me.email });
+    if (!ok) window.alert(t.prPopup);
+  }
   const Tile = ({ label, value, tone }) => (
     <div className={cx('rounded-2xl border p-3 text-center', tone === 'red' ? 'border-rose-200 bg-rose-50' : tone === 'green' ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white')}>
       <div className={cx('text-xl font-bold', tone === 'red' ? 'text-rose-700' : tone === 'green' ? 'text-emerald-700' : 'text-slate-800')}>{value}</div>
@@ -2839,7 +2905,7 @@ function AttendanceTotalsTab({ me, data, eName }) {
             <Tile label={t.totalOt} value={hm(sum('ot'))} tone="green" />
             {canMoney && <Tile label={t.totalDeducted} value={money(sum('ded'))} tone="red" />}
           </div>
-          <Card title={t.totalsTab}>
+          <Card title={t.totalsTab} action={shown.length > 0 && <Btn size="sm" variant="soft" onClick={printTotals}>🖨️ {t.print}</Btn>}>
             {shown.length === 0 ? <Empty text={t.noData} /> : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] text-sm">
@@ -3472,6 +3538,50 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     setExporting(false);
   }
 
+  const [printPick, setPrintPick] = useState(false);
+  /* Print the rows on screen: one list, or one sheet per employee with signature lines */
+  function printReview(perEmp) {
+    setPrintPick(false);
+    const lbl = (tier) => tier ? ((lang === 'ar' ? tier.label_ar : tier.label_en) || tier.kind) : '';
+    const hmM = (m) => { const n = Math.round(Number(m) || 0); return Math.floor(n / 60) + 'h ' + String(n % 60).padStart(2, '0') + 'm'; };
+    const hrs = (h) => h ? Math.floor(h) + 'h ' + String(Math.round((h % 1) * 60)).padStart(2, '0') + 'm' : '';
+    const status = (r) => [r.weekend ? t.weekendLbl : '', r.excused ? '✓ ' + t.excused : '', r.missing && !r.weekend ? t.missingOut : '', r.flagged ? t.outsideBranch : '', r.breakAsIn ? t.breakAsIn : ''].filter(Boolean).join(' · ');
+    const pen = (n, tier) => n > 0 ? { v: n + (tier ? ' · ' + lbl(tier) : ''), c: 'bad' } : { v: '·', c: 'muted' };
+    const line = (r, withName) => ({ _cls: r.weekend ? 'wk' : '', cells: [
+      r.date + ' ' + t.daysShort[new Date(r.date + 'T00:00:00').getDay()], ...(withName ? [{ v: eName(r.emp), c: 'b' }] : []),
+      r.firstIn ? fmtTime(r.firstIn.punch_time) : '—', r.lastOut ? fmtTime(r.lastOut.punch_time) : '—', hrs(r.hours),
+      pen(r.late, r.tier), pen(r.early, r.earlyTier),
+      r.weekend ? '' : r.brkOver > 0 ? { v: r.brkMin + ' (+' + r.brkOver + ')' + (r.brkTier ? ' · ' + lbl(r.brkTier) : ''), c: 'bad' } : (r.brkMin || { v: '·', c: 'muted' }),
+      r.ot > 0 ? { v: r.ot, c: 'good' } : { v: '·', c: 'muted' }, status(r)] });
+    const head = (withName) => [t.date, ...(withName ? [t.selectEmployee] : []), t.firstIn, t.lastOut, t.workedH, t.lateMin, t.earlyMinLbl + ' (min)', '☕ ' + t.breakTotal + ' (min)', t.otMin, t.statusLbl];
+    const sums = (rs) => ({ days: rs.length, hours: rs.reduce((a, r) => a + (r.hours || 0), 0), late: rs.reduce((a, r) => a + (r.late || 0), 0), early: rs.reduce((a, r) => a + (r.early || 0), 0),
+      brk: rs.reduce((a, r) => a + (r.brkOver || 0), 0), ot: rs.reduce((a, r) => a + (r.ot || 0), 0), missing: rs.filter((r) => r.missing && !r.weekend).length });
+    const tilesOf = (x) => [{ label: t.prDays, v: x.days }, { label: t.workedH, v: hrs(x.hours) || '0h' }, { label: t.totalLate, v: hmM(x.late), c: x.late ? 'bad' : '' }, { label: t.totalEarly, v: hmM(x.early), c: x.early ? 'bad' : '' },
+      { label: t.totalBreakOver, v: hmM(x.brk), c: x.brk ? 'bad' : '' }, { label: t.totalOt, v: hmM(x.ot), c: x.ot ? 'good' : '' }, { label: t.missingOut, v: x.missing, c: x.missing ? 'bad' : '' }];
+    const totalRow = (x, withName) => [t.totalLbl, ...(withName ? [''] : []), '', '', hrs(x.hours), x.late ? { v: hmM(x.late), c: 'bad' } : '0', x.early ? { v: hmM(x.early), c: 'bad' } : '0', x.brk ? { v: '+' + hmM(x.brk), c: 'bad' } : '', x.ot ? { v: hmM(x.ot), c: 'good' } : '0', x.missing ? { v: x.missing + ' × ' + t.missingOut, c: 'bad' } : ''];
+    const asc = [...rows].sort((a, b) => a.date.localeCompare(b.date) || eName(a.emp).localeCompare(eName(b.emp)));
+    const period = from + ' → ' + to;
+    const nm = (list, id) => { const x = (list || []).find((y) => y.id === id); return x ? ((lang === 'ar' ? x.name_ar : x.name_en) || x.name_en) : ''; };
+    let sections, tiles = null;
+    if (perEmp) {
+      const groups = {};
+      for (const r of asc) if (r.emp) (groups[r.emp.id] = groups[r.emp.id] || { emp: r.emp, rs: [] }).rs.push(r);
+      sections = Object.values(groups).sort((a, b) => eName(a.emp).localeCompare(eName(b.emp))).map(({ emp, rs }) => {
+        const x = sums(rs);
+        return { pageBreak: true, title: eName(emp), info: [emp.employee_code, lang === 'ar' ? emp.job_title_ar : emp.job_title_en, nm(data.departments, emp.department_id), nm(data.branches, emp.branch_id), period].filter(Boolean),
+          tiles: tilesOf(x), head: head(false), rows: rs.map((r) => line(r, false)), total: totalRow(x, false), signatures: [t.prSigEmp, t.prSigMgr, t.prSigHr] };
+      });
+    } else {
+      const x = sums(asc);
+      tiles = tilesOf(x);
+      sections = [{ head: head(true), rows: asc.map((r) => line(r, true)), total: totalRow(x, true) }];
+    }
+    const who = fEmp ? eName(data.employees.find((e) => e.id === fEmp)) : '';
+    const ok = printReport({ title: t.prAttTitle, subtitle: period + (who ? ' · ' + who : ''), company: data.settings.company, rtl: lang === 'ar', landscape: true, tiles, sections,
+      printedBy: (lang === 'ar' ? me.full_name_ar : me.full_name_en) || me.full_name_en || me.email });
+    if (!ok) toast(t.prPopup, 'error');
+  }
+
   /* HR / manager: excuse a day straight from the review (accepted note on the employee's behalf) */
   async function saveExcuse() {
     const kinds = Object.keys(excuse.kinds).filter((k) => excuse.kinds[k]);
@@ -3529,7 +3639,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       </div>
 
       <Card title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
-        action={rows.length > 0 && <span className="flex gap-2"><Btn size="sm" variant="ghost" onClick={cols.reset} title={t.resetDefaults}>↔</Btn><Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn></span>}>
+        action={rows.length > 0 && <span className="flex gap-2"><Btn size="sm" variant="ghost" onClick={cols.reset} title={t.resetDefaults}>↔</Btn><Btn size="sm" variant="soft" onClick={() => setPrintPick(true)}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn></span>}>
         {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
           <div className="overflow-x-auto">
             <table className="border-separate border-spacing-0 text-sm tabular-nums" style={{ tableLayout: 'fixed', width: cols.widths.reduce((a, b) => a + b, 0) + 'px' }}>
@@ -3576,6 +3686,17 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
           </div>
         )}
       </Card>
+
+      <Modal open={printPick} onClose={() => setPrintPick(false)} title={'🖨️ ' + t.prChoose}>
+        <div className="space-y-2">
+          {[[false, t.prList, t.prListHint, '📋'], [true, t.prPerEmp, t.prPerEmpHint, '👤']].map(([per, title, hint, icon]) => (
+            <button key={title} onClick={() => printReview(per)} className="flex w-full items-start gap-3 rounded-xl border border-slate-200 p-3 text-start hover:border-brand-400 hover:bg-brand-50/50">
+              <span className="text-2xl">{icon}</span><span><span className="block font-semibold text-slate-800">{title}</span><span className="block text-xs text-slate-500">{hint}</span></span>
+            </button>
+          ))}
+          <p className="text-xs text-slate-400">{from} → {to} · {rows.length} {t.rowsLbl}</p>
+        </div>
+      </Modal>
 
       <Modal open={!!dayView} onClose={() => setDayView(null)} title={dayView ? eName(dayView.emp) + ' · ' + dayView.date : ''}>
         {dayView && (
@@ -6098,6 +6219,16 @@ function ReportsPage({ me, data, toast }) {
   const totalRow = (rows, fields) => ({ _total: true, ...Object.fromEntries(['count', ...fields].map((f) => [f, rows.reduce((s, r) => s + (Number(r[f]) || 0), 0)])) });
 
   const exportRows = (head, rows) => downloadCsv(tab + '-' + todayISO() + '.csv', [head, ...rows]);
+  const printRows = (title, head, rows) => {
+    const last = rows[rows.length - 1];
+    const isTot = last && /^(total|Σ)$/i.test(String(last[0])) || (last && String(last[0]) === t.totalCost);
+    const ok = printReport({ title, company: data.settings.company, rtl: lang === 'ar', landscape: head.length > 6, sections: [{ head, rows: isTot ? rows.slice(0, -1) : rows, total: isTot ? last : null }],
+      printedBy: (lang === 'ar' ? me.full_name_ar : me.full_name_en) || me.full_name_en || me.email });
+    if (!ok) toast(t.prPopup, 'error');
+  };
+  const ExpBtns = ({ title, run }) => (
+    <span className="flex gap-2"><Btn size="sm" variant="soft" onClick={() => run((head, rows) => printRows(title, head, rows))}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" onClick={() => run(exportRows)}>⬇️ {t.exportExcel}</Btn></span>
+  );
 
   const MonthRange = () => (
     <div className="grid grid-cols-4 gap-2">
@@ -6130,7 +6261,7 @@ function ReportsPage({ me, data, toast }) {
                 const head = [t[title], t.countLbl, t.grossLbl, t.dedLbl, t.netLbl, t.employerIns, t.totalCost];
                 const rowsCsv = [...g.map((x) => [nameFn(x.key), x.count, r2(x.gross_pay), r2(x.total_deductions), r2(x.net_pay), r2(x.insurance_employer), r2(x.cost)]), [t.totalCost, tot.count, r2(tot.gross_pay), r2(tot.total_deductions), r2(tot.net_pay), r2(tot.insurance_employer), r2(tot.cost)]];
                 return (
-                  <Card key={title} title={t.rptPayroll + ' — ' + t[title]} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, rowsCsv)}>⬇️ {t.exportExcel}</Btn>}>
+                  <Card key={title} title={t.rptPayroll + ' — ' + t[title]} action={<ExpBtns title={t.rptPayroll + ' — ' + t[title]} run={(fn) => fn(head, rowsCsv)} />}>
                     <div className="mb-3 space-y-2">{g.map((x) => <div key={x.key}><div className="flex justify-between text-xs"><span className="font-semibold text-slate-700">{nameFn(x.key)}</span><span>{money(x.cost)}</span></div><Bar v={x.cost} max={max} /></div>)}</div>
                     <Tbl head={head} rows={[...g.map((x) => ({ cells: [nameFn(x.key), x.count, money(x.gross_pay), money(x.total_deductions), money(x.net_pay), money(x.insurance_employer), money(x.cost)] })), { _total: true, cells: [t.totalCost, tot.count, money(tot.gross_pay), money(tot.total_deductions), money(tot.net_pay), money(tot.insurance_employer), money(tot.cost)] }]} />
                   </Card>
@@ -6152,7 +6283,7 @@ function ReportsPage({ me, data, toast }) {
             const g = groupSum(active.map((e) => ({ k: keyFn(e) })), (r) => r.k, []).sort((a, b) => b.count - a.count);
             const max = Math.max(...g.map((x) => x.count), 1);
             return (
-              <Card key={title} title={t.rptHeadcount + ' — ' + t[title]} action={<Btn size="sm" variant="soft" onClick={() => exportRows([t[title], t.countLbl], g.map((x) => [x.key, x.count]))}>⬇️ {t.exportExcel}</Btn>}>
+              <Card key={title} title={t.rptHeadcount + ' — ' + t[title]} action={<ExpBtns title={t.rptHeadcount + ' — ' + t[title]} run={(fn) => fn([t[title], t.countLbl], g.map((x) => [x.key, x.count]))} />}>
                 <div className="space-y-2">{g.map((x) => <div key={x.key}><div className="flex justify-between text-xs"><span className="font-semibold text-slate-700">{x.key}</span><span>{x.count}</span></div><Bar v={x.count} max={max} /></div>)}</div>
               </Card>
             );
@@ -6168,7 +6299,7 @@ function ReportsPage({ me, data, toast }) {
             const tot = totalRow(g, ['ot_minutes', 'ot_amount', 'late_minutes', 'late_deduction']);
             const head = [t.selectEmployee, t.otLbl + ' (' + t.minutesLbl + ')', t.otLbl, t.lateDedLbl + ' (' + t.minutesLbl + ')', t.lateDedLbl];
             return (
-              <Card title={t.rptOvertime} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, [...g.map((x) => [eName(empById(x.key)), x.ot_minutes, r2(x.ot_amount), x.late_minutes, r2(x.late_deduction)]), ['Total', tot.ot_minutes, r2(tot.ot_amount), tot.late_minutes, r2(tot.late_deduction)]])}>⬇️ {t.exportExcel}</Btn>}>
+              <Card title={t.rptOvertime} action={<ExpBtns title={t.rptOvertime} run={(fn) => fn(head, [...g.map((x) => [eName(empById(x.key)), x.ot_minutes, r2(x.ot_amount), x.late_minutes, r2(x.late_deduction)]), ['Total', tot.ot_minutes, r2(tot.ot_amount), tot.late_minutes, r2(tot.late_deduction)]])} />}>
                 <Tbl head={head} rows={[...g.map((x) => ({ cells: [eName(empById(x.key)), x.ot_minutes, money(x.ot_amount), x.late_minutes, money(x.late_deduction)] })), { _total: true, cells: ['Σ', tot.ot_minutes, money(tot.ot_amount), tot.late_minutes, money(tot.late_deduction)] }]} />
               </Card>
             );
@@ -6181,7 +6312,7 @@ function ReportsPage({ me, data, toast }) {
           const totDays = leaveRows.reduce((s, r) => s + r.days, 0), totAmt = r2(leaveRows.reduce((s, r) => s + r.amount, 0));
           const head = [t.selectEmployee, t.branch, t.liabilityDays, t.dayRateLbl, t.liabilityAmount];
           return (
-            <Card title={t.rptLeave + ' — ' + now.getFullYear()} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, [...leaveRows.map((r) => [eName(r.emp), branchName(r.emp.branch_id), r.days, r.dayRate, r.amount]), ['Total', '', totDays, '', totAmt]])}>⬇️ {t.exportExcel}</Btn>}>
+            <Card title={t.rptLeave + ' — ' + now.getFullYear()} action={<ExpBtns title={t.rptLeave + ' — ' + now.getFullYear()} run={(fn) => fn(head, [...leaveRows.map((r) => [eName(r.emp), branchName(r.emp.branch_id), r.days, r.dayRate, r.amount]), ['Total', '', totDays, '', totAmt]])} />}>
               <div className="mb-3 grid grid-cols-2 gap-3 text-center">
                 <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{t.liabilityDays}</p><p className="text-xl font-bold">{totDays}</p></div>
                 <div className="rounded-xl bg-brand-50 p-3"><p className="text-xs text-slate-500">{t.liabilityAmount}</p><p className="text-xl font-bold text-brand-800">{money(totAmt)}</p></div>
@@ -6201,7 +6332,7 @@ function ReportsPage({ me, data, toast }) {
           {att === null ? <Empty text={t.loading} /> : (() => {
             const head = [t.selectEmployee, t.branch, t.presentDays, t.lateTotal, t.otLbl + ' (' + t.minutesLbl + ')', t.missingOut];
             return (
-              <Card title={t.rptAttendance + ' · ' + range.from + ' → ' + range.to} action={<Btn size="sm" variant="soft" onClick={() => exportRows(head, attRows.map((r) => [eName(r.emp), branchName(r.emp.branch_id), r.days, r.late, r.ot, r.missing]))}>⬇️ {t.exportExcel}</Btn>}>
+              <Card title={t.rptAttendance + ' · ' + range.from + ' → ' + range.to} action={<ExpBtns title={t.rptAttendance + ' · ' + range.from + ' → ' + range.to} run={(fn) => fn(head, attRows.map((r) => [eName(r.emp), branchName(r.emp.branch_id), r.days, r.late, r.ot, r.missing]))} />}>
                 {attRows.length === 0 ? <Empty text={t.noData} /> : <Tbl head={head} rows={attRows.map((r) => ({ cells: [eName(r.emp), branchName(r.emp.branch_id), r.days, r.late, r.ot, r.missing] }))} />}
               </Card>
             );
