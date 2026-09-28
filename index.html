@@ -60,7 +60,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.38';
+const APP_VERSION = 'v3.39';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -309,7 +309,15 @@ const T = {
     dealTypeFixed: 'Deal type', typeAuto: 'Read from the sale / rental column', typeSale: 'All rows are sales', typeRental: 'All rows are rentals', statusFilter: 'Import only rows whose status contains',
     matchAgents: 'Match Engaz agents to employees', skipAgent: 'Not matched (skipped)', previewLbl: 'Preview', importBtn: 'Import', importedMsg: 'Imported', skippedLbl: 'skipped', lastImports: 'Previous imports',
     leadsLbl: 'Leads', viewingsLbl: 'Viewings', dealsLbl: 'Deals', convLbl: 'Closing %', salesCnt: 'Sales', rentalsCnt: 'Rentals', rentalValue: 'Rental value', noAgentCol: 'Choose the agent and date columns first.',
-    engazHint: 'Upload the weekly Engaz export. Column matching and agent names are remembered after the first time. Rows already imported are updated, never counted twice.',
+    engazHint: 'Upload the weekly Engaz export. The Engaz clients export (two sheets: clients + follow-ups) is recognised automatically. Rep names are remembered after the first time. Rows already imported are updated, never counted twice.',
+    kindClients: 'Engaz clients export', ezDetected: 'Engaz clients export recognised: the clients sheet and the follow-ups sheet are joined by mobile number.', ezClients: 'clients', ezFollowUps: 'follow-ups',
+    ezReport: 'Sales team results from this file', ezRep: 'Engaz rep', ezEmployee: 'Employee in HR', ezOwnLeads: 'Own leads', ezFollowLbl: 'Follow-ups', ezMeetings: 'Meetings', ezLost: 'Lost', ezOpen: 'Still open',
+    ezAll: 'Whole file', ezWeek: 'Last 7 days', ezMonth: 'This month', ezReasons: 'Why leads were lost', ezNothingInPeriod: 'Nothing in this period',
+    ezUnassigned: 'clients in the file have no follow-up and no rep yet (listed in the export).', ezRepeat: 'Count a second "Done deal" on the same client as a new deal (renewal / second unit)',
+    ezImportNote: 'Import saves the results of the matched reps into KPIs (the whole file, every date). Reps set to "Not matched" are left out. Importing a newer export updates the same clients and never counts twice.',
+    ezHowTitle: 'How the Engaz file is read',
+    ezHow: ['Lead: the client counts for the rep who holds it now (the last follow-up), dated from that rep\'s first follow-up.', 'Own lead: the lead channel is the rep\'s own name (they brought the client).', 'Follow-up: every comment a rep logged on a client.', 'Meeting: a "Meeting" stage (one per client, rep and day).', 'Deal: the first "Done deal" stage, as a rental when the project is Rent and a sale when it is Sale, for the rep who logged it.', 'Lost: the last stage is Cancellation; the reason comes from the clients sheet. Still open: the lead is neither closed nor lost.', 'Closing %: deals ÷ leads in the chosen period.'],
+    ezImported: 'Saved', ezRemoved: 'outdated removed',
     kpiCats: { sales: 'Sales', property: 'Property & bookings', maintenance: 'Maintenance', attendance: 'Attendance', general: 'General', operations: 'Marketing & data entry (HV Ops)' },
     onTimeDays: 'on-time days', lateDays: 'late', noSalesTeam: 'Nobody is in the Sales department yet. Open each sales rep\'s employee card and set the department to Sales.',
     salesBoardHint: 'Sales results only, for employees in the Sales department.', companyBoardHint: 'Everyone, all categories. Attendance points come automatically from the fingerprint device and GPS check-ins; maintenance tasks and bookings from the other systems.',
@@ -537,7 +545,15 @@ const T = {
     dealTypeFixed: 'نوع الصفقة', typeAuto: 'يُقرأ من عمود بيع / إيجار', typeSale: 'كل الصفوف مبيعات', typeRental: 'كل الصفوف إيجارات', statusFilter: 'استيراد الصفوف التي تحتوي حالتها على',
     matchAgents: 'مطابقة مندوبي إنجاز بالموظفين', skipAgent: 'غير مطابق (يُتخطى)', previewLbl: 'معاينة', importBtn: 'استيراد', importedMsg: 'تم استيراد', skippedLbl: 'تم تخطي', lastImports: 'عمليات الاستيراد السابقة',
     leadsLbl: 'عملاء محتملون', viewingsLbl: 'معاينات', dealsLbl: 'صفقات', convLbl: 'نسبة الإغلاق', salesCnt: 'مبيعات', rentalsCnt: 'إيجارات', rentalValue: 'قيمة الإيجارات', noAgentCol: 'اختر عمودي المندوب والتاريخ أولاً.',
-    engazHint: 'ارفع تصدير إنجاز الأسبوعي. تُحفظ مطابقة الأعمدة وأسماء المندوبين بعد المرة الأولى. الصفوف المستوردة سابقاً تُحدَّث ولا تُحسب مرتين.',
+    engazHint: 'ارفع تصدير إنجاز الأسبوعي. يتم التعرف تلقائياً على تصدير العملاء من إنجاز (ورقتان: العملاء + المتابعات). تُحفظ أسماء المندوبين بعد المرة الأولى. الصفوف المستوردة سابقاً تُحدَّث ولا تُحسب مرتين.',
+    kindClients: 'تصدير عملاء إنجاز', ezDetected: 'تم التعرف على تصدير عملاء إنجاز: يتم ربط ورقة العملاء بورقة المتابعات عن طريق رقم الموبايل.', ezClients: 'عميل', ezFollowUps: 'متابعة',
+    ezReport: 'نتائج فريق المبيعات من هذا الملف', ezRep: 'المندوب في إنجاز', ezEmployee: 'الموظف في HR', ezOwnLeads: 'عملاء من مصدره', ezFollowLbl: 'متابعات', ezMeetings: 'اجتماعات', ezLost: 'مفقود', ezOpen: 'ما زال مفتوحاً',
+    ezAll: 'كل الملف', ezWeek: 'آخر 7 أيام', ezMonth: 'هذا الشهر', ezReasons: 'أسباب فقد العملاء', ezNothingInPeriod: 'لا شيء في هذه الفترة',
+    ezUnassigned: 'عميل في الملف بدون متابعة وبدون مندوب حتى الآن (موجودون في ملف التصدير).', ezRepeat: 'احتساب "Done deal" ثانٍ لنفس العميل كصفقة جديدة (تجديد / وحدة ثانية)',
+    ezImportNote: 'الاستيراد يحفظ نتائج المندوبين المطابقين في مؤشرات الأداء (كل الملف وكل التواريخ). المندوب غير المطابق لا يُحتسب. استيراد تصدير أحدث يحدّث نفس العملاء ولا يحسب مرتين.',
+    ezHowTitle: 'كيف تتم قراءة ملف إنجاز',
+    ezHow: ['عميل محتمل: يُحسب العميل للمندوب المسؤول عنه الآن (آخر متابعة)، بتاريخ أول متابعة لهذا المندوب.', 'عميل من مصدره: قناة العميل هي اسم المندوب نفسه (هو من جلب العميل).', 'متابعة: كل تعليق سجله المندوب على عميل.', 'اجتماع: مرحلة "Meeting" (مرة لكل عميل ومندوب ويوم).', 'صفقة: أول مرحلة "Done deal"، إيجار إذا كان المشروع Rent وبيع إذا كان Sale، للمندوب الذي سجلها.', 'مفقود: آخر مرحلة هي Cancellation والسبب من ورقة العملاء. ما زال مفتوحاً: لم يُغلق ولم يُفقد.', 'نسبة الإغلاق: الصفقات ÷ العملاء المحتملين في الفترة المختارة.'],
+    ezImported: 'تم الحفظ', ezRemoved: 'قديم تم حذفه',
     kpiCats: { sales: 'مبيعات', property: 'عقارات وحجوزات', maintenance: 'صيانة', attendance: 'حضور', general: 'عام', operations: 'التسويق وإدخال البيانات (HV Ops)' },
     onTimeDays: 'يوم في الموعد', lateDays: 'تأخير', noSalesTeam: 'لا يوجد أحد في قسم المبيعات بعد. افتح بطاقة كل مندوب مبيعات واختر قسم المبيعات.',
     salesBoardHint: 'نتائج المبيعات فقط، لموظفي قسم المبيعات.', companyBoardHint: 'الجميع، كل الفئات. نقاط الحضور تُحسب تلقائياً من جهاز البصمة وتسجيل الحضور بالموقع؛ ومهام الصيانة والحجوزات من الأنظمة الأخرى.',
@@ -6251,18 +6267,137 @@ const FIELD_KEYS = {
 function guessEmployee(name, employees) {
   const n = norm(name); if (!n) return '';
   const cands = employees.filter((e) => e.status === 'active');
-  const full = (e) => [norm(e.full_name_en), norm(e.full_name_ar)];
-  let hit = cands.find((e) => full(e).includes(n));
+  const full = (e) => [norm(e.full_name_en), norm(e.full_name_ar)].filter(Boolean);
+  const hit = cands.find((e) => full(e).includes(n));
   if (hit) return hit.id;
-  const toks = n.split(' ').filter((x) => x.length > 2);
-  let best = null, bestScore = 0;
-  for (const e of cands) {
-    const et = full(e).join(' ').split(' ');
-    const score = toks.filter((tk) => et.includes(tk)).length;
-    if (score > bestScore) { best = e; bestScore = score; }
+  const fz = (x) => String(x || '').replace(/ph/g, 'f').replace(/ee/g, 'i').replace(/ou/g, 'o').replace(/y/g, 'i');
+  const nt = n.split(' ');
+  for (const e of cands) for (const f of full(e)) {
+    const et = f.split(' ');
+    if (fz(et[0]) !== fz(nt[0])) continue;
+    if (nt.length === 1 || et.length === 1 || fz(et[1]) === fz(nt[1])) return e.id;
   }
-  return bestScore > 0 ? best.id : '';
+  return '';
 }
+
+/* ---------------------------------------------------------------------
+   Engaz "clients" export (two sheets):
+     sheet 1  one row per client: Full Name, Mobile, Project (Rent/Sale),
+              Channel (lead source), Cancel Reason, Request
+     sheet 2  "Client name + Mobile" header rows, each followed by that
+              client's follow-ups: Stage, Follow Date, Sales Rep, Comment
+   The two are joined on the mobile number. Per client:
+     owner   = rep of the latest follow-up (Administrator only if no rep)
+     lead    = 1 for the owner, dated the owner's first follow-up
+     follow-up = every logged follow-up, for the rep who logged it
+     viewing = a "Meeting" stage (one per client, rep and day)
+     deal    = first "Done deal" stage; Rent -> rental, Sale -> sale
+     lost    = latest stage is Cancellation (reason from sheet 1)
+   --------------------------------------------------------------------- */
+const ENGAZ_ADMIN = /^(administrator|admin|مدير النظام)$/i;
+function detectEngazClients(wb) {
+  let clients = null, follow = null;
+  for (const n of wb.SheetNames) {
+    const head = (XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true })[0] || []).map(norm);
+    if (head.includes('stage') && head.some((h) => h.includes('sales rep'))) follow = n;
+    else if (head.includes('project') || head.some((h) => h.includes('cancel reason'))) clients = n;
+  }
+  return follow ? { clients, follow } : null;
+}
+function parseEngazClients(wb, det) {
+  const rowsOf = (n) => (n ? XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true }) : []);
+  const col = (head, keys) => { const h = head.map(norm); for (const k of keys) { const i = h.findIndex((x) => x === k); if (i >= 0) return i; } for (const k of keys) { const i = h.findIndex((x) => x.includes(k)); if (i >= 0) return i; } return -1; };
+  const cell = (r, i) => (i < 0 ? '' : r[i] instanceof Date ? r[i] : String(r[i] == null ? '' : r[i]).trim());
+  const keyOf = (mobile, name) => String(mobile || '').replace(/\D/g, '') || ('n:' + norm(name));
+  const stamp = (v) => (v instanceof Date ? v.toISOString().slice(0, 19).replace('T', ' ') : String(v || '').trim());
+  const byKey = {};
+  const get = (mobile, name) => { const k = keyOf(mobile, name); return byKey[k] = byKey[k] || { key: k, id: strHash(k), name: String(name || '').trim(), mobile: String(mobile || '').replace(/\D/g, ''), acts: [] }; };
+
+  const f = rowsOf(det.follow);
+  const fh = f[0] || [];
+  const iN = col(fh, ['client name', 'name']), iM = col(fh, ['mobile', 'phone']), iS = col(fh, ['stage']), iD = col(fh, ['follow date', 'date']), iR = col(fh, ['sales rep', 'rep']), iC = col(fh, ['comment']);
+  let cur = null;
+  for (const r of f.slice(1)) {
+    if (cell(r, iN) || cell(r, iM)) { cur = get(cell(r, iM), cell(r, iN)); continue; }
+    if (!cur) continue;
+    const at = stamp(r[iD]), rep = cell(r, iR), stage = cell(r, iS);
+    if (!at && !rep && !stage) continue;
+    const day = parseAnyDate(r[iD]);
+    if (!day) continue;
+    const k = at + '|' + rep + '|' + stage;
+    if (cur.acts.some((a) => a.k === k)) continue;       // Engaz repeats identical rows
+    cur.acts.push({ k, at, day, rep, stage, comment: cell(r, iC) });
+  }
+
+  const c = rowsOf(det.clients);
+  const ch = c[0] || [];
+  const jN = col(ch, ['full name', 'client name', 'name']), jM = col(ch, ['mobile', 'phone']), jP = col(ch, ['project', 'purpose', 'type']), jCh = col(ch, ['channel', 'source']),
+        jX = col(ch, ['cancel reason']), jQ = col(ch, ['request']), jCC = col(ch, ['country code']);
+  for (const r of c.slice(1)) {
+    if (!cell(r, jN) && !cell(r, jM)) continue;
+    const x = get(cell(r, jM), cell(r, jN));
+    x.project = cell(r, jP); x.channel = cell(r, jCh); x.cancelReason = cell(r, jX); x.request = cell(r, jQ); x.country = cell(r, jCC);
+    x.inClients = true;
+  }
+
+  const isDeal = (s) => /done deal|تم التعاقد|تم البيع|تم الإيجار/i.test(s);
+  const isMeeting = (s) => /^(meeting|اجتماع|معاينة)$/i.test(s.trim());
+  const isCancel = (s) => /cancel|إلغاء|الغاء/i.test(s);
+  const clients = Object.values(byKey).map((x) => {
+    const acts = x.acts.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+    const real = acts.filter((a) => a.rep && !ENGAZ_ADMIN.test(a.rep));
+    const pick = real.length ? real : acts.filter((a) => a.rep);
+    const owner = pick.length ? pick[pick.length - 1].rep : '';
+    const ownerFirst = owner ? acts.find((a) => a.rep === owner) : null;
+    const deals = acts.filter((a) => isDeal(a.stage));
+    const last = acts.length ? acts[acts.length - 1] : null;
+    const kind = /rent|ايجار|إيجار|تأجير/i.test(x.project || '') ? 'rental' : 'closing';
+    const own = !!(owner && x.channel && (norm(x.channel) === norm(owner) || norm(x.channel).split(' ')[0] === norm(owner).split(' ')[0]));
+    return { ...x, acts, owner, leadDay: ownerFirst ? ownerFirst.day : null, deals, kind, own,
+      meetings: acts.filter((a) => isMeeting(a.stage)),
+      stage: last ? last.stage : '', lastDay: last ? last.day : null, firstDay: acts.length ? acts[0].day : null,
+      lost: !!(last && isCancel(last.stage)), lostBy: last && isCancel(last.stage) ? last.rep : '', lostDay: last && isCancel(last.stage) ? last.day : null };
+  });
+  const reps = [...new Set(clients.flatMap((x) => x.acts.map((a) => a.rep)).filter(Boolean))].sort();
+  return { clients, reps };
+}
+const inPeriod = (d, p) => !!d && (!p.from || d >= p.from) && (!p.to || d <= p.to);
+/** Per Engaz rep, for the period. */
+function engazClientReport(parsed, period, opts) {
+  const rep = {};
+  const R = (n) => rep[n] = rep[n] || { rep: n, leads: 0, own: 0, followUps: 0, meetings: 0, closing: 0, rental: 0, lost: 0, reasons: {}, open: 0 };
+  let unassigned = 0;
+  for (const x of parsed.clients) {
+    if (!x.acts.length) { if (x.inClients) unassigned++; continue; }
+    if (x.owner && inPeriod(x.leadDay, period)) { const r = R(x.owner); r.leads++; if (x.own) r.own++; if (!x.lost && !x.deals.length) r.open++; }
+    for (const a of x.acts) if (a.rep && inPeriod(a.day, period)) R(a.rep).followUps++;
+    const seenM = new Set();
+    for (const a of x.meetings) { const k = a.rep + a.day; if (a.rep && !seenM.has(k) && inPeriod(a.day, period)) { seenM.add(k); R(a.rep).meetings++; } }
+    for (const d of engazDealsOf(x, opts)) if (d.rep && inPeriod(d.day, period)) R(d.rep)[x.kind]++;
+    if (x.lost && x.lostBy && inPeriod(x.lostDay, period)) { const r = R(x.lostBy); r.lost++; const why = x.cancelReason || '—'; r.reasons[why] = (r.reasons[why] || 0) + 1; }
+  }
+  const rows = Object.values(rep).map((r) => ({ ...r, deals: r.closing + r.rental, conv: r.leads ? Math.round((r.closing + r.rental) / r.leads * 1000) / 10 : null }))
+    .sort((a, b) => b.deals - a.deals || b.leads - a.leads || b.followUps - a.followUps);
+  return { rows, unassigned };
+}
+/** First "Done deal" per client; later ones only when the option says so. */
+function engazDealsOf(x, opts) { return (opts && opts.repeatDeals) ? x.deals : x.deals.slice(0, 1); }
+/** KPI rows for the mapped reps (whole file; re-import updates). */
+function engazClientEntries(parsed, agents, opts) {
+  const out = [];
+  const emp = (rep) => agents[rep] || '';
+  for (const x of parsed.clients) {
+    const ref = x.name || null;
+    const base = 'engaz:c:';
+    if (x.owner && emp(x.owner) && x.leadDay) out.push({ external_id: base + 'lead:' + x.id, employee_id: emp(x.owner), code: 'lead', entry_date: x.leadDay, reference: ref, notes: 'Engaz lead · ' + (x.project || '').trim() + (x.channel ? ' · ' + x.channel : '') });
+    for (const a of x.acts) if (a.rep && emp(a.rep)) out.push({ external_id: base + 'fu:' + x.id + ':' + strHash(a.k), employee_id: emp(a.rep), code: 'follow_up', entry_date: a.day, reference: ref, notes: 'Engaz follow-up · ' + (a.stage || '—') });
+    const seenM = new Set();
+    for (const a of x.meetings) { const k = x.id + ':' + a.day + ':' + strHash(a.rep); if (a.rep && emp(a.rep) && !seenM.has(k)) { seenM.add(k); out.push({ external_id: base + 'view:' + k, employee_id: emp(a.rep), code: 'viewing', entry_date: a.day, reference: ref, notes: 'Engaz meeting' }); } }
+    engazDealsOf(x, opts).forEach((d, i) => { if (d.rep && emp(d.rep)) out.push({ external_id: base + 'deal:' + x.id + ':' + i, employee_id: emp(d.rep), code: x.kind, entry_date: d.day, reference: ref, notes: 'Engaz done deal · ' + (x.project || '').trim() }); });
+  }
+  return out;
+}
+
 
 function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) {
   const { lang, t } = useL();
@@ -6276,6 +6411,10 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
   const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
+  const [ez, setEz] = useState(null);           // Engaz clients export: { name, parsed }
+  const [ezAgents, setEzAgents] = useState({});
+  const [ezOpts, setEzOpts] = useState({ repeatDeals: false });
+  const [period, setPeriod] = useState({});
 
   useEffect(() => {
     sb.from('import_profiles').select('*').then(({ data: d }) => setProfiles(Object.fromEntries((d || []).map((p) => [p.kind, p]))));
@@ -6302,6 +6441,23 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
       await loadXLSX();
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const det = detectEngazClients(wb);
+      if (det) {
+        const parsed = parseEngazClients(wb, det);
+        if (!parsed.clients.length) throw new Error(t.noData);
+        const prof = profiles.clients;
+        const known = (prof && prof.agents) || {};
+        const ag = {};
+        for (const n of parsed.reps) ag[n] = known[n] !== undefined ? known[n] : guessEmployee(n, data.employees);
+        setEzAgents(ag);
+        setEzOpts({ repeatDeals: false, ...((prof && prof.options) || {}) });
+        setFile(null);
+        setEz({ name: f.name, parsed });
+        setBusy(false);
+        e.target.value = '';
+        return;
+      }
+      setEz(null);
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
       const headers = rows.length ? Object.keys(rows[0]) : [];
@@ -6382,6 +6538,51 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
     onImported();
   }
 
+  async function doImportEz() {
+    const entries = engazClientEntries(ez.parsed, ezAgents, ezOpts);
+    if (!entries.length) return toast(t.noData, 'error');
+    setBusy(true);
+    const { data: res, error } = await sb.rpc('engaz_import_clients', { p_entries: entries, p_clients: ez.parsed.clients.map((x) => x.id) });
+    if (error) { setBusy(false); return toast(error.message, 'error'); }
+    const days = ez.parsed.clients.flatMap((x) => x.acts.map((a) => a.day)).sort();
+    const full = engazClientReport(ez.parsed, {}, ezOpts);
+    const summary = { reps: full.rows.map(({ reasons, ...r }) => ({ ...r, reasons, employee_id: ezAgents[r.rep] || null })), unassigned: full.unassigned, clients: ez.parsed.clients.length };
+    const { data: log } = await sb.from('engaz_imports').insert({ kind: 'clients', file_name: ez.name, rows_total: ez.parsed.clients.length, rows_imported: entries.length,
+      rows_skipped: ez.parsed.clients.reduce((n, x) => n + x.acts.filter((a) => !ezAgents[a.rep]).length, 0), period_from: days[0] || null, period_to: days[days.length - 1] || null, summary, created_by: me.id }).select().single();
+    if (log) setHistory((prev) => [log, ...prev]);
+    const { data: saved } = await sb.from('import_profiles').upsert({ kind: 'clients', mapping: {}, agents: ezAgents, options: ezOpts, updated_by: me.id, updated_at: new Date().toISOString() }, { onConflict: 'kind' }).select().single();
+    if (saved) setProfiles((prev) => ({ ...prev, clients: saved }));
+    audit('insert', 'engaz_imports', log ? log.id : ez.name, null, { kind: 'clients', entries: entries.length, removed: res && res.removed });
+    setBusy(false);
+    toast(t.ezImported + ': ' + entries.length + (res && res.removed ? ' · ' + t.ezRemoved + ': ' + res.removed : ''));
+    onImported();
+  }
+
+  /* Excel: results per rep for the chosen period, the clients (joined from both sheets) and every follow-up */
+  async function exportEz(rep) {
+    try {
+      await loadXLSX();
+      const inP = (x) => !period.from && !period.to ? true : !x.acts.length || x.acts.some((a) => inPeriod(a.day, period));
+      const empN = (n) => { const e = data.employees.find((x) => x.id === ezAgents[n]); return e ? eName(e) : ''; };
+      const byRep = rep.rows.map((r) => ({ [t.ezRep]: r.rep, [t.ezEmployee]: empN(r.rep), [t.leadsLbl]: r.leads, [t.ezOwnLeads]: r.own, [t.ezFollowLbl]: r.followUps, [t.ezMeetings]: r.meetings,
+        [t.salesCnt]: r.closing, [t.rentalsCnt]: r.rental, [t.convLbl]: r.conv === null ? '' : r.conv + '%', [t.ezLost]: r.lost, [t.ezReasons]: Object.entries(r.reasons).map(([k, v]) => k + ': ' + v).join(', '), [t.ezOpen]: r.open }));
+      const cl = ez.parsed.clients.filter(inP).map((x) => {
+        const deal = x.deals[0];
+        return { Client: x.name, Mobile: x.mobile, 'Rent / Sale': (x.project || '').trim(), Channel: x.channel || '', Rep: x.owner || '', Employee: x.owner ? empN(x.owner) : '', 'Current stage': x.stage || (x.acts.length ? '' : 'No follow-up yet'),
+          'Lead date': x.leadDay || '', 'Last follow-up': x.lastDay || '', 'Follow-ups': x.acts.length, Meetings: x.meetings.length, 'Deal date': deal ? deal.day : '', 'Deal by': deal ? deal.rep : '',
+          'Cancel reason': x.cancelReason || '', Request: x.request || '' };
+      });
+      const fu = ez.parsed.clients.flatMap((x) => x.acts.filter((a) => inPeriod(a.day, period) || (!period.from && !period.to)).map((a) => ({ Client: x.name, Mobile: x.mobile, 'Rent / Sale': (x.project || '').trim(), Date: a.at, Rep: a.rep, Stage: a.stage, Comment: a.comment })))
+        .sort((a, b) => (a.Date < b.Date ? 1 : -1));
+      const wb = XLSX.utils.book_new();
+      const add = (rows, name, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]); ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
+      add(byRep, 'By rep', [20, 20, 8, 10, 11, 10, 8, 9, 10, 8, 40, 10]);
+      add(cl, 'Clients', [24, 15, 10, 16, 18, 18, 18, 11, 13, 10, 9, 11, 16, 20, 60]);
+      add(fu, 'Follow-ups', [24, 15, 10, 19, 18, 22, 70]);
+      XLSX.writeFile(wb, 'Engaz-report' + (period.from || period.to ? '-' + (period.from || 'start') + '_' + (period.to || localDay(new Date())) : '') + '.xlsx');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
   const FieldSel = ({ f, label }) => (
     <Field label={label}>
       <Select value={map[f] || ''} onChange={(e) => setMap({ ...map, [f]: e.target.value })}>
@@ -6397,10 +6598,11 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
       <Card>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t.fileKind}>
+            {ez ? <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">✓ {t.kindClients}</p> :
             <Select value={kind} onChange={(e) => setKind(e.target.value)}>
               <option value="deals">{t.kindDeals}</option>
               <option value="leads">{t.kindLeads}</option>
-            </Select>
+            </Select>}
           </Field>
           <Field label={t.chooseFile}>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={onFile} />
@@ -6408,7 +6610,76 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
           </Field>
         </div>
         {file && <p className="mt-2 text-xs text-slate-500">{file.name} · {file.rows.length} {t.rowsLbl}</p>}
+        {ez && <p className="mt-2 text-xs text-slate-500">{t.ezDetected}<br /><b>{ez.name}</b> · {ez.parsed.clients.length} {t.ezClients} · {ez.parsed.clients.reduce((n, x) => n + x.acts.length, 0)} {t.ezFollowUps}</p>}
       </Card>
+
+      {ez && (() => {
+        const rep = engazClientReport(ez.parsed, period, ezOpts);
+        const entries = engazClientEntries(ez.parsed, ezAgents, ezOpts);
+        const today = localDay(new Date());
+        const back = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return localDay(d); };
+        const ranges = [[t.ezAll, {}], [t.ezWeek, { from: back(6), to: today }], [t.ezMonth, { from: today.slice(0, 8) + '01', to: today }]];
+        const reasons = {};
+        for (const r of rep.rows) for (const [k, v] of Object.entries(r.reasons)) reasons[k] = (reasons[k] || 0) + v;
+        const num = (v, cls) => <td className={cx('border-b border-slate-100 px-2 py-2 text-end tabular-nums', v ? cls || 'text-slate-800' : 'text-slate-300')}>{v || '·'}</td>;
+        return (
+          <>
+            <Card title={t.ezHowTitle}>
+              <ul className="list-disc space-y-1 ps-5 text-xs text-slate-600">{t.ezHow.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </Card>
+            <Card title={t.ezReport}
+              action={<span className="flex flex-wrap gap-2"><Btn size="sm" variant="soft" onClick={() => exportEz(rep)}>⬇️ {t.exportExcel}</Btn>
+                <Btn size="sm" disabled={busy || !entries.length} onClick={doImportEz}>⬆️ {t.importBtn} ({entries.length})</Btn></span>}>
+              <div className="mb-3 flex flex-wrap items-end gap-2">
+                {ranges.map(([lbl, r]) => <Btn key={lbl} size="sm" variant={(period.from || '') === (r.from || '') && (period.to || '') === (r.to || '') ? 'primary' : 'ghost'} onClick={() => setPeriod(r)}>{lbl}</Btn>)}
+                <Input type="date" className="!w-auto" value={period.from || ''} onChange={(e) => setPeriod({ ...period, from: e.target.value })} />
+                <span className="pb-2 text-slate-400">→</span>
+                <Input type="date" className="!w-auto" value={period.to || ''} onChange={(e) => setPeriod({ ...period, to: e.target.value })} />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
+                  <thead><tr className="text-[11px] uppercase tracking-wide text-slate-400">
+                    {[[t.ezRep, ''], [t.ezEmployee, ''], [t.leadsLbl, 'text-end'], [t.ezOwnLeads, 'text-end'], [t.ezFollowLbl, 'text-end'], [t.ezMeetings, 'text-end'], [t.salesCnt, 'text-end'], [t.rentalsCnt, 'text-end'], [t.convLbl, 'text-end'], [t.ezLost, 'text-end'], [t.ezOpen, 'text-end']].map(([h, c], i) =>
+                      <th key={i} className={cx('whitespace-nowrap border-b border-slate-200 px-2 py-2 text-start font-semibold', c)}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {ez.parsed.reps.map((n) => rep.rows.find((r) => r.rep === n) || { rep: n, empty: true, deals: 0, leads: 0, followUps: 0 })
+                      .sort((a, b) => (ezAgents[a.rep] ? 0 : 1) - (ezAgents[b.rep] ? 0 : 1) || (a.empty ? 1 : 0) - (b.empty ? 1 : 0) || b.deals - a.deals || b.leads - a.leads || b.followUps - a.followUps).map((r) => (
+                      <tr key={r.rep} className={cx(!ezAgents[r.rep] && 'bg-slate-50/70 text-slate-400')}>
+                        <td className="whitespace-nowrap border-b border-slate-100 px-2 py-2 font-semibold text-slate-800">{r.rep}</td>
+                        <td className="border-b border-slate-100 px-2 py-1.5">
+                          <Select value={ezAgents[r.rep] || ''} onChange={(e) => setEzAgents({ ...ezAgents, [r.rep]: e.target.value })}>
+                            <option value="">{t.skipAgent}</option>
+                            {data.employees.filter((e) => e.status === 'active').map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
+                          </Select>
+                        </td>
+                        {r.empty ? <td colSpan={9} className="border-b border-slate-100 px-2 py-2 text-xs text-slate-400">{t.ezNothingInPeriod}</td> : (
+                          <>
+                            {num(r.leads, 'font-semibold text-slate-800')}{num(r.own)}{num(r.followUps)}{num(r.meetings)}
+                            {num(r.closing, 'font-bold text-emerald-600')}{num(r.rental, 'font-bold text-emerald-600')}
+                            <td className={cx('border-b border-slate-100 px-2 py-2 text-end tabular-nums', r.conv === null ? 'text-slate-300' : r.conv >= 10 ? 'font-bold text-emerald-600' : 'text-slate-700')}>{r.conv === null ? '—' : r.conv + '%'}</td>
+                            <td className={cx('border-b border-slate-100 px-2 py-2 text-end tabular-nums', r.lost ? 'text-rose-600' : 'text-slate-300')} title={Object.entries(r.reasons).map(([k, v]) => k + ': ' + v).join('\n')}>{r.lost || '·'}</td>
+                            {num(r.open, 'text-amber-700')}
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {Object.keys(reasons).length > 0 && (
+                <p className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">{t.ezReasons}:
+                  {Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, v]) => <Badge key={k} tone="red">{k} · {v}</Badge>)}</p>
+              )}
+              {rep.unassigned > 0 && <p className="mt-2 text-xs text-amber-700">⚠️ {rep.unassigned} {t.ezUnassigned}</p>}
+              <label className="mt-3 flex items-center gap-2 text-xs text-slate-600">
+                <input type="checkbox" checked={!!ezOpts.repeatDeals} onChange={(e) => setEzOpts({ ...ezOpts, repeatDeals: e.target.checked })} /> {t.ezRepeat}
+              </label>
+              <p className="mt-2 text-xs text-slate-400">{t.ezImportNote}</p>
+            </Card>
+          </>
+        );
+      })()}
 
       {file && (
         <>
@@ -6475,7 +6746,7 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
           <ul className="divide-y divide-slate-100">
             {history.map((h) => (
               <li key={h.id} className="flex items-center justify-between gap-2 py-2 text-sm">
-                <div className="min-w-0"><p className="truncate font-semibold text-slate-800">{h.kind === 'deals' ? t.kindDeals : t.kindLeads} · {h.file_name}</p>
+                <div className="min-w-0"><p className="truncate font-semibold text-slate-800">{h.kind === 'clients' ? t.kindClients : h.kind === 'deals' ? t.kindDeals : t.kindLeads} · {h.file_name}</p>
                   <p className="text-xs text-slate-500">{localDay(h.created_at)} · {h.period_from} → {h.period_to} · {t.importedMsg} {h.rows_imported} · {t.skippedLbl} {h.rows_skipped}</p></div>
               </li>
             ))}
@@ -6495,18 +6766,18 @@ function SalesPerformance({ data, entries, metrics, isSales, eName }) {
     const cnt = (c) => mine.filter((x) => code(x.metric_id) === c).reduce((s, x) => s + Number(x.quantity), 0);
     const val = (c) => mine.filter((x) => code(x.metric_id) === c).reduce((s, x) => s + (Number(x.value_egp) || 0), 0);
     const leads = cnt('lead'), sales = cnt('closing'), rentals = cnt('rental');
-    return { e, leads, viewings: cnt('viewing'), sales, rentals, deals: sales + rentals, conv: leads ? Math.round((sales + rentals) / leads * 1000) / 10 : null, salesValue: val('closing'), rentalValue: val('rental') };
+    return { e, leads, followUps: cnt('follow_up'), viewings: cnt('viewing'), sales, rentals, deals: sales + rentals, conv: leads ? Math.round((sales + rentals) / leads * 1000) / 10 : null, salesValue: val('closing'), rentalValue: val('rental') };
   }).sort((a, b) => b.deals - a.deals || b.leads - a.leads);
   return (
     <Card title={t.salesPerf}>
       {rows.length === 0 ? <Empty text={t.noSalesTeam} /> : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead><tr>{[t.selectEmployee, t.leadsLbl, t.viewingsLbl, t.dealsLbl, t.convLbl, t.salesCnt, t.salesValue, t.rentalsCnt, t.rentalValue].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
+          <table className="w-full min-w-[720px] text-sm">
+            <thead><tr>{[t.selectEmployee, t.leadsLbl, t.ezFollowLbl, t.viewingsLbl, t.dealsLbl, t.convLbl, t.salesCnt, t.salesValue, t.rentalsCnt, t.rentalValue].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.e.id} className="border-t border-slate-100">
-                  <td className="py-2 font-semibold text-slate-800">{eName(r.e)}</td><td>{r.leads}</td><td>{r.viewings}</td><td className="font-semibold">{r.deals}</td>
+                  <td className="py-2 font-semibold text-slate-800">{eName(r.e)}</td><td>{r.leads}</td><td>{r.followUps}</td><td>{r.viewings}</td><td className="font-semibold">{r.deals}</td>
                   <td className={r.conv === null ? 'text-slate-400' : r.conv >= 10 ? 'font-bold text-emerald-600' : ''}>{r.conv === null ? '—' : r.conv + '%'}</td>
                   <td>{r.sales}</td><td>{r.salesValue ? money(r.salesValue) : ''}</td><td>{r.rentals}</td><td>{r.rentalValue ? money(r.rentalValue) : ''}</td>
                 </tr>
