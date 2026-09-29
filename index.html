@@ -40,6 +40,10 @@ tailwind.config = {
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2.74.0/dist/umd/supabase.js"></script>
+<!-- shared guide tour (all HV systems); optional: the app works normally if it does not load.
+     async (not defer): a slow hv-shared.pages.dev must never delay DOMContentLoaded, when Babel compiles the app.
+     onerror: spare copy of the same engine for networks that cannot reach hv-shared.pages.dev. -->
+<script id="hv-tour-js" src="https://hv-shared.pages.dev/hv-tour.js" async onerror="var s=document.createElement('script');s.id='hv-tour-js2';s.async=true;s.src='https://hvshared-home-vacation.pages.dev/hv-tour.js';document.head.appendChild(s)"></script>
 
 <style>
   html, body, #root { height: 100%; }
@@ -60,7 +64,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.40';
+const APP_VERSION = 'v3.41';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -1501,9 +1505,9 @@ const inputCls = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5
 const Input = (p) => <input {...p} className={cx(inputCls, p.className)} />;
 const Select = (p) => <select {...p} className={cx(inputCls, 'appearance-none', p.className)} />;
 
-function Card({ title, action, children, className }) {
+function Card({ title, action, children, className, tour }) {
   return (
-    <section className={cx('rounded-2xl border border-slate-200 bg-white shadow-sm', className)}>
+    <section data-tour={tour} className={cx('rounded-2xl border border-slate-200 bg-white shadow-sm', className)}>
       {(title || action) && (
         <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
           <h2 className="text-sm font-bold text-slate-800">{title}</h2>
@@ -1515,11 +1519,11 @@ function Card({ title, action, children, className }) {
   );
 }
 
-function Modal({ open, onClose, title, children, footer }) {
+function Modal({ open, onClose, title, children, footer, tour }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white sm:max-w-lg sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+    <div data-hv-modal="" className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
+      <div data-tour={tour} className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white sm:max-w-lg sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <header className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
           <h3 className="font-bold text-slate-800">{title}</h3>
           <button onClick={onClose} className="rounded-lg px-2 py-1 text-xl leading-none text-slate-400 hover:bg-slate-100">&times;</button>
@@ -1705,8 +1709,8 @@ function Shell({ me, page, setPage, onSignOut, children }) {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <button onClick={() => setApps(true)} title={t.apps} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">🏢</button>
-            <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
+            <button data-tour="tb-systems" onClick={() => setApps(true)} title={t.apps} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">🏢</button>
+            <button data-tour="tb-lang" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
               {lang === 'ar' ? 'EN' : 'ع'}
             </button>
             <button onClick={onSignOut} className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
@@ -1715,9 +1719,9 @@ function Shell({ me, page, setPage, onSignOut, children }) {
           </div>
         </div>
 
-        <nav className="no-scrollbar hidden gap-1 overflow-x-auto px-4 pb-2 sm:mx-auto sm:flex sm:max-w-5xl">
+        <nav data-tour="nav" className="no-scrollbar hidden gap-1 overflow-x-auto px-4 pb-2 sm:mx-auto sm:flex sm:max-w-5xl">
           {items.map((n) => (
-            <button key={n.key} onClick={() => setPage(n.key)}
+            <button key={n.key} data-tour-nav={n.key} data-tour-label={label(n.key)} onClick={() => setPage(n.key)}
               className={cx('shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold', page === n.key ? 'bg-brand-700 text-white' : 'text-slate-600 hover:bg-slate-100')}>
               {n.icon} {label(n.key)}
             </button>
@@ -1744,9 +1748,9 @@ function Shell({ me, page, setPage, onSignOut, children }) {
       </Modal>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white pb-safe sm:hidden">
-        <div className="no-scrollbar flex overflow-x-auto">
+        <div data-tour="nav" className="no-scrollbar flex overflow-x-auto">
           {items.map((n) => (
-            <button key={n.key} onClick={() => setPage(n.key)}
+            <button key={n.key} data-tour-nav={n.key} data-tour-label={label(n.key)} onClick={() => setPage(n.key)}
               className={cx('flex min-w-[64px] flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold', page === n.key ? 'text-brand-700' : 'text-slate-400')}>
               <span className="text-lg leading-none">{n.icon}</span>
               <span className="truncate px-0.5">{label(n.key)}</span>
@@ -1793,13 +1797,13 @@ function Dashboard({ me, data }) {
 
   return (
     <>
-      <div className="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
+      <div data-tour="dash-welcome" className="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
         <p className="text-sm text-brand-200">{t.welcome}</p>
         <p className="text-xl font-bold">{name}</p>
         <p className="mt-1 text-sm text-brand-200">{t.yourRole}: {t.roles[me.role]}</p>
       </div>
 
-      <div className={cx('grid gap-3', stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+      <div data-tour="dash-tiles" className={cx('grid gap-3', stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
         {stats.map((s) => (
           <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-3 text-center">
             <div className="text-xl">{s.icon}</div>
@@ -1810,7 +1814,7 @@ function Dashboard({ me, data }) {
       </div>
 
       {admin && expiry.length > 0 && (
-        <Card title={'⚠️ ' + t.expiryAlerts}>
+        <Card tour="dash-expiry" title={'⚠️ ' + t.expiryAlerts}>
           <ul className="divide-y divide-slate-100">
             {expiry.slice(0, 10).map((x, i) => (
               <li key={i} className="flex items-center justify-between gap-2 py-2">
@@ -1881,7 +1885,7 @@ function SystemIcons({ user, onClick }) {
 function SystemPicker({ value, onChange, disabledKeys = [] }) {
   const { t } = useL();
   return (
-    <div>
+    <div data-tour="systems">
       <p className="mb-1 text-xs font-semibold text-slate-600">{t.systemsAccess}</p>
       <div className="flex flex-wrap gap-2">
         {SYSTEMS.map(([k, lbl, ic]) => (
@@ -2041,7 +2045,7 @@ function CreateLoginModal({ open, onClose, me, data, refresh, toast, audit, empl
 
   if (!open || !f) return null;
   return (
-    <Modal open={open} onClose={() => onClose(null)} title={t.createLogin}
+    <Modal tour="login-form" open={open} onClose={() => onClose(null)} title={t.createLogin}
       footer={<><Btn className="flex-1" disabled={busy} onClick={create}>{busy ? '…' : t.createLogin}</Btn><Btn variant="outline" className="flex-1" onClick={() => onClose(null)}>{t.cancel}</Btn></>}>
       <Field label={t.fullNameAr}><Input value={f.full_name_ar} onChange={(e) => setF({ ...f, full_name_ar: e.target.value })} /></Field>
       <Field label={t.fullNameEn}><Input value={f.full_name_en} onChange={(e) => setF({ ...f, full_name_en: e.target.value })} /></Field>
@@ -2081,6 +2085,18 @@ function UsersPage({ me, data, refresh, toast, audit }) {
   const [inviting, setInviting] = useState(null);
   const [creating, setCreating] = useState(false);
 
+  /* guide tour (hv-tour.js): shows the create-login form; closes only what the tour opened, never saves */
+  const tourOpened = useRef(false);
+  useEffect(() => {
+    const on = (e) => {
+      const a = e.detail && e.detail.action;
+      if (a === 'usr-open-create' && !creating && !editing && !inviting) { tourOpened.current = true; setCreating(true); }
+      else if (a === 'close' && tourOpened.current) { tourOpened.current = false; setCreating(false); }
+    };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
+
   const list = data.users.filter((u) => {
     const s = (u.email + ' ' + (u.username || '') + ' ' + (u.full_name_en || '') + ' ' + (u.full_name_ar || '')).toLowerCase();
     return s.includes(q.toLowerCase());
@@ -2118,11 +2134,11 @@ function UsersPage({ me, data, refresh, toast, audit }) {
     <>
       <div className="flex gap-2">
         <Input placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} />
-        <Btn onClick={() => setCreating(true)} title={t.syncHint}>+ {t.createLogin}</Btn>
-        <Btn variant="outline" onClick={() => setInviting({ email: '', role: 'staff', branch_id: '', full_name_en: '', full_name_ar: '' })}>{t.invite}</Btn>
+        <Btn data-tour="usr-create" onClick={() => setCreating(true)} title={t.syncHint}>+ {t.createLogin}</Btn>
+        <Btn data-tour="usr-invite" variant="outline" onClick={() => setInviting({ email: '', role: 'staff', branch_id: '', full_name_en: '', full_name_ar: '' })}>{t.invite}</Btn>
       </div>
 
-      <Card title={t.users}>
+      <Card tour="usr-list" title={t.users}>
         {list.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
             {list.map((u) => (
@@ -2419,13 +2435,30 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
     return !owner || (form && owner.id === form.id);
   });
 
+  /* guide tour (hv-tour.js): shows an empty add form or the first employee's card; closes only what the tour opened, never saves */
+  const tourOpened = useRef(null);
+  useEffect(() => {
+    const on = (e) => {
+      const a = e.detail && e.detail.action;
+      if ((a === 'emp-open-form' || a === 'emp-open-form-pay') && canEdit && !form && !view) {
+        tourOpened.current = 'form'; setForm(blank());
+        /* the pay fields sit at the bottom of a long form: bring them into view at once so the spotlight lands on them */
+        if (a === 'emp-open-form-pay') setTimeout(() => { const el = document.querySelector('[data-tour="emp-pay-fields"]'); if (el) el.scrollIntoView({ block: 'center' }); }, 120);
+      }
+      else if (a === 'emp-open-first' && list.length && !form && !view) { tourOpened.current = 'view'; setView(list[0]); setTab('profile'); }
+      else if (a === 'close' && tourOpened.current) { if (tourOpened.current === 'form') setForm(null); else setView(null); tourOpened.current = null; }
+    };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
+
   return (
     <>
       <div className="flex gap-2">
         <Input placeholder={t.search} value={q} onChange={(e) => setQ(e.target.value)} />
-        {canEdit && <Btn onClick={() => setForm(blank())}>+ {t.add}</Btn>}
+        {canEdit && <Btn data-tour="emp-add" onClick={() => setForm(blank())}>+ {t.add}</Btn>}
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div data-tour="emp-filters" className="grid grid-cols-2 gap-2">
         <Select value={fBranch} onChange={(e) => setFBranch(e.target.value)}>
           <option value="">{t.allBranches}</option>
           {data.branches.map((b) => <option key={b.id} value={b.id}>{lang === 'ar' ? b.name_ar : b.name_en}</option>)}
@@ -2436,7 +2469,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
         </Select>
       </div>
 
-      <Card title={t.employees + ' (' + list.length + ')'}>
+      <Card tour="emp-list" title={t.employees + ' (' + list.length + ')'}>
         {list.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
             {list.map((e) => (
@@ -2463,12 +2496,12 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
         footer={canEdit && view ? <><Btn className="flex-1" onClick={() => setForm({ ...view, allowances: view.allowances || [] })}>{t.edit}</Btn><Btn variant="outline" className="flex-1" onClick={() => setView(null)}>{t.close}</Btn></> : null}>
         {view && (
           <>
-            <button type="button" className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-start text-xs text-slate-600 hover:border-brand-300"
+            <button type="button" data-tour="emp-access-btn" className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-start text-xs text-slate-600 hover:border-brand-300"
               onClick={() => { setTab('profile'); setTimeout(() => { const el = document.getElementById('emp-access'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60); }}>
               <span className="font-semibold">🔑 {t.openAccess}</span>
               <SystemIcons user={viewUser} />
             </button>
-            <div className="flex gap-2">
+            <div data-tour="emp-tabs" className="flex gap-2">
               {['profile', ...(canSalary ? ['salary'] : []), 'docs'].map((k) => (
                 <button key={k} onClick={() => setTab(k)}
                   className={cx('flex-1 rounded-lg py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600')}>
@@ -2501,7 +2534,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
               </dl>
             )}
             {tab === 'profile' && canEdit && (
-              <div className="space-y-3 rounded-xl bg-slate-50 p-3">
+              <div data-tour="emp-access" className="space-y-3 rounded-xl bg-slate-50 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">🪪 {t.enrollFace}</p>
@@ -2608,7 +2641,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       </Modal>
 
       {/* ---------- add / edit form ---------- */}
-      <Modal open={!!form} onClose={() => setForm(null)} title={form && form.id ? t.edit : t.addEmployee}
+      <Modal tour="emp-form" open={!!form} onClose={() => setForm(null)} title={form && form.id ? t.edit : t.addEmployee}
         footer={<><Btn className="flex-1" onClick={save}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
         {form && (
           <>
@@ -2626,7 +2659,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
             <Field label={t.fullNameAr}><Input value={form.full_name_ar} onChange={(e) => setForm({ ...form, full_name_ar: e.target.value })} /></Field>
             <Field label={t.fullNameEn}><Input value={form.full_name_en} onChange={(e) => setForm({ ...form, full_name_en: e.target.value })} /></Field>
             <Field label={t.nationalId} hint={t.nidHint}>
-              <Input inputMode="numeric" maxLength={14} dir="ltr" value={form.national_id || ''} onChange={(e) => onNid(e.target.value.replace(/\D/g, ''))} />
+              <Input data-tour="emp-nid" inputMode="numeric" maxLength={14} dir="ltr" value={form.national_id || ''} onChange={(e) => onNid(e.target.value.replace(/\D/g, ''))} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t.birthDate}><Input type="date" value={form.birth_date || ''} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></Field>
@@ -2756,7 +2789,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
               <p className="text-end text-xs font-semibold text-slate-500">{t.salaryTotal}: {money(gross)}</p>
             </div>
             </>)}
-            <div className="grid grid-cols-2 gap-3">
+            <div data-tour="emp-pay-fields" className="grid grid-cols-2 gap-3">
               <Field label={t.insuranceBase}><Input type="number" inputMode="decimal" value={form.insurance_base} onChange={(e) => setForm({ ...form, insurance_base: e.target.value })} /></Field>
               <Field label={t.nosiNumber}><Input dir="ltr" value={form.nosi_number || ''} onChange={(e) => setForm({ ...form, nosi_number: e.target.value })} /></Field>
               <Field label={t.bankName}><Input value={form.bank_name || ''} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></Field>
@@ -2791,13 +2824,20 @@ function AttendancePage({ me, data, refresh, toast, audit, live, initialTab }) {
   const [tab, setTab] = useState(initialTab && tabs.some((x) => x.k === initialTab) ? initialTab : (tabs.length ? tabs[0].k : 'none'));
   const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
 
+  /* guide tour (hv-tour.js): 'att-tab-<key>' switches to that tab when this person has it */
+  useEffect(() => {
+    const on = (e) => { const a = (e.detail && e.detail.action) || ''; if (a.startsWith('att-tab-') && tabs.some((x) => x.k === a.slice(8))) setTab(a.slice(8)); };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
+
   if (!tabs.length) return <Card><Empty text={t.noEmpLink} /></Card>;
 
   return (
     <>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+      <div data-tour="att-tabs" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {tabs.map((x) => (
-          <button key={x.k} onClick={() => setTab(x.k)}
+          <button key={x.k} data-tour={'att-tab-' + x.k} onClick={() => setTab(x.k)}
             className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
             {x.label}
           </button>
@@ -2898,7 +2938,7 @@ function AttendanceTotalsTab({ me, data, eName }) {
       <p className="text-xs text-slate-500">{t.totalsHint}</p>
       {rows === null ? <Empty text={t.loading} /> : (
         <>
-          <div className={cx('grid grid-cols-2 gap-2', canMoney ? 'sm:grid-cols-5' : 'sm:grid-cols-4')}>
+          <div data-tour="tot-tiles" className={cx('grid grid-cols-2 gap-2', canMoney ? 'sm:grid-cols-5' : 'sm:grid-cols-4')}>
             <Tile label={t.totalLate} value={hm(sum('late'))} tone="red" />
             <Tile label={t.totalEarly} value={hm(sum('early'))} tone="red" />
             <Tile label={t.totalBreakOver} value={hm(sum('brk'))} tone="red" />
@@ -2958,7 +2998,7 @@ function AttendanceRulesTab(props) {
   return (
     <>
       <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.rulesHint}</p>
-      <Card title={t.attRules} action={<Btn size="sm" variant="soft" onClick={() => setTiers([...tiers, { from_minutes: (sorted.length ? Number(sorted[sorted.length - 1].from_minutes) + 30 : 15), kind: 'hours', value: 1, label_en: '', label_ar: '' }])}>+ {t.addTier}</Btn>}>
+      <Card tour="rules-late" title={t.attRules} action={<Btn size="sm" variant="soft" onClick={() => setTiers([...tiers, { from_minutes: (sorted.length ? Number(sorted[sorted.length - 1].from_minutes) + 30 : 15), kind: 'hours', value: 1, label_en: '', label_ar: '' }])}>+ {t.addTier}</Btn>}>
         <div className="space-y-3">
           {tiers.map((tr, i) => (
             <div key={i} className="rounded-xl border border-slate-200 p-3">
@@ -3091,10 +3131,10 @@ function ExceptionsTab({ me, myEmp, data, toast, audit, eName, admin, isHr }) {
     <>
       <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.excHint}</p>
       {(myEmp && !myEmp.attendance_exempt) || isHr ? (
-        <Btn size="lg" onClick={() => setForm({ employee_id: myEmp && !myEmp.attendance_exempt ? myEmp.id : '', exc_date: todayISO(), kind: 'late', minutes: 30, reason: '' })}>⏰ {t.excRequest}</Btn>
+        <Btn data-tour="exc-new" size="lg" onClick={() => setForm({ employee_id: myEmp && !myEmp.attendance_exempt ? myEmp.id : '', exc_date: todayISO(), kind: 'late', minutes: 30, reason: '' })}>⏰ {t.excRequest}</Btn>
       ) : null}
       {admin && (
-        <Card title={t.excPending}>
+        <Card tour="exc-pending" title={t.excPending}>
           {list === null ? <Empty text={t.loading} /> : pending.length === 0 ? <Empty text={t.noData} /> : <ul className="divide-y divide-slate-100">{pending.map((x) => <Row key={x.id} x={x} showName={true} />)}</ul>}
         </Card>
       )}
@@ -3209,7 +3249,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
     <>
       <Card>
         <div className="py-2 text-center">
-          <Btn size="lg" disabled={busy || todays === null}
+          <Btn data-tour="att-checkin" size="lg" disabled={busy || todays === null}
             className={nextDir === 'out' ? '!bg-amber-600 hover:!bg-amber-700' : ''}
             onClick={punch}>
             {busy ? t.gettingLoc : nextDir === 'in' ? '🕐 ' + t.checkIn : '🏁 ' + t.checkOut}
@@ -3218,7 +3258,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
         {live && live.session && <div className="pt-1"><BreakButton live={live} data={data} /></div>}
       </Card>
       {live && (
-        <Card title={'🟢 ' + t.liveSession}>
+        <Card tour="att-live" title={'🟢 ' + t.liveSession}>
           {!ses ? (
             <div className="space-y-2">
               <p className="text-sm text-slate-500">{t.noOpenSession}</p>
@@ -3322,7 +3362,7 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
 
   return (
     <>
-      <Card title={open ? '🚗 ' + t.openTripLbl : t.startTrip}>
+      <Card tour="trip-start" title={open ? '🚗 ' + t.openTripLbl : t.startTrip}>
         {open === undefined ? <Empty text={t.loading} /> : open ? (
           <div className="space-y-3">
             <p className="text-sm text-slate-600">
@@ -3635,11 +3675,11 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
           <option value="">{t.selectEmployee} — {t.allBranches}</option>
           {data.employees.map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
         </Select>
-        {isHr && <Btn onClick={() => setManual({ employee_id: fEmp || '', date: todayISO(), time: '09:00', direction: 'in', note: '' })}>+ {t.manualPunch}</Btn>}
+        {isHr && <Btn data-tour="rev-manual" onClick={() => setManual({ employee_id: fEmp || '', date: todayISO(), time: '09:00', direction: 'in', note: '' })}>+ {t.manualPunch}</Btn>}
       </div>
 
-      <Card title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
-        action={rows.length > 0 && <span className="flex gap-2"><Btn size="sm" variant="ghost" onClick={cols.reset} title={t.resetDefaults}>↔</Btn><Btn size="sm" variant="soft" onClick={() => setPrintPick(true)}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn></span>}>
+      <Card tour="rev-table" title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
+        action={rows.length > 0 && <span data-tour="rev-export" className="flex gap-2"><Btn size="sm" variant="ghost" onClick={cols.reset} title={t.resetDefaults}>↔</Btn><Btn size="sm" variant="soft" onClick={() => setPrintPick(true)}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn></span>}>
         {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
           <div className="overflow-x-auto">
             <table className="border-separate border-spacing-0 text-sm tabular-nums" style={{ tableLayout: 'fixed', width: cols.widths.reduce((a, b) => a + b, 0) + 'px' }}>
@@ -3801,7 +3841,7 @@ function LockTab({ me, data, toast, audit }) {
 
   return (
     <>
-      <Card title={t.lockMonth}>
+      <Card tour="lock-form" title={t.lockMonth}>
         <p className="mb-3 text-xs text-slate-500">{t.lockWarn}</p>
         <div className="grid grid-cols-3 gap-2">
           <Select value={form.branch_id} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}>
@@ -4121,9 +4161,9 @@ function JobsPage({ me, data, toast, audit }) {
 
   return (
     <>
-      <div className="flex justify-end"><Btn onClick={() => setForm(blankRole())}>+ {t.addRole}</Btn></div>
+      <div className="flex justify-end"><Btn data-tour="job-add" onClick={() => setForm(blankRole())}>+ {t.addRole}</Btn></div>
 
-      <Card title={t.jobs}>
+      <Card tour="job-list" title={t.jobs}>
         {roles === null ? <Empty text={t.loading} /> : roles.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
             {roles.map((r) => (
@@ -4138,7 +4178,7 @@ function JobsPage({ me, data, toast, audit }) {
                 <div className="mt-2 flex gap-2">
                   <Btn variant="soft" size="sm" className="flex-1" onClick={() => openGen(r, 'jd')}>📄 {t.genJd}</Btn>
                   <Btn variant="soft" size="sm" className="flex-1" onClick={() => openGen(r, 'offer')}>✉️ {t.genOffer}</Btn>
-                  <Btn variant={tpls.some((x) => x.role_id === r.id) ? 'primary' : 'outline'} size="sm" className="flex-1" onClick={() => setTplList(r)}>📑 {t.templates} ({tpls.filter((x) => x.role_id === r.id).length})</Btn>
+                  <Btn data-tour="job-tpl" variant={tpls.some((x) => x.role_id === r.id) ? 'primary' : 'outline'} size="sm" className="flex-1" onClick={() => setTplList(r)}>📑 {t.templates} ({tpls.filter((x) => x.role_id === r.id).length})</Btn>
                 </div>
               </li>
             ))}
@@ -4146,7 +4186,7 @@ function JobsPage({ me, data, toast, audit }) {
         )}
       </Card>
 
-      <Card title={t.savedDocs}>
+      <Card tour="job-docs" title={t.savedDocs}>
         {docs.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
             {docs.map((d) => (
@@ -4419,7 +4459,7 @@ function LeaveCalendar({ me, myEmp, data, types, reqs, year, isHr, eName, tyName
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      <div data-tour="leave-calendar" className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1">
           <Btn size="sm" variant="outline" onClick={() => setCalYear(calYear - 1)}>‹</Btn>
           <span className="w-16 text-center text-lg font-bold text-slate-800">{calYear}</span>
@@ -4629,7 +4669,7 @@ function LeaveIoTab({ me, data, types, reqs, adjs, setReqs, setAdjs, balance, eN
 
   return (
     <>
-      <Card title={'📤 ' + t.exportLeaves}>
+      <Card tour="leave-io" title={'📤 ' + t.exportLeaves}>
         <div className="flex items-end gap-2">
           <Field label={t.yearLbl}><Input type="number" inputMode="numeric" value={exportYear} onChange={(e) => setExportYear(Number(e.target.value))} /></Field>
           <Btn disabled={busy} onClick={doExport}>⬇️ {t.exportExcel}</Btn>
@@ -4980,13 +5020,28 @@ function LeavePage({ me, data, toast, audit }) {
   }) : [];
   const myBal = myEmp ? balance(myEmp) : null;
 
+  /* guide tour (hv-tour.js): 'leave-tab-<key>' switches tab; 'leave-open-form' shows an empty request form
+     (once the leave types are loaded); closes only what the tour opened, never saves */
+  const tourForm = useRef(null);   // null | 'wait' | 'open'
+  useEffect(() => {
+    const on = (e) => {
+      const a = (e.detail && e.detail.action) || '';
+      if (a.startsWith('leave-tab-') && tabs.some((x) => x.k === a.slice(10))) setTab(a.slice(10));
+      else if (a === 'leave-open-form' && !form) { if (types.length) { tourForm.current = 'open'; openForm(); } else tourForm.current = 'wait'; }
+      else if (a === 'close' && tourForm.current) { if (tourForm.current === 'open') setForm(null); tourForm.current = null; }
+    };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
+  useEffect(() => { if (tourForm.current === 'wait' && types.length) { tourForm.current = 'open'; openForm(); } }, [types]);
+
   if (!tabs.length) return <Card><Empty text={t.noEmpLink} /></Card>;
 
   return (
     <>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+      <div data-tour="leave-tabs" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {tabs.map((x) => (
-          <button key={x.k} onClick={() => setTab(x.k)}
+          <button key={x.k} data-tour={'leave-tab-' + x.k} onClick={() => setTab(x.k)}
             className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
             {x.label}{x.k === 'approvals' && pendingForMe.length > 0 ? ' (' + pendingForMe.length + ')' : ''}{x.k === 'makeup' && pendingMakeups.length > 0 ? ' (' + pendingMakeups.length + ')' : ''}
           </button>
@@ -4996,7 +5051,7 @@ function LeavePage({ me, data, toast, audit }) {
       {tab === 'mine' && myEmp && (
         <>
           {myBal && (
-            <div className="grid grid-cols-4 gap-2">
+            <div data-tour="leave-balance" className="grid grid-cols-4 gap-2">
               {[
                 [t.annualShort, myBal.ent.dueYet ? myBal.annualRemaining : '—', '🌴'],
                 [t.casualShort, myBal.ent.dueYet ? myBal.casualRemaining : '—', '⚡'],
@@ -5012,8 +5067,8 @@ function LeavePage({ me, data, toast, audit }) {
             </div>
           )}
           {myBal && !myBal.ent.dueYet && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">{t.needSixMonths}</p>}
-          <Btn size="lg" onClick={openForm}>+ {t.newRequest}</Btn>
-          <Card title={t.myLeave + ' — ' + year}>
+          <Btn data-tour="leave-new" size="lg" onClick={openForm}>+ {t.newRequest}</Btn>
+          <Card tour="leave-mine" title={t.myLeave + ' — ' + year}>
             {reqs === null ? <Empty text={t.loading} /> : myReqs.length === 0 ? <Empty text={t.noData} /> : (
               <ul className="divide-y divide-slate-100">{myReqs.map((r) => <ReqRow key={r.id} r={r} showName={false} />)}</ul>
             )}
@@ -5024,7 +5079,7 @@ function LeavePage({ me, data, toast, audit }) {
       {tab === 'approvals' && (
         <>
           {isHr && <Btn onClick={openForm}>+ {t.newRequest}</Btn>}
-          <Card title={t.approvals}>
+          <Card tour="leave-approvals" title={t.approvals}>
             {reqs === null ? <Empty text={t.loading} /> : pendingForMe.length === 0 ? <Empty text={t.noData} /> : (
               <ul className="divide-y divide-slate-100">{pendingForMe.map((r) => <ReqRow key={r.id} r={r} showName={true} />)}</ul>
             )}
@@ -5039,7 +5094,7 @@ function LeavePage({ me, data, toast, audit }) {
 
       {tab === 'makeup' && (
         <>
-          <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.makeupAutoHint} {t.makeupHint.replace('{w}', makeupWeeks)}</p>
+          <p data-tour="leave-makeup" className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.makeupAutoHint} {t.makeupHint.replace('{w}', makeupWeeks)}</p>
           {myEmp && (
             <Card title={t.makeupCandidates}>
               {myPunchDays === null ? <Empty text={t.loading} /> : myCandidates.length === 0 ? <Empty text={t.makeupNone} /> : (
@@ -5096,7 +5151,7 @@ function LeavePage({ me, data, toast, audit }) {
       {tab === 'io' && <LeaveIoTab me={me} data={data} types={types} reqs={reqs} adjs={adjs} setReqs={setReqs} setAdjs={setAdjs} balance={balance} eName={eName} tyName={tyName} year={year} toast={toast} audit={audit} />}
 
       {tab === 'balances' && (
-        <Card title={t.balances + ' — ' + year}>
+        <Card tour="leave-balances" title={t.balances + ' — ' + year}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead><tr>
@@ -5126,7 +5181,7 @@ function LeavePage({ me, data, toast, audit }) {
       )}
 
       {/* ---------- new request ---------- */}
-      <Modal open={!!form} onClose={() => setForm(null)} title={t.newRequest}
+      <Modal tour="leave-form" open={!!form} onClose={() => setForm(null)} title={t.newRequest}
         footer={<><Btn className="flex-1" onClick={submitRequest}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
         {form && (
           <>
@@ -5379,6 +5434,21 @@ function PayrollPage({ me, data, toast, audit }) {
 
   const totalNet = items ? r2(items.reduce((s, i) => s + Number(i.net_pay), 0)) : 0;
 
+  /* guide tour (hv-tour.js): 'pay-open-new' shows the empty new-run form, 'pay-open-latest' opens the newest run
+     read-only (once the runs are loaded); closes only what the tour opened, never generates or saves */
+  const tourOpened = useRef(null);   // null | 'new' | 'wait' | 'run'
+  useEffect(() => {
+    const on = (e) => {
+      const a = e.detail && e.detail.action;
+      if (a === 'pay-open-new' && canEdit && !newRun && !open) { tourOpened.current = 'new'; setNewRun({ branch_id: '', year: now.getFullYear(), month: now.getMonth() === 0 ? 12 : now.getMonth(), busy: false }); }
+      else if (a === 'pay-open-latest' && !open) { if (runs && runs.length) { tourOpened.current = 'run'; setOpen(runs[0]); } else if (runs === null) tourOpened.current = 'wait'; }
+      else if (a === 'close' && tourOpened.current) { if (tourOpened.current === 'new') setNewRun(null); else if (tourOpened.current === 'run') setOpen(null); tourOpened.current = null; }
+    };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
+  useEffect(() => { if (tourOpened.current === 'wait' && runs) { if (runs.length) { tourOpened.current = 'run'; setOpen(runs[0]); } else tourOpened.current = null; } }, [runs]);
+
   /* ---------------- run detail view ---------------- */
   if (open) {
     const editable = canEdit && open.status !== 'approved';
@@ -5394,7 +5464,7 @@ function PayrollPage({ me, data, toast, audit }) {
             <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{t.employees}</p><p className="text-lg font-bold">{items ? items.length : '…'}</p></div>
             <div className="rounded-xl bg-brand-50 p-3"><p className="text-xs text-slate-500">{t.totalNet}</p><p className="text-lg font-bold text-brand-800">{money(totalNet)}</p></div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div data-tour="pay-actions" className="flex flex-wrap gap-2">
             {editable && open.status === 'draft' && <Btn size="sm" onClick={() => setStatus('review')}>{t.submitReview}</Btn>}
             {isCeo && open.status === 'review' && <Btn size="sm" onClick={() => { if (window.confirm(t.approveRun + '?')) setStatus('approved'); }}>✅ {t.approveRun}</Btn>}
             {canEdit && open.status === 'review' && <Btn size="sm" variant="outline" onClick={() => setStatus('draft')}>{t.backToDraft}</Btn>}
@@ -5404,7 +5474,7 @@ function PayrollPage({ me, data, toast, audit }) {
           </div>
         </Card>
 
-        <Card title={t.employees}>
+        <Card tour="pay-items" title={t.employees}>
           {items === null ? <Empty text={t.loading} /> : items.length === 0 ? <Empty text={t.noData} /> : (
             <ul className="divide-y divide-slate-100">
               {items.map((i) => {
@@ -5486,11 +5556,11 @@ function PayrollPage({ me, data, toast, audit }) {
   return (
     <>
       {canEdit && (
-        <Btn size="lg" onClick={() => setNewRun({ branch_id: '', year: now.getFullYear(), month: now.getMonth() === 0 ? 12 : now.getMonth(), busy: false })}>
+        <Btn data-tour="pay-new" size="lg" onClick={() => setNewRun({ branch_id: '', year: now.getFullYear(), month: now.getMonth() === 0 ? 12 : now.getMonth(), busy: false })}>
           + {t.newRun}
         </Btn>
       )}
-      <Card title={t.payroll}>
+      <Card tour="pay-runs" title={t.payroll}>
         {runs === null ? <Empty text={t.loading} /> : runs.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
             {runs.map((r) => (
@@ -5506,7 +5576,7 @@ function PayrollPage({ me, data, toast, audit }) {
         )}
       </Card>
 
-      <Modal open={!!newRun} onClose={() => setNewRun(null)} title={t.newRun}
+      <Modal tour="pay-new-form" open={!!newRun} onClose={() => setNewRun(null)} title={t.newRun}
         footer={<><Btn className="flex-1" disabled={newRun && newRun.busy} onClick={generate}>{newRun && newRun.busy ? t.loading : t.generateRun}</Btn><Btn variant="outline" className="flex-1" onClick={() => setNewRun(null)}>{t.cancel}</Btn></>}>
         {newRun && (
           <>
@@ -5608,15 +5678,28 @@ function LoansPage({ me, data, toast, audit }) {
 
   const list = loans ? (canEdit ? loans : loans.filter((l) => myEmp && l.employee_id === myEmp.id)) : null;
   const setInst = (f) => ({ ...f, installment_amount: f.principal && f.installments_count ? r2(Number(f.principal) / Number(f.installments_count)) : '' });
+  const blankLoan = () => ({ employee_id: '', loan_type: 'advance', principal: '', installments_count: 1, installment_amount: '', start_year: now.getFullYear(), start_month: now.getMonth() + 1, reason: '' });
+
+  /* guide tour (hv-tour.js): 'loan-open-form' shows the empty new-loan form; closes only what the tour opened, never saves */
+  const tourOpened = useRef(false);
+  useEffect(() => {
+    const on = (e) => {
+      const a = e.detail && e.detail.action;
+      if (a === 'loan-open-form' && canEdit && !form && !view) { tourOpened.current = true; setForm(blankLoan()); }
+      else if (a === 'close' && tourOpened.current) { tourOpened.current = false; setForm(null); }
+    };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
 
   return (
     <>
       {canEdit && (
-        <Btn size="lg" onClick={() => setForm({ employee_id: '', loan_type: 'advance', principal: '', installments_count: 1, installment_amount: '', start_year: now.getFullYear(), start_month: now.getMonth() + 1, reason: '' })}>
+        <Btn data-tour="loan-new" size="lg" onClick={() => setForm(blankLoan())}>
           + {t.newLoan}
         </Btn>
       )}
-      <Card title={canEdit ? t.loans : t.myLoans}>
+      <Card tour="loan-list" title={canEdit ? t.loans : t.myLoans}>
         {list === null ? <Empty text={t.loading} /> : list.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
             {list.map((l) => (
@@ -5664,7 +5747,7 @@ function LoansPage({ me, data, toast, audit }) {
         )}
       </Modal>
 
-      <Modal open={!!form} onClose={() => setForm(null)} title={t.newLoan}
+      <Modal tour="loan-form" open={!!form} onClose={() => setForm(null)} title={t.newLoan}
         footer={<><Btn className="flex-1" onClick={saveLoan}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setForm(null)}>{t.cancel}</Btn></>}>
         {form && (
           <>
@@ -5812,11 +5895,18 @@ function CompliancePage({ me, data, toast, audit }) {
   const visible = (tasks || []).filter((x) => showDone || x.status === 'open');
   const emp = data.employees.find((e) => e.id === empId);
 
+  /* guide tour (hv-tour.js): 'comp-tab-calendar' / 'comp-tab-forms' switch the tab */
+  useEffect(() => {
+    const on = (e) => { const a = (e.detail && e.detail.action) || ''; if (a === 'comp-tab-calendar' || a === 'comp-tab-forms') setTab(a.slice(9)); };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  }, []);
+
   return (
     <>
-      <div className="flex gap-2">
+      <div data-tour="comp-tabs" className="flex gap-2">
         {[['calendar', t.calendarTab], ['forms', t.formsTab]].map(([k, l]) => (
-          <button key={k} onClick={() => setTab(k)}
+          <button key={k} data-tour={'comp-tab-' + k} onClick={() => setTab(k)}
             className={cx('rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>{l}</button>
         ))}
       </div>
@@ -5827,9 +5917,9 @@ function CompliancePage({ me, data, toast, audit }) {
             <label className="flex items-center gap-2 text-sm text-slate-600">
               <input type="checkbox" className="h-4 w-4 accent-brand-700" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} />{t.showDone}
             </label>
-            <Btn size="sm" onClick={() => setForm({ title_ar: '', title_en: '', category: 'other', due_date: todayISO(), recurrence: 'once', notes: '' })}>+ {t.addTask}</Btn>
+            <Btn data-tour="comp-add" size="sm" onClick={() => setForm({ title_ar: '', title_en: '', category: 'other', due_date: todayISO(), recurrence: 'once', notes: '' })}>+ {t.addTask}</Btn>
           </div>
-          <Card title={t.calendarTab}>
+          <Card tour="comp-list" title={t.calendarTab}>
             {tasks === null ? <Empty text={t.loading} /> : visible.length === 0 ? <Empty text={t.noData} /> : (
               <ul className="divide-y divide-slate-100">
                 {visible.map((x) => {
@@ -5857,7 +5947,7 @@ function CompliancePage({ me, data, toast, audit }) {
 
       {tab === 'forms' && (
         <>
-          <Card title={t.formsTab}>
+          <Card tour="comp-forms" title={t.formsTab}>
             <Field label={t.selectEmployee}>
               <Select value={empId} onChange={(e) => setEmpId(e.target.value)}>
                 <option value="">—</option>
@@ -5973,14 +6063,14 @@ function MyPage({ me, data, toast, setPage, live }) {
 
   return (
     <>
-      <div className="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
+      <div data-tour="dash-welcome" className="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 p-5 text-white">
         <p className="text-sm text-brand-200">{t.welcome}</p>
         <p className="text-xl font-bold">{name}</p>
         <p className="mt-1 text-sm text-brand-200">{(lang === 'ar' ? myEmp.job_title_ar : myEmp.job_title_en) || '—'} · {branch ? (lang === 'ar' ? branch.name_ar : branch.name_en) : '—'} · {myEmp.employee_code}</p>
       </div>
 
       {!myEmp.attendance_exempt && live && live.session && <BreakButton live={live} data={data} />}
-      <div className={cx('grid gap-2', myEmp.attendance_exempt ? 'grid-cols-2' : 'grid-cols-4')}>
+      <div data-tour="my-quick" className={cx('grid gap-2', myEmp.attendance_exempt ? 'grid-cols-2' : 'grid-cols-4')}>
         {!myEmp.attendance_exempt && <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance')}>🕐<span>{t.goCheckIn}</span></Btn>}
         {!myEmp.attendance_exempt && <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance', 'exceptions')}>⏰<span>{t.excRequest}</span></Btn>}
         <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('leave')}>🌴<span>{t.goLeave}</span></Btn>
@@ -5989,7 +6079,7 @@ function MyPage({ me, data, toast, setPage, live }) {
 
       {!d ? <Empty text={t.loading} /> : (
         <>
-          <div className={cx('grid gap-2', myEmp.attendance_exempt ? 'grid-cols-4' : 'grid-cols-3 sm:grid-cols-6')}>
+          <div data-tour="my-balance" className={cx('grid gap-2', myEmp.attendance_exempt ? 'grid-cols-4' : 'grid-cols-3 sm:grid-cols-6')}>
             {[
               [t.annualShort + ' · ' + t.remaining, bal.ent.dueYet ? bal.annualRemaining : '—', '🌴'],
               [t.casualShort + ' · ' + t.remaining, bal.ent.dueYet ? bal.casualRemaining : '—', '⚡'],
@@ -6003,7 +6093,7 @@ function MyPage({ me, data, toast, setPage, live }) {
             ))}
           </div>
 
-          <Card title={t.myPayslips}>
+          <Card tour="my-payslips" title={t.myPayslips}>
             {slips.length === 0 ? <Empty text={t.noPayslips} /> : (
               <ul className="divide-y divide-slate-100">
                 {slips.map(({ run, item }) => (
@@ -6016,7 +6106,7 @@ function MyPage({ me, data, toast, setPage, live }) {
             )}
           </Card>
 
-          <Card title={t.myRequests}>
+          <Card tour="my-requests" title={t.myRequests}>
             {d.reqs.length === 0 ? <Empty text={t.noData} /> : (
               <ul className="divide-y divide-slate-100">
                 {d.reqs.slice(0, 8).map((r) => (
@@ -6227,7 +6317,7 @@ function ReportsPage({ me, data, toast }) {
     if (!ok) toast(t.prPopup, 'error');
   };
   const ExpBtns = ({ title, run }) => (
-    <span className="flex gap-2"><Btn size="sm" variant="soft" onClick={() => run((head, rows) => printRows(title, head, rows))}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" onClick={() => run(exportRows)}>⬇️ {t.exportExcel}</Btn></span>
+    <span data-tour="rpt-export" className="flex gap-2"><Btn size="sm" variant="soft" onClick={() => run((head, rows) => printRows(title, head, rows))}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" onClick={() => run(exportRows)}>⬇️ {t.exportExcel}</Btn></span>
   );
 
   const MonthRange = () => (
@@ -6243,9 +6333,16 @@ function ReportsPage({ me, data, toast }) {
   const canSalary = ['ceo', 'accountant'].includes(me.role);
   const tabs = [...(canSalary ? [['payroll', t.rptPayroll]] : []), ['headcount', t.rptHeadcount], ...(canSalary ? [['overtime', t.rptOvertime]] : []), ['leave', t.rptLeave], ['attendance', t.rptAttendance]];
 
+  /* guide tour (hv-tour.js): 'rpt-tab-<key>' switches to that report */
+  useEffect(() => {
+    const on = (e) => { const a = (e.detail && e.detail.action) || ''; if (a.startsWith('rpt-tab-') && tabs.some(([k]) => k === a.slice(8))) setTab(a.slice(8)); };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
+
   return (
     <>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+      <div data-tour="rpt-tabs" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>{l}</button>)}
       </div>
 
@@ -6726,7 +6823,7 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
   return (
     <>
       <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.engazHint}</p>
-      <Card>
+      <Card tour="kpi-engaz">
         <div className="grid grid-cols-2 gap-3">
           <Field label={t.fileKind}>
             {ez ? <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">✓ {t.kindClients}</p> :
@@ -7047,6 +7144,13 @@ function KpiPage({ me, data, toast, audit }) {
   const seesSales = isHr || isManager || me.role === 'accountant' || (myEmp && isSales(myEmp));
   const tabs = [['board', t.leaderboard], ...(seesSales ? [['sales', '📈 ' + t.salesPerf]] : []), ...(canImport ? [['engaz', '📥 ' + t.engazImport]] : []), ...(myEmp ? [['mine', t.myEntries]] : []), ...(pending.length || isHr || (myEmp && data.employees.some((e) => e.manager_id === myEmp.id)) ? [['approvals', t.approvals + (pending.length ? ' (' + pending.length + ')' : '')]] : []), ...(isHr ? [['metrics', t.metricsTab]] : [])];
   const kTone = (s) => s === 'approved' ? 'green' : s === 'rejected' ? 'red' : 'amber';
+
+  /* guide tour (hv-tour.js): 'kpi-tab-<key>' switches to that tab when this person has it */
+  useEffect(() => {
+    const on = (e) => { const a = (e.detail && e.detail.action) || ''; if (a.startsWith('kpi-tab-') && tabs.some(([k]) => k === a.slice(8))) setTab(a.slice(8)); };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
   const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
 
   const EntryRow = ({ en, showName, actions }) => (
@@ -7065,15 +7169,15 @@ function KpiPage({ me, data, toast, audit }) {
   return (
     <>
       <div className="flex items-center gap-2">
-        <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
-          {tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>{l}</button>)}
+        <div data-tour="kpi-tabs" className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
+          {tabs.map(([k, l]) => <button key={k} data-tour={'kpi-tab-' + k} onClick={() => setTab(k)} className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>{l}</button>)}
         </div>
         <Input type="month" className="!w-auto" value={month.y + '-' + pad2(month.m)} onChange={(e) => { const [y, m] = e.target.value.split('-'); if (y && m) setMonth({ y: Number(y), m: Number(m) }); }} />
       </div>
 
       {tab === 'board' && (
         <>
-          <div className="flex gap-2">
+          <div data-tour="kpi-board" className="flex gap-2">
             {[['sales', t.salesBoard], ['company', t.companyBoard]].map(([k, l]) => (
               <button key={k} onClick={() => setBoardKind(k)} className={cx('flex-1 rounded-xl border px-3 py-2 text-sm font-semibold', boardKind === k ? 'border-brand-700 bg-brand-700 text-white' : 'border-slate-300 bg-white text-slate-600')}>{k === 'sales' ? '💼 ' : '🏢 '}{l}</button>
             ))}
@@ -7109,7 +7213,7 @@ function KpiPage({ me, data, toast, audit }) {
 
       {tab === 'mine' && myEmp && (
         <>
-          <Btn size="lg" onClick={() => setForm({ employee_id: myEmp.id, metric_id: ((isSales(myEmp) ? metrics.find((m) => m.is_active && catOf(m) === 'sales') : metrics.find((m) => m.is_active && catOf(m) !== 'attendance')) || {}).id || '', entry_date: todayISO(), quantity: 1, value_egp: '', reference: '', notes: '' })}>+ {t.addEntry}</Btn>
+          <Btn data-tour="kpi-add" size="lg" onClick={() => setForm({ employee_id: myEmp.id, metric_id: ((isSales(myEmp) ? metrics.find((m) => m.is_active && catOf(m) === 'sales') : metrics.find((m) => m.is_active && catOf(m) !== 'attendance')) || {}).id || '', entry_date: todayISO(), quantity: 1, value_egp: '', reference: '', notes: '' })}>+ {t.addEntry}</Btn>
           <Card title={t.myEntries}>
             {entries === null ? <Empty text={t.loading} /> : entries.filter((x) => x.employee_id === myEmp.id).length === 0 ? <Empty text={t.noData} /> : (
               <ul className="divide-y divide-slate-100">
@@ -7126,7 +7230,7 @@ function KpiPage({ me, data, toast, audit }) {
           {(isHr || (myEmp && data.employees.some((e) => e.manager_id === myEmp.id))) && (
             <Btn onClick={() => setForm({ employee_id: '', metric_id: (metrics[0] || {}).id || '', entry_date: todayISO(), quantity: 1, value_egp: '', reference: '', notes: '' })}>+ {t.addEntry}</Btn>
           )}
-          <Card title={t.approvals}>
+          <Card tour="kpi-approvals" title={t.approvals}>
             {entries === null ? <Empty text={t.loading} /> : pending.length === 0 ? <Empty text={t.noData} /> : (
               <ul className="divide-y divide-slate-100">
                 {pending.map((en) => <EntryRow key={en.id} en={en} showName={true}
@@ -7140,7 +7244,7 @@ function KpiPage({ me, data, toast, audit }) {
       {tab === 'sales' && <SalesPerformance data={data} entries={entries} metrics={metrics} isSales={isSales} eName={eName} />}
       {tab === 'engaz' && <EngazImportTab me={me} myEmp={myEmp} data={data} toast={toast} audit={audit} metrics={metrics} onImported={() => setReloadKey((k) => k + 1)} />}
       {tab === 'metrics' && (
-        <Card title={t.metricsTab} action={<Btn size="sm" onClick={() => setMForm({ name_en: '', name_ar: '', code: '', category: 'sales', points_per_unit: 1, value_points_per_million: 0, has_value: false, is_active: true })}>+ {t.add}</Btn>}>
+        <Card tour="kpi-metrics" title={t.metricsTab} action={<Btn size="sm" onClick={() => setMForm({ name_en: '', name_ar: '', code: '', category: 'sales', points_per_unit: 1, value_points_per_million: 0, has_value: false, is_active: true })}>+ {t.add}</Btn>}>
           <ul className="divide-y divide-slate-100">
             {metrics.map((mt) => (
               <li key={mt.id} className="flex items-center justify-between gap-2 py-2.5">
@@ -7441,7 +7545,7 @@ function LiveBoardTab({ data }) {
   const mins = (ts) => Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 60000));
   const fmtH = (sec) => Math.floor(sec / 3600) + 'h ' + Math.floor((sec % 3600) / 60) + 'm';
   return (
-    <Card title={t.liveBoard}>
+    <Card tour="live-board" title={t.liveBoard}>
       {rows === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
         <ul className="divide-y divide-slate-100">
           {rows.map((s) => {
@@ -7488,11 +7592,18 @@ function SettingsPage({ me, data, refresh, toast, audit }) {
   const [tab, setTab] = useState('company');
   const props = { me, data, refresh, toast, audit };
 
+  /* guide tour (hv-tour.js): 'set-tab-<key>' switches to that settings tab */
+  useEffect(() => {
+    const on = (e) => { const a = (e.detail && e.detail.action) || ''; if (a.startsWith('set-tab-') && tabs.some((x) => x.k === a.slice(8))) setTab(a.slice(8)); };
+    window.addEventListener('hv-tour', on);
+    return () => window.removeEventListener('hv-tour', on);
+  });
+
   return (
     <>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+      <div data-tour="set-tabs" className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
         {tabs.map((x) => (
-          <button key={x.k} onClick={() => setTab(x.k)}
+          <button key={x.k} data-tour={'set-tab-' + x.k} onClick={() => setTab(x.k)}
             className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', tab === x.k ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>
             {x.label}
           </button>
@@ -7531,7 +7642,7 @@ function CompanySettings(props) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   return (
-    <Card title={t.company}>
+    <Card tour="set-company" title={t.company}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t.nameAr}><Input value={f.name_ar || ''} onChange={set('name_ar')} /></Field>
         <Field label={t.nameEn}><Input value={f.name_en || ''} onChange={set('name_en')} /></Field>
@@ -7563,7 +7674,7 @@ function WorkWeekSettings(props) {
   };
 
   return (<>
-    <Card title={t.workWeek}>
+    <Card tour="set-workweek" title={t.workWeek}>
       <p className="mb-2 text-xs font-semibold text-slate-600">{t.weekendDays}</p>
       <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
         {t.daysShort.map((d, i) => (
@@ -7603,7 +7714,7 @@ function LeavePolicySettings(props) {
   useEffect(() => { setF({ ...LEAVE_DEFAULTS, ...(props.data.settings.leave_policy || {}) }); }, [props.data.settings.leave_policy]);
   const num = (k, label) => <Field label={label}><Input type="number" inputMode="decimal" step="0.5" value={f[k]} onChange={(e) => setF({ ...f, [k]: Number(e.target.value) })} /></Field>;
   return (
-    <Card title={'🌴 ' + t.leavePolicy}>
+    <Card tour="set-leavepolicy" title={'🌴 ' + t.leavePolicy}>
       <p className="mb-3 text-xs text-slate-500">{t.leavePolicyHint}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {num('annual_one_rest_day', t.annualOneRest)}
@@ -7642,7 +7753,7 @@ function ShiftSettings({ data, refresh, toast, audit }) {
   }
 
   return (
-    <Card title={t.shiftsLbl}
+    <Card tour="set-shifts" title={t.shiftsLbl}
       action={<Btn size="sm" onClick={() => setEdit({ name_en: '', name_ar: '', start_time: '09:00', end_time: '17:00', grace_minutes: 15, min_overtime_minutes: 30, is_active: true })}>+ {t.add}</Btn>}>
       {data.shifts.length === 0 ? <Empty text={t.noData} /> : (
         <ul className="divide-y divide-slate-100">
@@ -7735,7 +7846,7 @@ function BranchSettings({ data, refresh, toast, audit }) {
   }
 
   return (
-    <Card title={t.branches} action={<Btn size="sm" onClick={() => setEdit({ code: '', name_en: '', name_ar: '', address: '', phone: '', is_active: true })}>+ {t.add}</Btn>}>
+    <Card tour="set-branches" title={t.branches} action={<Btn size="sm" onClick={() => setEdit({ code: '', name_en: '', name_ar: '', address: '', phone: '', is_active: true })}>+ {t.add}</Btn>}>
       {data.branches.length === 0 ? <Empty text={t.noData} /> : (
         <ul className="divide-y divide-slate-100">
           {data.branches.map((b) => (
@@ -7817,7 +7928,7 @@ function HolidaySettings({ data, refresh, toast, audit }) {
   for (let y = new Date().getFullYear() - 1; y <= new Date().getFullYear() + 2; y++) years.push(String(y));
 
   return (
-    <Card title={t.holidays}
+    <Card tour="set-holidays" title={t.holidays}
       action={<Btn size="sm" onClick={() => setEdit({ holiday_date: todayISO(), name_en: '', name_ar: '', is_paid: true, branch_id: '' })}>+ {t.add}</Btn>}>
       <Select className="mb-3" value={year} onChange={(e) => setYear(e.target.value)}>
         {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -7920,7 +8031,7 @@ function TaxSettings({ data, refresh, toast, audit }) {
 
   return (
     <>
-      <Card title={t.tax} action={<Btn size="sm" variant="soft" onClick={addRow}>+ {t.addBracket}</Btn>}>
+      <Card tour="set-tax" title={t.tax} action={<Btn size="sm" variant="soft" onClick={addRow}>+ {t.addBracket}</Btn>}>
         <p className="mb-3 text-xs text-slate-500">{t.taxHint}</p>
         <Field label={t.personalExemption}>
           <Input type="number" inputMode="decimal" value={exemption} onChange={(e) => setExemption(e.target.value)} />
@@ -7987,7 +8098,7 @@ function InsuranceSettings({ data, refresh, toast, audit }) {
   if (!cur) return <Card title={t.insurance}><Empty text={t.noData} /></Card>;
 
   return (
-    <Card title={t.insurance}>
+    <Card tour="set-insurance" title={t.insurance}>
       <p className="mb-3 text-xs text-slate-500">{t.insHint}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t.effectiveFrom}><Input value={cur.effective_from} disabled /></Field>
@@ -8047,7 +8158,7 @@ function AuditPage({ me }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2">
+      <div data-tour="audit-filters" className="grid grid-cols-2 gap-2">
         <Select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })}>
           <option value="app">{t.srcApp}</option><option value="db">{t.srcDb}</option>
         </Select>
@@ -8064,7 +8175,7 @@ function AuditPage({ me }) {
         <Input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} />
       </div>
 
-      <Card title={t.audit + (rows ? ' (' + list.length + ')' : '')}>
+      <Card tour="audit-list" title={t.audit + (rows ? ' (' + list.length + ')' : '')}>
         {rows === null ? <Empty text={t.loading} /> : list.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">
             {list.map((r) => (
@@ -8126,7 +8237,7 @@ function ProfilePage({ me, setMe, toast }) {
   }
 
   return (
-    <Card title={t.profile}>
+    <Card tour="profile-card" title={t.profile}>
       <Field label={t.email}><Input value={me.email} disabled /></Field>
       <Field label={t.role}><Input value={t.roles[me.role]} disabled /></Field>
       <Field label={t.fullNameAr}><Input value={f.full_name_ar || ''} onChange={(e) => setF({ ...f, full_name_ar: e.target.value })} /></Field>
@@ -8143,6 +8254,242 @@ function ProfilePage({ me, setMe, toast }) {
     </Card>
   );
 }
+
+/* =====================================================================
+   10b. Guide tour -- content for the shared engine (https://hv-shared.pages.dev/hv-tour.js)
+   ===================================================================== */
+/* HV-TOUR-STEPS-START — keep in sync with the screens: every change to a screen updates its step here */
+/* Step fields: c = chapter key, page = NAV key the step opens (steps of pages missing from the person's menu are skipped),
+   target = data-tour="…" to highlight, action = 'hv-tour' event the page listens to (opens a form / tab; 'close' undoes it),
+   roles = optional: only these roles get the step. Staff have no 'me' page — their home ('dashboard') IS My HR, so
+   'me' steps are shown on 'dashboard' for staff (hvTourStepsFor below). A new page with no step still appears
+   automatically (engine "Other pages" step from its data-tour-nav menu button) — but write it a real step here. */
+const HV_TOUR_ADMIN = ['ceo', 'hr', 'accountant', 'manager'];
+const HV_TOUR_CHAPTERS = [
+  ['start', 'Getting started', 'البداية'],
+  ['self', 'My HR (self-service)', 'خدمتي (الخدمة الذاتية)'],
+  ['att', 'Attendance', 'الحضور والانصراف'],
+  ['leave', 'Leave & make-up days', 'الإجازات وأيام التعويض'],
+  ['kpi', 'KPIs & leaderboard', 'مؤشرات الأداء ولوحة المتصدرين'],
+  ['emp', 'Employees', 'الموظفون'],
+  ['pay', 'Payroll', 'الرواتب'],
+  ['loans', 'Loans & advances', 'السلف والقروض'],
+  ['docs', 'Jobs & compliance', 'الوظائف والامتثال'],
+  ['reports', 'Reports & audit log', 'التقارير وسجل التدقيق'],
+  ['settings', 'Settings', 'الإعدادات'],
+  ['access', 'Users, roles & systems', 'المستخدمون والصلاحيات والأنظمة'],
+];
+const HV_TOUR_STEPS = [
+  /* ---------- getting started ---------- */
+  { c: 'start', page: 'dashboard', target: 'dash-welcome',
+    en: ['Welcome to Home Vacation HR', 'This is the HR & Payroll system. The banner shows your name and your role — the pages and buttons you see depend on that role, so colleagues may see a different menu.'],
+    ar: ['مرحباً بك في نظام هوم فاكيشن للموارد البشرية', 'هذا نظام الموارد البشرية والرواتب. يظهر في الشريط اسمك ودورك، والصفحات والأزرار المتاحة لك تعتمد على هذا الدور، لذلك قد يرى زملاؤك قائمة مختلفة.'] },
+  { c: 'start', page: 'dashboard', target: 'tb-lang',
+    en: ['Arabic / English', 'Tap ع or EN to switch the language at any time. Your choice is remembered on this device and saved to your profile.'],
+    ar: ['العربية / الإنجليزية', 'اضغط ع أو EN لتغيير اللغة في أي وقت. يتذكر الجهاز اختيارك ويُحفظ في ملفك.'] },
+  { c: 'start', page: 'dashboard', target: 'nav',
+    en: ['The menu', 'Every page you are allowed to open is here. On a phone the menu is the bar at the bottom of the screen — swipe it sideways to reach the rest of the pages.'],
+    ar: ['القائمة', 'هنا كل الصفحات المسموح لك بفتحها. على الموبايل تكون القائمة في الشريط أسفل الشاشة، اسحبه يميناً ويساراً للوصول لباقي الصفحات.'] },
+  { c: 'start', page: 'dashboard', target: 'dash-tiles', roles: HV_TOUR_ADMIN,
+    en: ['Dashboard numbers & alerts', 'Active employees, system users, branches and this year\'s holidays at a glance. Below them, contracts, probation periods and employee documents that end within 60 days are listed — red means already expired.'],
+    ar: ['أرقام الرئيسية والتنبيهات', 'عدد الموظفين النشطين والمستخدمين والفروع والعطلات الرسمية لهذا العام في لمحة. وتحتها تظهر العقود وفترات الاختبار ومستندات الموظفين التي تنتهي خلال 60 يوماً، واللون الأحمر يعني أنها انتهت بالفعل.'] },
+  { c: 'start', page: 'profile', target: 'profile-card',
+    en: ['My profile', 'Correct your Arabic and English name and your phone, choose your language, then press Save. Your email and role are managed by HR. The version number at the bottom helps when you report a problem.'],
+    ar: ['ملفي', 'صحّح اسمك بالعربية والإنجليزية ورقم هاتفك واختر اللغة ثم اضغط حفظ. البريد الإلكتروني والدور تديرهما الموارد البشرية. رقم الإصدار في الأسفل يفيد عند الإبلاغ عن مشكلة.'] },
+
+  /* ---------- my HR (self-service) — on 'dashboard' for staff ---------- */
+  { c: 'self', page: 'me', target: 'my-quick',
+    en: ['Quick actions', 'One tap to check in or out, send a late / break note, request leave or log a trip.'],
+    ar: ['إجراءات سريعة', 'بضغطة واحدة: سجّل حضورك أو انصرافك، أو أرسل إذن تأخير / استراحة، أو اطلب إجازة، أو سجّل مشواراً.'] },
+  { c: 'self', page: 'me', target: 'my-balance',
+    en: ['Your numbers', 'Remaining annual and casual leave, sick and unpaid days taken, plus days present and late minutes this month. Annual leave shows "—" until you complete 6 months of service (labor law).'],
+    ar: ['أرقامك', 'رصيدك المتبقي من الإجازات السنوية والعارضة، وأيام المرضي وبدون أجر المستخدمة، وأيام حضورك ودقائق تأخيرك هذا الشهر. تظهر السنوية «—» حتى تكمل 6 أشهر خدمة (قانون العمل).'] },
+  { c: 'self', page: 'me', target: 'my-payslips',
+    en: ['My payslips', 'Every payroll month approved by the CEO appears here with your net pay. Tap a month to see the full breakdown — earnings, deductions, insurance, tax, loan installment — and print the payslip.'],
+    ar: ['قسائم راتبي', 'كل شهر رواتب يعتمده المدير التنفيذي يظهر هنا مع صافي راتبك. اضغط على الشهر لترى التفاصيل كاملة (الاستحقاقات والخصومات والتأمينات والضريبة وقسط السلفة) واطبع القسيمة.'] },
+  { c: 'self', page: 'me', target: 'my-requests',
+    en: ['Requests, attendance & more', 'Your leave requests with their status, then your latest check-ins this month, your trips, active loans, open maintenance tasks and the documents HR uploaded for you.'],
+    ar: ['الطلبات والحضور وغيرها', 'طلبات إجازتك وحالة كل طلب، ثم آخر تسجيلات حضورك هذا الشهر، ومشاويرك، والسلف النشطة، ومهام الصيانة المفتوحة، والمستندات التي رفعتها لك الموارد البشرية.'] },
+
+  /* ---------- attendance ---------- */
+  { c: 'att', page: 'attendance', target: 'att-tabs',
+    en: ['Attendance tabs', 'The tabs depend on your role: Check in, Trips and Exceptions (notes) for everyone; Live board, Review and Totals for managers; Lock and Lateness rules for HR.'],
+    ar: ['تبويبات الحضور', 'تختلف التبويبات حسب دورك: تسجيل الحضور والمشاوير والاستثناءات (الأذونات) للجميع، واللوحة الحية والمراجعة والإجماليات للمديرين، والقفل وقواعد التأخير للموارد البشرية.'] },
+  { c: 'att', page: 'attendance', target: 'att-checkin', action: 'att-tab-checkin',
+    en: ['Check in / check out', 'Tap Check in when you arrive and Check out when you leave. Your phone\'s location is saved and compared with the branch zone, so allow location for this site. Punches in a locked month cannot be changed.'],
+    ar: ['تسجيل الحضور والانصراف', 'اضغط «تسجيل حضور» عند وصولك و«تسجيل انصراف» عند مغادرتك. يُحفظ موقع هاتفك ويُقارن بنطاق الفرع، لذا اسمح للموقع بالوصول لموقعك. لا يمكن تعديل البصمات في شهر مقفول.'] },
+  { c: 'att', page: 'attendance', target: 'att-live', action: 'att-tab-checkin',
+    en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break; resuming needs a selfie, and minutes over the daily break allowance are deducted.'],
+    ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك، والعودة تتطلب سيلفي، وما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
+  { c: 'att', page: 'attendance', target: 'trip-start', action: 'att-tab-trips',
+    en: ['Trips outside the office', 'Write the purpose (client / site), press Start trip, record points on the way and End trip when you are back. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
+    ar: ['المشاوير خارج المكتب', 'اكتب الغرض (العميل / الموقع) واضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
+  { c: 'att', page: 'attendance', target: 'exc-new', action: 'att-tab-exceptions',
+    en: ['Late / break / early-leave notes', 'Will you be late, need a longer break or must leave early? Send the note before it happens (today or a later date). If your direct manager or HR accepts it, that day carries no deduction. Managers approve their team\'s notes on this tab; HR sees all.'],
+    ar: ['أذونات التأخير والاستراحة والانصراف المبكر', 'ستتأخر أو تحتاج استراحة أطول أو ستنصرف مبكراً؟ أرسل الإذن قبل حدوثه (اليوم أو يوم لاحق). إذا وافق مديرك المباشر أو الموارد البشرية فلا خصم على ذلك اليوم. المديرون يعتمدون أذونات فريقهم من هذا التبويب، والموارد البشرية ترى الجميع.'] },
+  { c: 'att', page: 'attendance', target: 'live-board', action: 'att-tab-live', roles: HV_TOUR_ADMIN,
+    en: ['Live board', 'Who is working, on break or finished today, their last activity, total breaks (⚠ = over the allowance) and net worked time. 💻 means the laptop agent is connected. It refreshes every 30 seconds.'],
+    ar: ['اللوحة الحية', 'من يعمل الآن ومن في استراحة ومن أنهى يومه، وآخر نشاط، وإجمالي الاستراحات (⚠ تعني تجاوز الرصيد)، وصافي وقت العمل. علامة 💻 تعني أن برنامج اللابتوب متصل. تتحدث كل 30 ثانية.'] },
+  { c: 'att', page: 'attendance', target: 'rev-table', action: 'att-tab-review', roles: HV_TOUR_ADMIN,
+    en: ['Review attendance', 'Pick the dates and, if you like, one employee. Each employee-day is one row: first in, last out, hours, late, left early, breaks and overtime with the penalty tier; badges flag weekends, missing check-outs and punches outside the branch. Tap a row for every punch and the day\'s breaks — HR or the direct manager can Excuse this day there.'],
+    ar: ['مراجعة الحضور', 'اختر الفترة وموظفاً محدداً إن أردت. كل يوم لكل موظف في سطر: أول دخول وآخر خروج والساعات والتأخير والانصراف المبكر والاستراحات والإضافي مع شريحة الجزاء، وتوضح الشارات أيام الراحة ونسيان الانصراف والبصمة خارج الفرع. اضغط على السطر لرؤية كل البصمات واستراحات اليوم، ومن هناك يمكن للموارد البشرية أو المدير المباشر «إعفاء هذا اليوم».'] },
+  { c: 'att', page: 'attendance', target: 'rev-manual', action: 'att-tab-review', roles: ['ceo', 'hr'],
+    en: ['Manual punch, print & Excel', 'A forgotten punch is added here by HR with the time, direction and a required reason; a wrong punch is deleted from the day view. Print the review as one list or one sheet per employee with signature lines, or download it to Excel. Every change goes to the audit log.'],
+    ar: ['البصمة اليدوية والطباعة وExcel', 'البصمة المنسية تضيفها الموارد البشرية من هنا مع الوقت والاتجاه وسبب إلزامي، والبصمة الخاطئة تُحذف من تفاصيل اليوم. اطبع المراجعة كقائمة واحدة أو ورقة لكل موظف بخانات التوقيع، أو نزّلها Excel. كل تعديل يُسجَّل في سجل التدقيق.'] },
+  { c: 'att', page: 'attendance', target: 'tot-tiles', action: 'att-tab-totals', roles: HV_TOUR_ADMIN,
+    en: ['Monthly totals', 'Per employee for the chosen month: late, left early, break overrun and overtime, calculated exactly like payroll after accepted notes. The CEO and accountant also see the money deducted or added, and can print it for accounting.'],
+    ar: ['إجماليات الشهر', 'لكل موظف في الشهر المختار: التأخير والانصراف المبكر وتجاوز الاستراحة والإضافي، محسوبة بنفس طريقة الرواتب بعد الأذونات المقبولة. المدير التنفيذي والمحاسب يريان أيضاً المبالغ المخصومة أو المضافة ويمكنهما طباعتها للحسابات.'] },
+  { c: 'att', page: 'attendance', target: 'lock-form', action: 'att-tab-lock', roles: ['ceo', 'hr'],
+    en: ['Lock the month', 'After reviewing, lock the month per branch. Nobody — not even HR — can then add or delete punches for that branch and month until it is unlocked. Payroll warns you when the month is not locked yet.'],
+    ar: ['قفل الشهر', 'بعد المراجعة اقفل الشهر لكل فرع، فلا يستطيع أحد (حتى الموارد البشرية) إضافة أو حذف بصمات لهذا الفرع والشهر حتى يُفتح. وتنبهك صفحة الرواتب إذا لم يكن الشهر مقفولاً بعد.'] },
+  { c: 'att', page: 'attendance', target: 'rules-late', action: 'att-tab-rules', roles: ['ceo', 'hr'],
+    en: ['Lateness, break & early-leave rules', 'Set the lateness tiers (from which minute, which penalty), the daily break allowance with its tiers, and the early-leave tiers. The highest tier reached applies once per day; changes affect payroll runs created or recalculated afterwards.'],
+    ar: ['قواعد التأخير والاستراحة والانصراف المبكر', 'حدد شرائح التأخير (من أي دقيقة وما الجزاء)، ورصيد الاستراحة اليومي وشرائحه، وشرائح الانصراف المبكر. تُطبق أعلى شريحة مرة واحدة في اليوم، والتغيير يسري على مسيرات الرواتب التي تُنشأ أو يُعاد حسابها بعده.'] },
+
+  /* ---------- leave ---------- */
+  { c: 'leave', page: 'leave', target: 'leave-balance', action: 'leave-tab-mine',
+    en: ['My leave', 'Your remaining annual and casual days and the sick / unpaid days taken this year, and below them your requests. A request goes Pending manager → Pending HR → Approved (or Rejected); you can cancel it while it is still pending.'],
+    ar: ['إجازاتي', 'رصيدك المتبقي من السنوية والعارضة، وأيام المرضي وبدون أجر المستخدمة هذا العام، وتحتها طلباتك. يمر الطلب بمراحل: بانتظار المدير ← بانتظار الموارد البشرية ← معتمدة (أو مرفوضة)، ويمكنك إلغاؤه طالما لم يُعتمد بعد.'] },
+  { c: 'leave', page: 'leave', target: 'leave-form', action: 'leave-open-form',
+    en: ['New leave request', 'Pick the leave type and the dates — working days are counted for you, skipping rest days and holidays. Requests that overlap another one or exceed your balance are refused; casual leave comes out of the annual balance. HR can file a request for any employee.'],
+    ar: ['طلب إجازة جديد', 'اختر نوع الإجازة والتواريخ، ويُحسب عدد أيام العمل تلقائياً مع استبعاد أيام الراحة والعطلات. يُرفض الطلب إذا تداخل مع طلب آخر أو تجاوز رصيدك، والإجازة العارضة تُخصم من الرصيد السنوي. ويمكن للموارد البشرية تقديم طلب لأي موظف.'] },
+  { c: 'leave', page: 'leave', target: 'leave-approvals', action: 'leave-tab-approvals', roles: HV_TOUR_ADMIN,
+    en: ['Approving leave', 'The direct manager approves first, then HR gives the final approval (HR can also approve directly). Add an optional note when approving or rejecting. Approved unpaid and sick days flow into payroll automatically; HR can delete a leave and its days return to the balance.'],
+    ar: ['اعتماد الإجازات', 'يوافق المدير المباشر أولاً ثم تعطي الموارد البشرية الاعتماد النهائي (ويمكنها الاعتماد مباشرة). أضف ملاحظة اختيارية عند الموافقة أو الرفض. أيام الإجازة بدون أجر والمرضية المعتمدة تنتقل للرواتب تلقائياً، ويمكن للموارد البشرية حذف إجازة فتعود أيامها للرصيد.'] },
+  { c: 'leave', page: 'leave', target: 'leave-calendar', action: 'leave-tab-calendar',
+    en: ['Leave calendar', 'The whole year at a glance: coloured dots are approved leaves (lighter = pending), shaded days are the weekend and amber days are holidays. Tap a day, then a second day, and press Request these days to ask for that range.'],
+    ar: ['تقويم الإجازات', 'السنة كاملة في لمحة: النقاط الملونة إجازات معتمدة (الباهتة بانتظار الاعتماد)، والأيام المظللة عطلة أسبوعية، والكهرماني عطلات رسمية. اضغط يوماً ثم يوماً ثانياً واضغط «طلب هذه الأيام» لطلب الفترة.'] },
+  { c: 'leave', page: 'leave', target: 'leave-makeup', action: 'leave-tab-makeup',
+    en: ['Make-up days', 'Worked on your own rest day within a few weeks after a leave? Claim that day back here — only days with a fingerprint or GPS check-in count, and most are detected automatically. The approver chooses full day, half day or hours only; an approved claim credits your annual balance.'],
+    ar: ['أيام التعويض', 'عملت في يوم راحتك خلال أسابيع قليلة بعد إجازة؟ استرد هذا اليوم من هنا، ويُحتسب فقط اليوم المسجل فيه بصمة أو حضور GPS، ومعظمها يُكتشف تلقائياً. يختار المعتمِد يوماً كاملاً أو نصف يوم أو ساعات فقط، والموافقة تضيف اليوم لرصيدك السنوي.'] },
+  { c: 'leave', page: 'leave', target: 'leave-balances', action: 'leave-tab-balances', roles: ['ceo', 'hr', 'accountant'],
+    en: ['Everyone\'s balances', 'Entitlement, days taken and days remaining for every active employee. HR presses ± to add or remove days (carry-over, correction, encashment) with a reason.'],
+    ar: ['أرصدة الجميع', 'الاستحقاق والمستخدم والمتبقي لكل موظف نشط. تضغط الموارد البشرية ± لإضافة أو خصم أيام (ترحيل أو تصحيح أو صرف بدل) مع ذكر السبب.'] },
+  { c: 'leave', page: 'leave', target: 'leave-io', action: 'leave-tab-io', roles: ['ceo', 'hr'],
+    en: ['Import & export leave', 'Export a year\'s balances and leaves to Excel, or import your old leave sheet (one row per leave, or totals per employee) and match the names to employees. Uploading the same sheet again updates instead of duplicating.'],
+    ar: ['استيراد وتصدير الإجازات', 'صدّر أرصدة وإجازات السنة إلى Excel، أو استورد شيت الإجازات القديم (سطر لكل إجازة أو إجمالي لكل موظف) وطابق الأسماء بالموظفين. رفع نفس الشيت مرة أخرى يحدّث البيانات ولا يكررها.'] },
+
+  /* ---------- KPIs ---------- */
+  { c: 'kpi', page: 'kpi', target: 'kpi-board', action: 'kpi-tab-board',
+    en: ['Leaderboard', 'Choose the month at the top. Sales team ranks the sales results of the Sales department; All employees adds every category plus automatic attendance points for on-time days. Points per result are set by HR in Metrics & points.'],
+    ar: ['لوحة المتصدرين', 'اختر الشهر من الأعلى. «فريق المبيعات» يرتب نتائج مبيعات قسم المبيعات، و«كل الموظفين» يجمع كل الفئات مع نقاط حضور تلقائية عن أيام الالتزام بالموعد. نقاط كل نتيجة تحددها الموارد البشرية من «المؤشرات والنقاط».'] },
+  { c: 'kpi', page: 'kpi', target: 'kpi-add', action: 'kpi-tab-mine',
+    en: ['Log a result', 'Under My results, log what you achieved (a lead, a viewing, a closing … with the deal value when asked). It counts once your manager or HR approves it, and you can delete it while it is pending.'],
+    ar: ['تسجيل نتيجة', 'من «نتائجي» سجّل ما حققته (عميل محتمل أو معاينة أو إغلاق… مع قيمة الصفقة عند الطلب). تُحتسب بعد اعتماد مديرك أو الموارد البشرية، ويمكنك حذفها طالما لم تُعتمد.'] },
+  { c: 'kpi', page: 'kpi', target: 'kpi-approvals', action: 'kpi-tab-approvals', roles: ['ceo', 'hr', 'manager'],
+    en: ['Approve results', 'Approve or reject your team\'s pending results. HR and managers can also log a result on an employee\'s behalf from here.'],
+    ar: ['اعتماد النتائج', 'اعتمد أو ارفض نتائج فريقك المعلقة. ويمكن للموارد البشرية والمديرين تسجيل نتيجة نيابة عن موظف من هنا.'] },
+  { c: 'kpi', page: 'kpi', target: 'kpi-engaz', action: 'kpi-tab-engaz', roles: ['ceo', 'hr', 'manager'],
+    en: ['Engaz import & sales performance', 'Upload the weekly Engaz export: the clients export is recognised automatically, rep names are matched once and remembered, and importing again never counts twice. The Sales performance tab shows leads, follow-ups, viewings, deals and closing % per rep.'],
+    ar: ['استيراد إنجاز وأداء المبيعات', 'ارفع ملف إنجاز الأسبوعي: يُتعرف على ملف العملاء تلقائياً، وتُطابق أسماء المندوبين مرة واحدة وتُحفظ، وإعادة الاستيراد لا تكرر العدّ. ويعرض تبويب «أداء المبيعات» العملاء المحتملين والمتابعات والمعاينات والصفقات ونسبة الإغلاق لكل مندوب.'] },
+  { c: 'kpi', page: 'kpi', target: 'kpi-metrics', action: 'kpi-tab-metrics', roles: ['ceo', 'hr'],
+    en: ['Metrics & points', 'HR defines each metric: its category, points per unit and points per 1M EGP of deal value, and can switch a metric off without losing its history.'],
+    ar: ['المؤشرات والنقاط', 'تحدد الموارد البشرية كل مؤشر: فئته والنقاط لكل وحدة والنقاط لكل مليون جنيه من قيمة الصفقة، ويمكن إيقاف مؤشر دون فقدان سجله.'] },
+
+  /* ---------- employees ---------- */
+  { c: 'emp', page: 'employees', target: 'emp-list',
+    en: ['Employee list', 'Search by name, code or phone and filter by branch and status. Each row shows the rest days and the login\'s system icons (bright = can open that system, 🔑 = no login yet). Tap an employee to open the card.'],
+    ar: ['قائمة الموظفين', 'ابحث بالاسم أو الكود أو الهاتف وصفِّ حسب الفرع والحالة. يظهر في كل سطر أيام الراحة وأيقونات الأنظمة لحساب الدخول (المضيئة = مسموح بفتح النظام، 🔑 = لا يوجد حساب دخول بعد). اضغط على الموظف لفتح بطاقته.'] },
+  { c: 'emp', page: 'employees', target: 'emp-form', action: 'emp-open-form', roles: ['ceo', 'hr'],
+    en: ['Add an employee', '+ Add opens this form: code, status, names, branch, department, job title, direct manager (who approves their leave and notes), hire date and contract type with contract / probation end dates. One person = one employee card + one login — after saving you are offered to create the login.'],
+    ar: ['إضافة موظف', 'زر «+ إضافة» يفتح هذا النموذج: الكود والحالة والاسم والفرع والقسم والمسمى الوظيفي والمدير المباشر (الذي يعتمد إجازاته وأذوناته) وتاريخ التعيين ونوع العقد مع تاريخ انتهاء العقد وفترة الاختبار. كل شخص = بطاقة موظف واحدة + حساب دخول واحد، وبعد الحفظ يُعرض عليك إنشاء حساب الدخول.'] },
+  { c: 'emp', page: 'employees', target: 'emp-nid', action: 'emp-open-form', roles: ['ceo', 'hr'],
+    en: ['National ID, shift & schedule', 'Typing the 14-digit national ID fills the birth date and gender. Further down: the shift (with a different start per weekday if needed), fingerprint device code, "exempt from attendance", custom rest days and personal leave overrides.'],
+    ar: ['الرقم القومي والوردية والجدول', 'كتابة الرقم القومي (14 رقماً) تملأ تاريخ الميلاد والنوع تلقائياً. وفي الأسفل: الوردية (مع بداية مختلفة لبعض الأيام إن لزم)، وكود جهاز البصمة، و«معفى من الحضور»، وأيام راحة خاصة، واستحقاق إجازات مخصص.'] },
+  { c: 'emp', page: 'employees', target: 'emp-pay-fields', action: 'emp-open-form-pay', roles: ['ceo', 'hr'],
+    en: ['Salary, insurance & bank', 'Basic salary and allowances are shown and edited only for the CEO and the accountant — the HR role never sees salaries. The insurance base, insurance number and bank details (used by the payroll bank sheet) are filled here.'],
+    ar: ['الراتب والتأمينات والبنك', 'الراتب الأساسي والبدلات يظهران ويُعدّلان للمدير التنفيذي والمحاسب فقط، ودور الموارد البشرية لا يرى الرواتب أبداً. وهنا يُملأ أجر الاشتراك التأميني والرقم التأميني وبيانات البنك (المستخدمة في كشف البنك للرواتب).'] },
+  { c: 'emp', page: 'employees', target: 'emp-access-btn', action: 'emp-open-first',
+    en: ['The employee card', 'The card has Profile, Salary (CEO and accountant only) and Documents tabs — upload the ID, contract or certificates with an expiry date and they alert on the dashboard. The top line shows which systems this login can open; tap it to jump to the access settings.'],
+    ar: ['بطاقة الموظف', 'في البطاقة تبويبات البيانات والراتب (للمدير التنفيذي والمحاسب فقط) والمستندات؛ ارفع البطاقة أو العقد أو الشهادات مع تاريخ الانتهاء لتظهر تنبيهاتها في الرئيسية. السطر العلوي يبيّن الأنظمة التي يفتحها هذا الحساب، واضغطه للانتقال لإعدادات الدخول.'] },
+  { c: 'emp', page: 'employees', target: 'emp-access', action: 'emp-open-first', roles: ['ceo', 'hr'],
+    en: ['Face, laptop agent & login', 'Here HR enrolls the face (3 selfies, used only for presence checks), generates the laptop agent token, and manages the login: username, email, password, ticked systems and on/off. No login yet? Press Create login.'],
+    ar: ['الوجه وبرنامج اللابتوب وحساب الدخول', 'هنا تسجل الموارد البشرية وجه الموظف (3 صور سيلفي تُستخدم فقط للتحقق من الحضور)، وتنشئ رمز برنامج اللابتوب، وتدير حساب الدخول: اسم المستخدم والبريد وكلمة المرور والأنظمة المسموحة والتفعيل والإيقاف. لا يوجد حساب؟ اضغط «إنشاء حساب دخول».'] },
+
+  /* ---------- payroll (CEO + accountant) ---------- */
+  { c: 'pay', page: 'payroll', target: 'pay-new-form', action: 'pay-open-new', roles: ['ceo', 'accountant'],
+    en: ['New payroll run', 'Pick the branch and the month, then Generate. For every active employee of that branch it calculates salary and allowances, overtime, lateness / break / early-leave penalties, unpaid and sick leave, social insurance, income tax and loan installments. Lock the month\'s attendance first.'],
+    ar: ['مسير رواتب جديد', 'اختر الفرع والشهر ثم اضغط «إنشاء». يُحسب لكل موظف نشط في الفرع: الراتب والبدلات والإضافي وجزاءات التأخير والاستراحة والانصراف المبكر والإجازات بدون أجر والمرضية والتأمينات وضريبة الدخل وأقساط السلف. اقفل حضور الشهر أولاً.'] },
+  { c: 'pay', page: 'payroll', target: 'pay-actions', action: 'pay-open-latest',
+    en: ['Draft → review → CEO approval', 'Every run is Draft → In review → Approved & locked. In Draft the accountant can Recalculate (after fixing attendance or leave) or delete it, then Submit for review; it can be returned to draft. Only the CEO can Approve & lock — approval also records the loan installments as paid.'],
+    ar: ['مسودة ← مراجعة ← اعتماد المدير التنفيذي', 'كل مسير يمر بمراحل: مسودة ← قيد المراجعة ← معتمد ومقفل. في المسودة يمكن للمحاسب «إعادة الحساب» (بعد تصحيح الحضور أو الإجازات) أو حذفها، ثم «إرسال للمراجعة»، ويمكن إعادتها للمسودة. «اعتماد وقفل» للمدير التنفيذي فقط، والاعتماد يسجل أقساط السلف كمسددة.'] },
+  { c: 'pay', page: 'payroll', target: 'pay-items', action: 'pay-open-latest',
+    en: ['Lines, payslips & bank sheet', 'Tap an employee for the full breakdown; while the run is not approved you can add other earnings or deductions with a note. Print the payslip from there. Bank sheet downloads a CSV of net pay per bank account for the transfer; employees see approved payslips in My HR.'],
+    ar: ['السطور والقسائم وكشف البنك', 'اضغط على موظف لرؤية التفاصيل كاملة، وقبل الاعتماد يمكنك إضافة استحقاقات أو خصومات أخرى مع ملاحظة، ومن هناك تطبع القسيمة. «كشف البنك» ينزّل ملف CSV بصافي الراتب لكل حساب بنكي للتحويل، ويرى الموظفون قسائمهم المعتمدة في «خدمتي».'] },
+
+  /* ---------- loans ---------- */
+  { c: 'loans', page: 'loans', target: 'loan-form', action: 'loan-open-form', roles: ['ceo', 'hr', 'accountant'],
+    en: ['New loan or salary advance', 'Choose the employee, loan or salary advance, the amount and the number of installments — the monthly installment is calculated — and the month of the first deduction.'],
+    ar: ['سلفة أو قرض جديد', 'اختر الموظف ونوع السلفة (قرض أو سلفة على الراتب) والمبلغ وعدد الأقساط (يُحسب القسط الشهري تلقائياً)، وشهر أول خصم.'] },
+  { c: 'loans', page: 'loans', target: 'loan-list',
+    en: ['Deducted from payroll', 'Active loans are deducted automatically in each payroll run from their first month, and become paid when the CEO approves the run. Open a loan to see its payments, record a manual / cash payment or cancel it. Staff see only their own loans.'],
+    ar: ['الخصم من الراتب', 'تُخصم السلف النشطة تلقائياً في كل مسير رواتب بدءاً من شهرها الأول، وتُسجل مسددة عند اعتماد المدير التنفيذي للمسير. افتح السلفة لرؤية سداداتها أو تسجيل سداد يدوي / نقدي أو إلغائها. الموظف يرى سلفه فقط.'] },
+
+  /* ---------- jobs & compliance ---------- */
+  { c: 'docs', page: 'jobs', target: 'job-list',
+    en: ['Jobs & job descriptions', 'Each role holds its duties and requirements in Arabic and English, salary / commission notes, benefits, schedule and required hiring papers. Generate a job description or an offer letter instantly, then review, edit, save and print it.'],
+    ar: ['الوظائف والتوصيف الوظيفي', 'كل وظيفة تحمل مهامها ومتطلباتها بالعربية والإنجليزية، وملاحظات الراتب والعمولة، والمزايا، ومواعيد العمل، وأوراق التعيين المطلوبة. أنشئ توصيفاً وظيفياً أو خطاب عرض عمل فوراً ثم راجعه وعدّله واحفظه واطبعه.'] },
+  { c: 'docs', page: 'jobs', target: 'job-tpl',
+    en: ['Templates & saved documents', 'Write contract, offer or promotion templates with {{placeholders}} and use Fill for employee — the values come from the employee card. Download as Word or print; every saved document is listed below.'],
+    ar: ['القوالب والمستندات المحفوظة', 'اكتب قوالب للعقود وعروض العمل والترقيات بها حقول {{…}} ثم استخدم «تعبئة لموظف» فتُملأ من بطاقة الموظف. نزّلها Word أو اطبعها، وكل مستند محفوظ يظهر في القائمة بالأسفل.'] },
+  { c: 'docs', page: 'compliance', target: 'comp-list', action: 'comp-tab-calendar',
+    en: ['Filing calendar', 'Deadlines for social insurance, tax and the labor office. Press ✓ when a task is done — monthly, quarterly and annual tasks create the next one automatically. Red means overdue.'],
+    ar: ['تقويم الإقرارات', 'مواعيد التأمينات الاجتماعية والضرائب ومكتب العمل. اضغط ✓ عند إنجاز المهمة، والمهام الشهرية والربع سنوية والسنوية تنشئ الموعد التالي تلقائياً. اللون الأحمر يعني متأخرة.'] },
+  { c: 'docs', page: 'compliance', target: 'comp-forms', action: 'comp-tab-forms',
+    en: ['Social insurance forms', 'Pick an employee to print Form 1 (hire) or Form 6 (exit — needs a termination date on the card), and print Form 2 with the wages of all insured employees every January.'],
+    ar: ['استمارات التأمينات', 'اختر موظفاً لطباعة استمارة 1 (تعيين) أو استمارة 6 (إنهاء خدمة، وتحتاج تاريخ انتهاء الخدمة في البطاقة)، واطبع استمارة 2 بأجور كل المؤمن عليهم في يناير من كل عام.'] },
+
+  /* ---------- reports & audit ---------- */
+  { c: 'reports', page: 'reports', target: 'rpt-tabs',
+    en: ['Reports', 'Payroll cost and Overtime & lateness (CEO and accountant only), Headcount, Leave liability (days owed and their value) and Attendance. Choose the period on each report.'],
+    ar: ['التقارير', 'تكلفة الرواتب والإضافي والتأخير (للمدير التنفيذي والمحاسب فقط)، وعدد الموظفين، والتزامات الإجازات (الأيام المستحقة وقيمتها)، والحضور. اختر الفترة في كل تقرير.'] },
+  { c: 'reports', page: 'reports', target: 'rpt-export', action: 'rpt-tab-headcount',
+    en: ['Print & Excel', 'Every report card has Print (A4 with the company logo) and Export to Excel.'],
+    ar: ['الطباعة وExcel', 'في كل بطاقة تقرير زر «طباعة» (A4 بشعار الشركة) وزر «تصدير إلى Excel».'] },
+  { c: 'reports', page: 'audit', target: 'audit-filters',
+    en: ['Audit log', 'Every sensitive change is logged: who, when and what. Filter by record type, action and dates, search by email, and tap a line to see the before / after values. "Database changes" shows changes made directly in the database.'],
+    ar: ['سجل التدقيق', 'كل تعديل مهم يُسجَّل: من قام به ومتى وماذا تغير. صفِّ حسب نوع السجل والإجراء والتاريخ، وابحث بالبريد، واضغط السطر لرؤية القيم قبل التعديل وبعده. «تغييرات قاعدة البيانات» تعرض ما عُدّل مباشرة في قاعدة البيانات.'] },
+
+  /* ---------- settings ---------- */
+  { c: 'settings', page: 'settings', target: 'set-company', action: 'set-tab-company',
+    en: ['Company data', 'Company names, tax file, tax office, social insurance office and employer number, commercial register and address — printed on payslips, reports and the insurance forms.'],
+    ar: ['بيانات الشركة', 'اسم الشركة والملف الضريبي ومأمورية الضرائب ومكتب التأمينات ورقم المنشأة والسجل التجاري والعنوان، وتُطبع على القسائم والتقارير واستمارات التأمينات.'] },
+  { c: 'settings', page: 'settings', target: 'set-workweek', action: 'set-tab-workWeek',
+    en: ['Work week, shifts & leave policy', 'Company weekend days, standard hours per day, payroll days per month and the make-up window; below it the default leave entitlement. The Shifts tab holds start / end times, grace minutes before lateness counts and minimum overtime.'],
+    ar: ['أسبوع العمل والورديات وسياسة الإجازات', 'أيام العطلة الأسبوعية للشركة وساعات اليوم وأيام الشهر للرواتب ومدة التعويض، وتحتها الاستحقاق الافتراضي للإجازات. وتبويب «الورديات» فيه مواعيد البداية والنهاية ودقائق السماح قبل احتساب التأخير والحد الأدنى للإضافي.'] },
+  { c: 'settings', page: 'settings', target: 'set-branches', action: 'set-tab-branches',
+    en: ['Branches, check-in zone & holidays', 'Open a branch while standing there and tap Use my current location, then set the radius — web check-ins outside it are flagged in the review. Public holidays (all branches or one) are on the Holidays tab and are skipped when counting leave.'],
+    ar: ['الفروع ونطاق الحضور والعطلات', 'افتح الفرع وأنت موجود فيه واضغط «استخدم موقعي الحالي» ثم حدد نصف القطر، والحضور من خارجه يظهر مميزاً في المراجعة. والعطلات الرسمية (لكل الفروع أو لفرع واحد) في تبويب «العطلات الرسمية» ولا تُحسب من أيام الإجازة.'] },
+  { c: 'settings', page: 'settings', target: 'set-tax', action: 'set-tab-tax',
+    en: ['Income tax & social insurance', 'Tax brackets with the personal exemption and a preview calculator; the Social insurance tab holds the employer / employee rates and the minimum / maximum insurance wage. Check them with your accountant before running payroll.'],
+    ar: ['ضريبة الدخل والتأمينات', 'شرائح الضريبة مع الإعفاء الشخصي وآلة حاسبة للمعاينة، وتبويب «التأمينات الاجتماعية» فيه نسب صاحب العمل والموظف والحد الأدنى والأقصى لأجر الاشتراك. راجعها مع المحاسب قبل تشغيل الرواتب.'] },
+
+  /* ---------- users, roles & systems ---------- */
+  { c: 'access', page: 'users', target: 'usr-list',
+    en: ['Users & roles', 'Every login with its employee card, username, branch, ticked systems and role. Press Edit to change the name, role or branch and to manage the login (username, email, password, systems, on/off).'],
+    ar: ['المستخدمون والصلاحيات', 'كل حسابات الدخول مع بطاقة الموظف واسم المستخدم والفرع والأنظمة المسموحة والدور. اضغط «تعديل» لتغيير الاسم أو الدور أو الفرع وإدارة حساب الدخول (اسم المستخدم والبريد وكلمة المرور والأنظمة والتفعيل).'] },
+  { c: 'access', page: 'users', target: 'login-form', action: 'usr-open-create',
+    en: ['Create a login', 'Name, username, login email and a generated password (give it to the person), then the role and branch. The role decides what they see here in HR.'],
+    ar: ['إنشاء حساب دخول', 'الاسم واسم المستخدم وبريد الدخول وكلمة مرور مولّدة (سلّمها للشخص)، ثم الدور والفرع. الدور يحدد ما يراه الشخص في نظام الموارد البشرية.'] },
+  { c: 'access', page: 'users', target: 'systems', action: 'usr-open-create',
+    en: ['Tick the systems — incl. 💰 HV Finance', 'One username and password opens every ticked system: 🧑‍💼 HR & Payroll, 🔧 Maintenance, 🏠 CRM, 📋 HV Ops and 💰 HV Finance. Ticking HV Ops or HV Finance lets you pick the role inside it (Finance: admin, accountant, approver or viewer).'],
+    ar: ['اختيار الأنظمة — ومنها 💰 HV Finance', 'اسم مستخدم وكلمة مرور واحدة تفتح كل نظام مُعلَّم: 🧑‍💼 الموارد البشرية والرواتب، 🔧 الصيانة، 🏠 CRM، 📋 HV Ops، و💰 HV Finance. عند تعليم HV Ops أو HV Finance تختار الدور داخله (في المالية: مدير النظام أو محاسب أو معتمد أو مشاهدة فقط).'] },
+  { c: 'access', page: 'users', target: 'usr-invite',
+    en: ['Pre-register, sign-ups & password resets', 'Pre-register an email and role so they apply when that person signs up. New sign-ups and "forgot password" requests appear on this page: approve or reject accounts, set a new password from Edit, then mark the request done.'],
+    ar: ['التسجيل المسبق وطلبات التسجيل وكلمات المرور', 'سجّل بريد الشخص ودوره مسبقاً ليُطبق عند تسجيله. وتظهر في هذه الصفحة طلبات التسجيل الجديدة وطلبات «نسيت كلمة المرور»: اقبل الحسابات أو ارفضها، وضع كلمة مرور جديدة من «تعديل» ثم علّم الطلب كمنتهٍ.'] },
+  { c: 'access',
+    en: ['Roles — who sees what', 'CEO: everything, and the only one who approves payroll. HR: employees, attendance, leave, jobs, compliance, reports, users and settings — but never salaries or payroll. Accountant: payroll, loans, salaries, compliance, reports and settings. Manager: their team\'s attendance, leave, notes and KPI approvals. Staff: their own check-in, leave, KPIs, loans and payslips.'],
+    ar: ['الأدوار — من يرى ماذا', 'المدير التنفيذي: كل شيء، وهو وحده من يعتمد الرواتب. الموارد البشرية: الموظفون والحضور والإجازات والوظائف والامتثال والتقارير والمستخدمون والإعدادات، دون الرواتب أبداً. المحاسب: الرواتب والسلف والمرتبات والامتثال والتقارير والإعدادات. المدير المباشر: حضور فريقه وإجازاتهم وأذوناتهم واعتماد مؤشراتهم. الموظف: حضوره وإجازاته ومؤشراته وسلفه وقسائم راتبه فقط.'] },
+  { c: 'access', target: 'tb-systems',
+    en: ['Systems switcher', 'The 🏢 button lists the other Home Vacation systems your login can open — Maintenance, CRM, HV Ops, HV Finance — with the same username and password. You can restart this tour any time from the Tour button.'],
+    ar: ['التنقل بين الأنظمة', 'زر 🏢 يعرض أنظمة هوم فاكيشن الأخرى التي يفتحها حسابك (الصيانة، CRM، HV Ops، HV Finance) بنفس اسم المستخدم وكلمة المرور. ويمكنك إعادة هذه الجولة في أي وقت من زر «جولة».'] },
+];
+/** The steps this role gets: role-limited steps filtered, 'me' steps moved to the staff home page. */
+function hvTourStepsFor(role) {
+  return HV_TOUR_STEPS.filter((s) => !s.roles || s.roles.includes(role))
+    .map((s) => (role === 'staff' && s.page === 'me' ? { ...s, page: 'dashboard' } : s));
+}
+/* HV-TOUR-STEPS-END */
 
 /* =====================================================================
    11. Root
@@ -8286,6 +8633,53 @@ function App() {
 
   /* live work session (idle prompts, breaks, face verification) -- one instance app-wide */
   const live = useLiveSession({ me, myEmp: me ? employees.find((e) => e.user_id === me.id) : null, settings, toast, ready });
+
+  /* guide tour (shared hv-tour.js, loaded async): initialised once — on the script's load event, plus a 1 s poll for
+     window.HVTour for ~60 s (also picks up the spare copy the tag's onerror loads); the callbacks read current state
+     through a ref. If neither copy loads, nothing happens. */
+  const tourRef = useRef({});
+  const tourReady = useRef(false);
+  tourRef.current = { me, lang, page, setPage, ready };
+  useEffect(() => {
+    let timer = null;
+    const init = () => {
+      /* the Tour button sits just above the phone bottom menu (≈60 px + the iPhone home-bar inset) */
+      let inset = 0;
+      try { const p = document.createElement('div'); p.style.cssText = 'position:fixed;bottom:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden'; document.body.appendChild(p); inset = parseFloat(getComputedStyle(p).paddingBottom) || 0; p.remove(); } catch (e) {}
+      const cur = tourRef.current;
+      window.HVTour.init({
+        app: 'hr', color: '#1d6fa3',
+        /* null until the data has loaded, so the first-login welcome waits for the full menu */
+        userId: () => (tourRef.current.ready && tourRef.current.me && tourRef.current.me.id) || null,
+        lang: () => (tourRef.current.lang === 'ar' ? 'ar' : 'en'),
+        getPage: () => tourRef.current.page,
+        goPage: (k) => tourRef.current.setPage(k),
+        chapters: HV_TOUR_CHAPTERS, steps: hvTourStepsFor(cur.me && cur.me.role),
+        bottomOffset: { mobile: 76 + Math.round(inset), desktop: 24 },
+        /* hidden while any dialog is open (on a phone it would cover the dialog's fields / buttons) */
+        hidden: () => !!document.querySelector('[data-hv-modal]'),
+      });
+      tourReady.current = true;
+    };
+    const tag = document.getElementById('hv-tour-js');
+    const tryInit = () => {
+      if (tourReady.current || !window.HVTour) return;
+      if (timer) { clearInterval(timer); timer = null; }
+      if (tag) tag.removeEventListener('load', tryInit);
+      try { init(); } catch (e) {}
+    };
+    if (window.HVTour) tryInit();
+    else {
+      if (tag) tag.addEventListener('load', tryInit);
+      let tries = 0;
+      timer = setInterval(() => { if (window.HVTour) tryInit(); else if (++tries >= 60) { clearInterval(timer); timer = null; } }, 1000);
+    }
+    return () => { if (timer) clearInterval(timer); if (tag) tag.removeEventListener('load', tryInit); };
+  }, []);
+  /* role-specific steps follow the signed-in person (sign-out / another login on the same device) */
+  useEffect(() => {
+    try { if (tourReady.current && window.HVTour && window.HVTour.update) window.HVTour.update({ steps: hvTourStepsFor(me && me.role) }); } catch (e) {}
+  }, [me && me.role]);
 
   if (session === undefined) {
     return <L.Provider value={ctx}><div className="flex h-full items-center justify-center text-slate-400">{t.loading}</div></L.Provider>;
