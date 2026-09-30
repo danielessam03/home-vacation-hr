@@ -78,18 +78,19 @@
     var i = 0;
     return new Promise(function (resolve) {
       (function next() {
-        if (i >= s.urls.length) { resolve(s.urls[0]); return; }   // none answered: try the main one anyway
+        if (i >= s.urls.length) { resolve(null); return; }   // none answered
         var n = i++;
         checks[n].then(function (ok) { if (ok) { memo[key] = { url: s.urls[n], at: Date.now() }; resolve(s.urls[n]); } else next(); });
       })();
     });
   }
   // open a system: the new tab opens immediately (popup blockers), then goes to the first address that answers
-  function open(key, rest, sameTab) {
+  function open(key, rest, sameTab, fallbackHref) {
     var w = sameTab ? null : window.open('', '_blank');
     if (w) { try { w.opener = null; w.document.write('<meta charset="utf-8"><body style="font:16px system-ui;padding:32px;color:#334155">' + (ar() ? 'جارٍ الفتح…' : 'Opening…') + '</body>'); } catch (e) {} }
     return best(key).then(function (base) {
-      var target = base + (rest || '');
+      // nothing answered within 3.5 s (very slow network): go where the link pointed, as before this file existed
+      var target = base ? base + (rest || '') : (fallbackHref || SYSTEMS[key].urls[0] + (rest || ''));
       if (w) { try { w.location.replace(target); } catch (e) { w.location = target; } } else location.href = target;
       return target;
     });
@@ -101,7 +102,7 @@
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null; if (!a || a.hasAttribute('download')) return;
     var m = match(a.href); if (!m) return;
     e.preventDefault();
-    open(m.key, m.rest, a.getAttribute('target') !== '_blank');
+    open(m.key, m.rest, a.getAttribute('target') !== '_blank', a.href);
   }, false);
 
   // ---------------------------------------------------------------- saved copy (service worker)
@@ -109,7 +110,8 @@
   function clearSaved() {
     var jobs = [];
     if ('serviceWorker' in navigator) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.scope.indexOf(location.origin + location.pathname.replace(/[^/]*$/, '')) === 0 ? r.unregister() : null; })); }));
-    if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k.indexOf('hv-sw-') === 0; }).map(function (k) { return caches.delete(k); })); }));
+    var here = location.origin + location.pathname.replace(/[^/]*$/, '');
+    if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k.indexOf('hv-sw-') === 0 && k.slice(k.indexOf('|') + 1) === here; }).map(function (k) { return caches.delete(k); })); }));
     return Promise.all(jobs).catch(function () {});
   }
   if (OFF) {
@@ -157,7 +159,11 @@
       if (k === 'clear') clearSaved().then(function () { location.reload(); });
       if (k === 'other' && others.length) {
         b.textContent = A ? 'جارٍ البحث عن عنوان يعمل…' : 'Looking for an address that works…';
-        Promise.all(others.map(probe)).then(function (oks) { var i = oks.indexOf(true); location.href = (i >= 0 ? others[i] : others[0]) + location.hash; });
+        Promise.all(others.map(probe)).then(function (oks) {
+          var i = oks.indexOf(true);
+          if (i >= 0) location.href = others[i] + location.hash;
+          else b.textContent = A ? 'لا يوجد عنوان آخر يعمل الآن — جرّب بعد قليل' : 'No other address answers right now — try again shortly';
+        });
       }
     });
     (document.body || document.documentElement).appendChild(panel);
@@ -172,5 +178,5 @@
     });
   }
 
-  window.HVCore = { version: 1, app: APP, systems: SYSTEMS, match: match, probe: probe, best: best, open: open, clearSaved: clearSaved, loadScript: loadScript };
+  window.HVCore = { version: 2, app: APP, systems: SYSTEMS, match: match, probe: probe, best: best, open: open, clearSaved: clearSaved, loadScript: loadScript };
 })();
