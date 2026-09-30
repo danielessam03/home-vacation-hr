@@ -4,11 +4,18 @@
 <title>Home Vacation HR</title>
 <link rel="icon" href="data:," />
 
+<!-- HV Core FIRST (hv-shared/kit): saved copy of the app in the browser, links to the other systems try every
+     address, and a help panel instead of a blank page. Every code file below is served from THIS address
+     (vendor/, pinned versions) with the public CDN only as a fallback, so an outage at unpkg / jsdelivr /
+     tailwindcss.com, or an address the network cannot reach, can no longer take the system down. -->
+<script src="hv-core.js" data-app="hr"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="vendor/tailwind-3.4.17.js"></script>
+<script>window.tailwind||document.write('<script src="https://cdn.tailwindcss.com/3.4.17"><\/script>')</script>
 <script>
 /* Brand palette taken from the Home Vacation logo:
    sea cyan #29b8ce, deep sea blue #1d6fa3, sand gold #d3a93c, sun #f59422 */
@@ -36,14 +43,17 @@ tailwind.config = {
   },
 };
 </script>
-<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2.74.0/dist/umd/supabase.js"></script>
-<!-- shared guide tour (all HV systems); optional: the app works normally if it does not load.
-     async (not defer): a slow hv-shared.pages.dev must never delay DOMContentLoaded, when Babel compiles the app.
-     onerror: spare copy of the same engine for networks that cannot reach hv-shared.pages.dev. -->
-<script id="hv-tour-js" src="https://hv-shared.pages.dev/hv-tour.js" async onerror="var s=document.createElement('script');s.id='hv-tour-js2';s.async=true;s.src='https://hvshared-home-vacation.pages.dev/hv-tour.js';document.head.appendChild(s)"></script>
+<script src="vendor/react-18.3.1.min.js"></script>
+<script>window.React||document.write('<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"><\/script>')</script>
+<script src="vendor/react-dom-18.3.1.min.js"></script>
+<script>window.ReactDOM||document.write('<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"><\/script>')</script>
+<script src="vendor/babel-7.25.6.min.js"></script>
+<script>window.Babel||document.write('<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"><\/script>')</script>
+<script src="vendor/supabase-2.74.0.js"></script>
+<script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.74.0/dist/umd/supabase.js"><\/script>')</script>
+<!-- shared guide tour (the same engine in every HV system, shipped with each one by hv-shared/kit); optional:
+     the app works normally if it does not load. async: it can never delay DOMContentLoaded, when Babel compiles the app. -->
+<script id="hv-tour-js" src="hv-tour.js" async></script>
 
 <style>
   html, body, #root { height: 100%; }
@@ -64,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.41';
+const APP_VERSION = 'v3.42';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -3941,12 +3951,14 @@ let jszipReady = null;
 function loadJSZip() {
   if (window.JSZip) return Promise.resolve();
   if (jszipReady) return jszipReady;
-  jszipReady = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-    s.onload = resolve; s.onerror = () => reject(new Error('JSZip load failed'));
-    document.head.appendChild(s);
-  });
+  /* this address first (vendor/, shipped by hv-shared/kit), the public CDN as fallback */
+  jszipReady = (window.HVCore ? HVCore.loadScript('vendor/jszip-3.10.1.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+    : new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = resolve; s.onerror = () => reject(new Error('JSZip load failed'));
+      document.head.appendChild(s);
+    })).catch((e) => { jszipReady = null; throw e; });
   return jszipReady;
 }
 async function downloadDocx(title, md, rtl) {
@@ -6454,12 +6466,14 @@ let xlsxReady = null;
 function loadXLSX() {
   if (window.XLSX) return Promise.resolve();
   if (xlsxReady) return xlsxReady;
-  xlsxReady = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload = resolve; s.onerror = () => reject(new Error('Excel reader failed to load'));
-    document.head.appendChild(s);
-  });
+  /* this address first (vendor/, shipped by hv-shared/kit), the public CDN as fallback */
+  xlsxReady = (window.HVCore ? HVCore.loadScript('vendor/xlsx-0.18.5.full.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js')
+    : new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = resolve; s.onerror = () => reject(new Error('Excel reader failed to load'));
+      document.head.appendChild(s);
+    })).catch((e) => { xlsxReady = null; throw new Error('Excel reader failed to load'); });
   return xlsxReady;
 }
 const strHash = (str) => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; return h.toString(16); };
@@ -8256,7 +8270,7 @@ function ProfilePage({ me, setMe, toast }) {
 }
 
 /* =====================================================================
-   10b. Guide tour -- content for the shared engine (https://hv-shared.pages.dev/hv-tour.js)
+   10b. Guide tour -- content for the shared engine (hv-tour.js, shipped with the app by hv-shared/kit)
    ===================================================================== */
 /* HV-TOUR-STEPS-START — keep in sync with the screens: every change to a screen updates its step here */
 /* Step fields: c = chapter key, page = NAV key the step opens (steps of pages missing from the person's menu are skipped),
