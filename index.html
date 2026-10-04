@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.42';
+const APP_VERSION = 'v3.43';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -193,6 +193,9 @@ const T = {
     noBranchGeo: 'No branch location set yet (Settings → Branches → use my current location).',
     nearest: 'Nearest branch', mAway: 'm away', monthLocked: 'This month is locked.',
     onTripLbl: 'On a trip', onTripHint: 'No idle prompts while a trip is open. The trip counts as working time.',
+    transportLbl: 'How are you going?', transportKinds: { personal_car: 'Personal car', company_car: 'Company car', taxi: 'Taxi / Uber' }, chooseTransport: 'Choose how you are going: personal car, company car or taxi / Uber.',
+    taxiHint: 'When you end the trip you can write how much you paid and attach the receipt or a screenshot (optional).', fareTitle: 'Taxi / Uber cost', fareAsk: 'How much did you pay? (EGP)', fareEvidenceAsk: 'Evidence: receipt photo or screenshot', fareOptional: 'Both are optional. You can add or correct them later from the trip list.',
+    fareChoose: 'Attach a photo or screenshot', fareReplace: 'Replace the attached evidence', farePaid: 'Paid', fareNone: 'Amount not entered', fareEvidence: 'Evidence', fareAdd: 'Add amount / receipt', fareTooBig: 'The file is larger than 10 MB.',
     tripsTab: 'Trips', startTrip: 'Start trip', endTrip: 'End trip', recordPoint: 'Record point',
     tripPurpose: 'Trip purpose (client / site)', openTripLbl: 'Trip in progress', pointsN: 'points',
     km: 'km', totalKm: 'Total km', thisMonth: 'This month',
@@ -430,6 +433,9 @@ const T = {
     noBranchGeo: 'لم يتم تحديد موقع الفرع بعد (الإعدادات ← الفروع ← استخدم موقعي الحالي).',
     nearest: 'أقرب فرع', mAway: 'متر', monthLocked: 'هذا الشهر مقفل.',
     onTripLbl: 'في مشوار', onTripHint: 'لا تنبيهات خمول أثناء المشوار. المشوار يُحتسب وقت عمل.',
+    transportLbl: 'كيف ستذهب؟', transportKinds: { personal_car: 'سيارة شخصية', company_car: 'سيارة الشركة', taxi: 'تاكسي / أوبر' }, chooseTransport: 'اختر وسيلة المشوار: سيارة شخصية أو سيارة الشركة أو تاكسي / أوبر.',
+    taxiHint: 'عند إنهاء المشوار يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة (اختياري).', fareTitle: 'تكلفة التاكسي / أوبر', fareAsk: 'كم دفعت؟ (جنيه)', fareEvidenceAsk: 'الإثبات: صورة الإيصال أو لقطة شاشة', fareOptional: 'الاثنان اختياريان. يمكنك إضافتهما أو تعديلهما لاحقاً من قائمة المشاوير.',
+    fareChoose: 'إرفاق صورة أو لقطة شاشة', fareReplace: 'استبدال الإثبات المرفق', farePaid: 'المدفوع', fareNone: 'لم يُدخل المبلغ', fareEvidence: 'الإثبات', fareAdd: 'إضافة المبلغ / الإيصال', fareTooBig: 'الملف أكبر من 10 ميجابايت.',
     tripsTab: 'المشاوير', startTrip: 'بدء مشوار', endTrip: 'إنهاء المشوار', recordPoint: 'تسجيل نقطة',
     tripPurpose: 'سبب المشوار (عميل / موقع)', openTripLbl: 'مشوار جارٍ', pointsN: 'نقاط',
     km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
@@ -3303,12 +3309,17 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
   );
 }
 
+const TRIP_TRANSPORT = [['personal_car', '🚗'], ['company_car', '🚙'], ['taxi', '🚕']];
 function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
   const { t } = useL();
   const [open, setOpen] = useState(undefined);   // undefined = loading
   const [trips, setTrips] = useState([]);
   const [purpose, setPurpose] = useState('');
+  const [transport, setTransport] = useState('');
   const [busy, setBusy] = useState(false);
+  const [fare, setFare] = useState(null);         // { trip, ending, amount, file } taxi amount + evidence (both optional)
+  const [showEmp, setShowEmp] = useState('');
+  const fileRef = useRef(null);
 
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
@@ -3323,6 +3334,10 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
 
   const tripKm = (tr) => tr.manual_km != null ? Number(tr.manual_km) : tr.distance_km != null ? Number(tr.distance_km) : 0;
   const chainKm = (pts) => { let s = 0; for (let i = 1; i < pts.length; i++) s += haversineKm(pts[i-1].lat, pts[i-1].lng, pts[i].lat, pts[i].lng); return Math.round(s * 100) / 100; };
+  const trIcon = (tr) => (TRIP_TRANSPORT.find((x) => x[0] === tr.transport) || ['', ''])[1];
+  const trLabel = (tr) => tr.transport ? t.transportKinds[tr.transport] : '';
+  const fareSum = (list) => list.reduce((s, x) => s + (Number(x.fare_egp) || 0), 0);
+  const patch = (row) => setTrips((prev) => prev.map((x) => (x.id === row.id ? row : x)));
 
   async function withGps(fn) {
     setBusy(true);
@@ -3331,44 +3346,96 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
     setBusy(false);
   }
 
-  const start = () => withGps(async (gps) => {
-    const { data: row, error } = await sb.from('trips').insert({
-      employee_id: myEmp.id, purpose: purpose || null,
-      started_at: new Date().toISOString(),
-      waypoints: [{ t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }],
-    }).select().single();
-    if (error) return toast(error.message, 'error');
-    setOpen(row); setPurpose('');
-    setTrips((prev) => [row, ...prev]);
-    if (live && live.refresh) live.refresh();
-    toast(t.saved);
-  });
+  const start = () => {
+    if (!transport) return toast(t.chooseTransport, 'error');
+    return withGps(async (gps) => {
+      const { data: row, error } = await sb.from('trips').insert({
+        employee_id: myEmp.id, purpose: purpose || null, transport,
+        started_at: new Date().toISOString(),
+        waypoints: [{ t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }],
+      }).select().single();
+      if (error) return toast(error.message, 'error');
+      setOpen(row); setPurpose(''); setTransport('');
+      setTrips((prev) => [row, ...prev]);
+      if (live && live.refresh) live.refresh();
+      toast(t.saved);
+    });
+  };
 
   const addPoint = () => withGps(async (gps) => {
     const pts = [...(open.waypoints || []), { t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }];
     const { data: row, error } = await sb.from('trips').update({ waypoints: pts }).eq('id', open.id).select().single();
     if (error) return toast(error.message, 'error');
     setOpen(row);
-    setTrips((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    patch(row);
     toast(t.saved);
   });
 
-  const end = () => withGps(async (gps) => {
+  /* evidence goes to the private bucket, in the employee's own folder */
+  async function uploadReceipt(trip, file) {
+    if (!file) return null;
+    const ext = (file.name.match(/\.[A-Za-z0-9]{1,5}$/) || ['.jpg'])[0].toLowerCase();
+    const path = trip.employee_id + '/' + trip.id + '_' + Date.now() + ext;
+    const { error } = await sb.storage.from('trip-receipts').upload(path, file, { contentType: file.type || undefined });
+    if (error) throw error;
+    return path;
+  }
+  const amountOf = (v) => { const n = Number(String(v || '').replace(',', '.')); return String(v || '').trim() !== '' && n >= 0 ? Math.round(n * 100) / 100 : null; };
+
+  const end = (extra) => withGps(async (gps) => {
     const pts = [...(open.waypoints || []), { t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }];
+    let receipt = null;
+    if (extra && extra.file) receipt = await uploadReceipt(open, extra.file);
     const { data: row, error } = await sb.from('trips').update({
       waypoints: pts, ended_at: new Date().toISOString(), status: 'closed', distance_km: chainKm(pts),
+      ...(extra ? { fare_egp: amountOf(extra.amount), ...(receipt ? { receipt_path: receipt } : {}) } : {}),
     }).eq('id', open.id).select().single();
     if (error) return toast(error.message, 'error');
-    setOpen(null);
-    setTrips((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    setOpen(null); setFare(null);
+    patch(row);
     if (live && live.refresh) live.refresh();
     toast(t.saved + ' — ' + chainKm(pts) + ' ' + t.km);
   });
+
+  /* amount / evidence added or corrected after the trip has ended */
+  async function saveFare() {
+    setBusy(true);
+    try {
+      const receipt = await uploadReceipt(fare.trip, fare.file);
+      const { data: row, error } = await sb.rpc('trip_set_fare', { p_id: fare.trip.id, p_fare: amountOf(fare.amount), p_receipt: receipt });
+      if (error) throw error;
+      patch(row); setFare(null); toast(t.saved);
+    } catch (e) { toast(e.message, 'error'); }
+    setBusy(false);
+  }
+
+  async function openReceipt(tr) {
+    const { data: s, error } = await sb.storage.from('trip-receipts').createSignedUrl(tr.receipt_path, 300);
+    if (error) return toast(error.message, 'error');
+    window.open(s.signedUrl, '_blank');
+  }
 
   const mine = trips.filter((x) => x.employee_id === myEmp.id);
   const others = trips.filter((x) => x.employee_id !== myEmp.id);
   const byEmp = {};
   for (const tr of others) (byEmp[tr.employee_id] = byEmp[tr.employee_id] || []).push(tr);
+
+  const TripRow = ({ tr, own }) => (
+    <li className="flex items-center justify-between gap-2 py-2.5 text-sm">
+      <div className="min-w-0">
+        <p className="truncate font-semibold text-slate-800">{trIcon(tr)} {tr.purpose || '—'}</p>
+        <p className="text-xs text-slate-500">{localDay(tr.started_at)} · {fmtTime(tr.started_at)}{tr.ended_at ? '–' + fmtTime(tr.ended_at) : ''}{trLabel(tr) ? ' · ' + trLabel(tr) : ''}</p>
+        {tr.transport === 'taxi' && (
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+            {tr.fare_egp != null ? <span className="font-semibold text-slate-700">{t.farePaid}: {money(tr.fare_egp)}</span> : <span className="text-slate-400">{t.fareNone}</span>}
+            {tr.receipt_path && <button className="font-semibold text-brand-700 underline" onClick={() => openReceipt(tr)}>📎 {t.fareEvidence}</button>}
+            {own && tr.status === 'closed' && <button className="text-brand-700 underline" onClick={() => setFare({ trip: tr, ending: false, amount: tr.fare_egp != null ? String(tr.fare_egp) : '', file: null })}>{tr.fare_egp != null || tr.receipt_path ? t.edit : '+ ' + t.fareAdd}</button>}
+          </p>
+        )}
+      </div>
+      {tr.status === 'open' ? <Badge tone="amber">{t.openTripLbl}</Badge> : <Badge tone="teal">{tripKm(tr).toFixed(1)} {t.km}</Badge>}
+    </li>
+  );
 
   return (
     <>
@@ -3376,49 +3443,70 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
         {open === undefined ? <Empty text={t.loading} /> : open ? (
           <div className="space-y-3">
             <p className="text-sm text-slate-600">
-              {open.purpose || '—'} · {fmtTime(open.started_at)} · {(open.waypoints || []).length} {t.pointsN} · ~{chainKm(open.waypoints || [])} {t.km}
+              {trIcon(open)} {open.purpose || '—'} · {fmtTime(open.started_at)}{trLabel(open) ? ' · ' + trLabel(open) : ''} · {(open.waypoints || []).length} {t.pointsN} · ~{chainKm(open.waypoints || [])} {t.km}
             </p>
             <div className="flex gap-2">
               <Btn variant="soft" className="flex-1" disabled={busy} onClick={addPoint}>📍 {t.recordPoint}</Btn>
-              <Btn className="flex-1 !bg-amber-600 hover:!bg-amber-700" disabled={busy} onClick={end}>🏁 {t.endTrip}</Btn>
+              <Btn className="flex-1 !bg-amber-600 hover:!bg-amber-700" disabled={busy} onClick={() => (open.transport === 'taxi' ? setFare({ trip: open, ending: true, amount: '', file: null }) : end())}>🏁 {t.endTrip}</Btn>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
             <Input placeholder={t.tripPurpose} value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+            <div>
+              <p className="mb-1.5 text-xs font-semibold text-slate-600">{t.transportLbl}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {TRIP_TRANSPORT.map(([k, icon]) => (
+                  <button key={k} type="button" onClick={() => setTransport(k)}
+                    className={cx('rounded-xl border-2 px-1 py-3 text-center text-xs font-semibold transition sm:text-sm', transport === k ? 'border-brand-600 bg-brand-50 text-brand-800' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300')}>
+                    <span className="block text-2xl leading-none">{icon}</span><span className="mt-1 block leading-tight">{t.transportKinds[k]}</span>
+                  </button>
+                ))}
+              </div>
+              {transport === 'taxi' && <p className="mt-1.5 text-xs text-slate-500">{t.taxiHint}</p>}
+            </div>
             <Btn size="lg" disabled={busy} onClick={start}>🚗 {busy ? t.gettingLoc : t.startTrip}</Btn>
           </div>
         )}
       </Card>
 
-      <Card title={t.tripsTab + ' — ' + t.thisMonth + ' (' + t.totalKm + ': ' + mine.reduce((s, x) => s + tripKm(x), 0).toFixed(1) + ' ' + t.km + ')'}>
+      <Card title={t.tripsTab + ' — ' + t.thisMonth + ' (' + t.totalKm + ': ' + mine.reduce((s, x) => s + tripKm(x), 0).toFixed(1) + ' ' + t.km + (fareSum(mine) ? ' · 🚕 ' + money(fareSum(mine)) : '') + ')'}>
         {mine.length === 0 ? <Empty text={t.noData} /> : (
-          <ul className="divide-y divide-slate-100">
-            {mine.map((tr) => (
-              <li key={tr.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-800">{tr.purpose || '—'}</p>
-                  <p className="text-xs text-slate-500">{localDay(tr.started_at)} · {fmtTime(tr.started_at)}{tr.ended_at ? '–' + fmtTime(tr.ended_at) : ''}</p>
-                </div>
-                {tr.status === 'open' ? <Badge tone="amber">{t.openTripLbl}</Badge> : <Badge tone="teal">{tripKm(tr).toFixed(1)} {t.km}</Badge>}
-              </li>
-            ))}
-          </ul>
+          <ul className="divide-y divide-slate-100">{mine.map((tr) => <TripRow key={tr.id} tr={tr} own />)}</ul>
         )}
       </Card>
 
       {admin && others.length > 0 && (
-        <Card title={t.tripsTab + ' — ' + t.employees}>
+        <Card title={t.tripsTab + ' — ' + t.employees + (fareSum(others) ? ' (🚕 ' + money(fareSum(others)) + ')' : '')}>
           <ul className="divide-y divide-slate-100">
             {Object.entries(byEmp).map(([empId, list]) => (
-              <li key={empId} className="flex items-center justify-between py-2.5 text-sm">
-                <span className="font-semibold text-slate-800">{eName(data.employees.find((e) => e.id === empId))}</span>
-                <span className="text-slate-500">{list.length} · {list.reduce((s, x) => s + tripKm(x), 0).toFixed(1)} {t.km}</span>
+              <li key={empId} className="py-2.5 text-sm">
+                <button className="flex w-full items-center justify-between gap-2 text-start" onClick={() => setShowEmp(showEmp === empId ? '' : empId)}>
+                  <span className="font-semibold text-slate-800">{showEmp === empId ? '▾' : '▸'} {eName(data.employees.find((e) => e.id === empId))}</span>
+                  <span className="text-slate-500">{list.length} · {list.reduce((s, x) => s + tripKm(x), 0).toFixed(1)} {t.km}{fareSum(list) ? ' · 🚕 ' + money(fareSum(list)) : ''}</span>
+                </button>
+                {showEmp === empId && <ul className="mt-1 divide-y divide-slate-100 rounded-xl bg-slate-50 px-3">{list.map((tr) => <TripRow key={tr.id} tr={tr} />)}</ul>}
               </li>
             ))}
           </ul>
         </Card>
       )}
+
+      <Modal open={!!fare} onClose={() => !busy && setFare(null)} title={'🚕 ' + t.fareTitle}>
+        {fare && (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500">{t.fareOptional}</p>
+            <Field label={t.fareAsk}>
+              <Input type="number" inputMode="decimal" min="0" step="0.5" placeholder="0" value={fare.amount} onChange={(e) => setFare({ ...fare, amount: e.target.value })} />
+            </Field>
+            <Field label={t.fareEvidenceAsk}>
+              <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f && f.size > 10 * 1024 * 1024) { toast(t.fareTooBig, 'error'); } else if (f) setFare({ ...fare, file: f }); e.target.value = ''; }} />
+              <Btn variant="soft" className="w-full" onClick={() => fileRef.current && fileRef.current.click()}>📎 {fare.file ? fare.file.name : fare.trip.receipt_path ? t.fareReplace : t.fareChoose}</Btn>
+            </Field>
+            <Btn className="w-full" size="lg" disabled={busy} onClick={() => (fare.ending ? end({ amount: fare.amount, file: fare.file }) : saveFare())}>{busy ? t.loading : fare.ending ? '🏁 ' + t.endTrip : t.save}</Btn>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }
@@ -8336,8 +8424,8 @@ const HV_TOUR_STEPS = [
     en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break; resuming needs a selfie, and minutes over the daily break allowance are deducted.'],
     ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك، والعودة تتطلب سيلفي، وما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
   { c: 'att', page: 'attendance', target: 'trip-start', action: 'att-tab-trips',
-    en: ['Trips outside the office', 'Write the purpose (client / site), press Start trip, record points on the way and End trip when you are back. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
-    ar: ['المشاوير خارج المكتب', 'اكتب الغرض (العميل / الموقع) واضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
+    en: ['Trips outside the office', 'Write the purpose (client / site), choose how you are going (personal car, company car or taxi / Uber) and press Start trip. Record points on the way and End trip when you are back. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
+    ar: ['المشاوير خارج المكتب', 'اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة أو تاكسي / أوبر) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
   { c: 'att', page: 'attendance', target: 'exc-new', action: 'att-tab-exceptions',
     en: ['Late / break / early-leave notes', 'Will you be late, need a longer break or must leave early? Send the note before it happens (today or a later date). If your direct manager or HR accepts it, that day carries no deduction. Managers approve their team\'s notes on this tab; HR sees all.'],
     ar: ['أذونات التأخير والاستراحة والانصراف المبكر', 'ستتأخر أو تحتاج استراحة أطول أو ستنصرف مبكراً؟ أرسل الإذن قبل حدوثه (اليوم أو يوم لاحق). إذا وافق مديرك المباشر أو الموارد البشرية فلا خصم على ذلك اليوم. المديرون يعتمدون أذونات فريقهم من هذا التبويب، والموارد البشرية ترى الجميع.'] },
