@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.44';
+const APP_VERSION = 'v3.45';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -202,6 +202,9 @@ const T = {
     reviewTab: 'Review', lockTab: 'Lock',
     lateMin: 'Late (min)', workedH: 'Worked', otMin: 'OT (min)', missingOut: 'Missing punch', weekendLbl: 'Weekend', statusLbl: 'Status', penaltyLbl: 'Penalty',
     breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle', device: 'Fingerprint device' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
+    missLeft: '{n} days left', missLeftLast: 'last day', missAuto: 'automatic', missAutoHint: 'Nobody decided within {n} days, so the default penalty applies. You can still excuse it or choose another action.',
+    missRules: 'Missing check-out', missRulesHint: 'A day that ended without a check-out waits for a decision (excuse / take action). If nobody decides in time, this default penalty applies by itself. A later decision always replaces it.', missAutoOn: 'Apply a default penalty when nobody decides', missAutoDays: 'Days to decide', missAutoFrom: 'Applies to days from', missAutoPen: 'Default penalty',
+    ezDueTitle: 'Weekly Engaz update', ezDueNever: 'The Engaz export has never been uploaded.', ezDueLate: 'The last Engaz upload was {n} days ago ({d}). This week\'s file is overdue.', ezDueSoon: 'The last Engaz upload was {n} days ago ({d}). This week\'s file is due.', ezDueBtn: 'Upload now', ezDueLater: 'Remind me later', ezDueWho: 'Sales manager', ezDueHow: 'Export the clients file from Engaz and upload it in KPIs → Engaz import. It takes about a minute.',
     missNeeds: 'Missing punch · needs a decision', missBanner: 'days ended without a check-out. Each one must be excused or have action taken.', missOnly: 'Show only these', missAll: 'Show all days',
     missTitle: 'Missing check-out', missHint: 'The employee checked in but never checked out, and the day is over. Decide what happens.', missExcuse: 'Excuse it', missExcuseHint: 'Forgot to punch out. No deduction.', missAction: 'Take action', missActionHint: 'Something went wrong. Choose the penalty.',
     missAddOut: 'Enter the real check-out time', missAddOutHint: 'The day is then judged normally (hours, early leave, overtime).', missPenalty: 'Penalty', missPenWarn: 'Warning only', missPenHours: 'Deduct {n} h', missPenQuarter: 'Deduct quarter day', missPenHalf: 'Deduct half day', missPenFull: 'Deduct full day', missPenDay: 'Deduct {n} day',
@@ -446,6 +449,9 @@ const T = {
     reviewTab: 'المراجعة', lockTab: 'القفل',
     lateMin: 'تأخير (د)', workedH: 'ساعات العمل', otMin: 'إضافي (د)', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية', statusLbl: 'الحالة', penaltyLbl: 'الجزاء',
     breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط', device: 'جهاز البصمة' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
+    missLeft: 'باقي {n} يوم', missLeftLast: 'آخر يوم', missAuto: 'تلقائي', missAutoHint: 'لم يُتخذ قرار خلال {n} أيام، فطُبّق الجزاء الافتراضي. ما زال بإمكانك الإعفاء أو اختيار إجراء آخر.',
+    missRules: 'بصمة الانصراف الناقصة', missRulesHint: 'اليوم الذي ينتهي بدون بصمة انصراف ينتظر قراراً (إعفاء / إجراء). إذا لم يُتخذ قرار في الوقت المحدد يُطبق هذا الجزاء الافتراضي تلقائياً، وأي قرار لاحق يلغيه.', missAutoOn: 'تطبيق جزاء افتراضي إذا لم يُتخذ قرار', missAutoDays: 'عدد الأيام المتاحة للقرار', missAutoFrom: 'يسري على الأيام من تاريخ', missAutoPen: 'الجزاء الافتراضي',
+    ezDueTitle: 'تحديث إنجاز الأسبوعي', ezDueNever: 'لم يُرفع ملف إنجاز من قبل.', ezDueLate: 'آخر رفع لملف إنجاز كان منذ {n} يوم ({d}). ملف هذا الأسبوع متأخر.', ezDueSoon: 'آخر رفع لملف إنجاز كان منذ {n} يوم ({d}). حان موعد ملف هذا الأسبوع.', ezDueBtn: 'ارفع الآن', ezDueLater: 'ذكّرني لاحقاً', ezDueWho: 'مدير المبيعات', ezDueHow: 'صدّر ملف العملاء من إنجاز وارفعه من مؤشرات الأداء ← استيراد من إنجاز. يستغرق حوالي دقيقة.',
     missNeeds: 'بصمة ناقصة · تحتاج قراراً', missBanner: 'يوم انتهى بدون بصمة انصراف. كل يوم يجب إعفاؤه أو اتخاذ إجراء بشأنه.', missOnly: 'عرض هذه الأيام فقط', missAll: 'عرض كل الأيام',
     missTitle: 'بصمة انصراف ناقصة', missHint: 'الموظف سجّل الحضور ولم يسجّل الانصراف وانتهى اليوم. حدّد ما يتم.', missExcuse: 'إعفاء', missExcuseHint: 'نسي تسجيل الانصراف. بدون خصم.', missAction: 'اتخاذ إجراء', missActionHint: 'حدث خطأ ما. اختر الجزاء.',
     missAddOut: 'إدخال وقت الانصراف الحقيقي', missAddOutHint: 'يُحسب اليوم بعدها بشكل عادي (الساعات، الانصراف المبكر، الإضافي).', missPenalty: 'الجزاء', missPenWarn: 'إنذار فقط', missPenHours: 'خصم {n} ساعة', missPenQuarter: 'خصم ربع يوم', missPenHalf: 'خصم نصف يوم', missPenFull: 'خصم يوم كامل', missPenDay: 'خصم {n} يوم',
@@ -1174,6 +1180,21 @@ function breakMinutesByDay(sessions) {
   }
   return out;
 }
+/* Missing check-out with no decision: after `days` days the default penalty applies by itself (days from `from` onward). */
+const MISSING_DEFAULT = { enabled: true, days: 3, kind: 'day_fraction', value: 0.25, from: '2026-10-04' };
+const missingPolicy = (policy) => ({ ...MISSING_DEFAULT, ...((policy && policy.missing_punch) || {}) });
+const dayPlus = (date, n) => { const d = new Date(date + 'T00:00:00'); d.setDate(d.getDate() + n); return localDay(d); };
+function missingAuto(policy, date, todayStr) {
+  const mp = missingPolicy(policy);
+  if (!mp.enabled || (mp.from && date < mp.from) || dayPlus(date, Number(mp.days) || 0) >= todayStr) return null;
+  return { status: 'rejected', penalty_kind: mp.kind, penalty_value: Number(mp.value) || 0, auto: true };
+}
+/** Days still left to decide (0 = today is the last day); null when the automatic rule does not cover the day. */
+function missingDaysLeft(policy, date, todayStr) {
+  const mp = missingPolicy(policy);
+  if (!mp.enabled || (mp.from && date < mp.from)) return null;
+  return Math.round((new Date(dayPlus(date, Number(mp.days) || 0) + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / 86400000);
+}
 /* Missing check-out decided as "action taken": warning, fixed hours or part of a day. */
 function missingPenaltyAmount(d, hourRate, dayRate) { const v = Number(d.penalty_value) || 0; return d.penalty_kind === 'hours' ? v * hourRate : d.penalty_kind === 'day_fraction' ? v * dayRate : 0; }
 const missPenaltyLabel = (t, d) => d.penalty_kind === 'hours' ? t.missPenHours.replace('{n}', Number(d.penalty_value)) : d.penalty_kind === 'day_fraction'
@@ -1263,9 +1284,9 @@ function computePayrollItem(emp, ctx) {
       }
     }
     if (!lastOut && date < todayStr) {
-      const d = missDec[date];
+      const d = missDec[date] || missingAuto(attPolicy, date, todayStr);
       if (!d) missPending++;
-      else if (d.status === 'rejected') { missDays++; const amt = missingPenaltyAmount(d, hourRate, dayRate); missDed += amt; missDetail.push({ date, kind: d.penalty_kind || 'none', value: Number(d.penalty_value) || 0, amount: r2(amt) }); }
+      else if (d.status === 'rejected') { missDays++; const amt = missingPenaltyAmount(d, hourRate, dayRate); missDed += amt; missDetail.push({ date, kind: d.penalty_kind || 'none', value: Number(d.penalty_value) || 0, amount: r2(amt), ...(d.auto ? { auto: true } : {}) }); }
     }
   }
 
@@ -1806,6 +1827,60 @@ function Shell({ me, page, setPage, onSignOut, children }) {
 /* =====================================================================
    6. Dashboard
    ===================================================================== */
+/* Who is a sales team leader / manager: in Sales and has people reporting to them, or the title says so. */
+function isSalesLeadEmp(e, data) {
+  if (!e) return false;
+  const d = (data.departments || []).find((x) => x.id === e.department_id);
+  const sales = !!((d && /sales|مبيعات/i.test(d.name_en + ' ' + d.name_ar)) || /sales/i.test(e.job_title_en || '') || /مبيعات/.test(e.job_title_ar || ''));
+  return sales && (data.employees.some((x) => x.status === 'active' && x.manager_id === e.id) || /leader|manager|head|supervisor|director/i.test(e.job_title_en || '') || /مدير|قائد|رئيس|مشرف/.test(e.job_title_ar || ''));
+}
+/* ---------------------------------------------------------------------
+   Weekly Engaz reminder. The sales manager sees it from day 6 after the
+   last upload (and a pop-up once a day when it is overdue); CEOs and HR
+   see it only when it is overdue (7+ days), with the manager's name.
+   --------------------------------------------------------------------- */
+function EngazReminder({ me, data, page, setPage }) {
+  const { lang, t } = useL();
+  const myEmp = data.employees.find((e) => e.user_id === me.id);
+  const lead = me.role !== 'staff' && isSalesLeadEmp(myEmp, data);
+  const boss = ['ceo', 'hr'].includes(me.role);
+  const [last, setLast] = useState(undefined);   // undefined = loading, null = never
+  const [pop, setPop] = useState(false);
+  useEffect(() => {
+    if (!lead && !boss) return;
+    const load = () => sb.from('engaz_imports').select('created_at').order('created_at', { ascending: false }).limit(1).then(({ data: d, error }) => { if (!error) setLast(d && d[0] ? d[0].created_at : null); });
+    load();
+    window.addEventListener('hv-engaz-imported', load);
+    return () => window.removeEventListener('hv-engaz-imported', load);
+  }, [lead, boss, page]);
+  const days = last ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000) : null;
+  const overdue = last === null || (days != null && days >= 7);
+  const show = last !== undefined && (overdue || (lead && days >= 6));
+  useEffect(() => {
+    if (!lead || !show || !overdue) return;
+    const k = 'hv_engaz_reminded_' + me.id, today = localDay(new Date());
+    let seen = null; try { seen = safeStorage.getItem(k); } catch (e) {}
+    if (seen !== today) { setPop(true); try { safeStorage.setItem(k, today); } catch (e) {} }
+  }, [lead, show, overdue]);
+  if ((!lead && !boss) || !show) return null;
+  const go = () => { setPop(false); setPage('kpi'); setTimeout(() => window.dispatchEvent(new CustomEvent('hv-tour', { detail: { action: 'kpi-tab-engaz' } })), 400); };
+  const msg = last === null ? t.ezDueNever : (overdue ? t.ezDueLate : t.ezDueSoon).replace('{n}', days).replace('{d}', localDay(last));
+  const leads = data.employees.filter((e) => e.status === 'active' && isSalesLeadEmp(e, data)).map((e) => (lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en);
+  return (
+    <>
+      <div data-tour="engaz-reminder" className={cx('flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm', overdue ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-800')}>
+        <span>📥 <b>{t.ezDueTitle}:</b> {msg}{boss && !lead && leads.length ? ' ' + t.ezDueWho + ': ' + leads.join(', ') + '.' : ''}</span>
+        <Btn size="sm" onClick={go}>{t.ezDueBtn}</Btn>
+      </div>
+      <Modal open={pop} onClose={() => setPop(false)} title={'📥 ' + t.ezDueTitle}
+        footer={<><Btn className="flex-1" onClick={go}>{t.ezDueBtn}</Btn><Btn variant="outline" className="flex-1" onClick={() => setPop(false)}>{t.ezDueLater}</Btn></>}>
+        <p className="text-sm font-semibold text-slate-800">{msg}</p>
+        <p className="mt-2 text-sm text-slate-600">{t.ezDueHow}</p>
+      </Modal>
+    </>
+  );
+}
+
 function Dashboard({ me, data }) {
   const { lang, t } = useL();
   const year = new Date().getFullYear();
@@ -3032,6 +3107,9 @@ function AttendanceRulesTab(props) {
   const [eTiers, setETiers] = useState((initial.early_tiers || initial.tiers || DEFAULT_LATE_TIERS).map((x) => ({ ...x })));
   useEffect(() => { const p = props.data.settings.attendance_policy || {}; setETiers((p.early_tiers || p.tiers || DEFAULT_LATE_TIERS).map((x) => ({ ...x }))); }, [props.data.settings.attendance_policy]);
   const setE = (i, k, v) => setETiers((prev) => prev.map((x, idx) => (idx === i ? { ...x, [k]: v } : x)));
+  const [mp, setMp] = useState(missingPolicy(initial));
+  useEffect(() => { setMp(missingPolicy(props.data.settings.attendance_policy)); }, [props.data.settings.attendance_policy]);
+  const mpPen = mp.kind === 'none' ? 'none' : mp.kind === 'hours' ? 'hours' : String(Number(mp.value));
   const eSorted = [...eTiers].sort((a, b) => Number(a.from_minutes) - Number(b.from_minutes));
   const set = (i, k, v) => setTiers((prev) => prev.map((x, idx) => (idx === i ? { ...x, [k]: v } : x)));
   const sorted = [...tiers].sort((a, b) => Number(a.from_minutes) - Number(b.from_minutes));
@@ -3104,6 +3182,25 @@ function AttendanceRulesTab(props) {
           ))}
         </div>
         <Btn className="mt-4 w-full" onClick={() => save('attendance_policy', { ...initial, tiers: sorted, break_max_minutes: Number(breakMax) || 30, break_tiers: bSorted, early_tiers: eSorted }, initial)}>{t.save}</Btn>
+      </Card>
+      <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.missRulesHint}</p>
+      <Card tour="rules-missing" title={'⚠ ' + t.missRules}>
+        <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!mp.enabled} onChange={(e) => setMp({ ...mp, enabled: e.target.checked })} />{t.missAutoOn}</label>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Field label={t.missAutoDays}><Input type="number" inputMode="numeric" min="1" disabled={!mp.enabled} value={mp.days} onChange={(e) => setMp({ ...mp, days: Number(e.target.value) })} /></Field>
+          <Field label={t.missAutoFrom}><Input type="date" disabled={!mp.enabled} value={mp.from || ''} onChange={(e) => setMp({ ...mp, from: e.target.value })} /></Field>
+          <Field label={t.missAutoPen}>
+            <Select disabled={!mp.enabled} value={['none', 'hours', '0.25', '0.5', '1'].includes(mpPen) ? mpPen : '0.25'} onChange={(e) => { const v = e.target.value; setMp(v === 'none' ? { ...mp, kind: 'none', value: 0 } : v === 'hours' ? { ...mp, kind: 'hours', value: 1 } : { ...mp, kind: 'day_fraction', value: Number(v) }); }}>
+              <option value="none">{t.missPenWarn}</option>
+              <option value="hours">{t.missHoursLbl}</option>
+              <option value="0.25">{t.missPenQuarter}</option>
+              <option value="0.5">{t.missPenHalf}</option>
+              <option value="1">{t.missPenFull}</option>
+            </Select>
+          </Field>
+          {mp.kind === 'hours' && <Field label={t.missHoursLbl}><Input type="number" inputMode="decimal" min="0.25" step="0.25" disabled={!mp.enabled} value={mp.value} onChange={(e) => setMp({ ...mp, value: Number(e.target.value) })} /></Field>}
+        </div>
+        <Btn className="mt-4 w-full" onClick={() => save('attendance_policy', { ...initial, missing_punch: { enabled: !!mp.enabled, days: Math.max(1, Number(mp.days) || 3), kind: mp.kind, value: Number(mp.value) || 0, from: mp.from || localDay(new Date()) } }, initial)}>{t.save}</Btn>
       </Card>
       <Card title={(shift ? (lang === 'ar' ? shift.name_ar : shift.name_en) + ' · ' + String(shift.start_time).slice(0, 5) : '') }>
         <ul className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
@@ -3672,6 +3769,9 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const exc = excused[empId + '|' + date];
       const breakAsIn = !!(firstIn && firstIn.note && /^Break-(start|end) pressed first/.test(firstIn.note));
       const mdec = !lastOut ? (missDec[empId + '|' + date] || null) : null;
+      const openMiss = !lastOut && !weekend && !!firstIn && date < localDay(new Date()) && !mdec;
+      const autoPen = openMiss ? missingAuto(data.settings.attendance_policy, date, localDay(new Date())) : null;
+      const missLeft = openMiss && !autoPen ? missingDaysLeft(data.settings.attendance_policy, date, localDay(new Date())) : null;
       const raw = shift && firstIn ? Math.max(0, minutesOf(firstIn.punch_time) - timeToMin(shift.start_time)) : 0;
       const tier = weekend || exc ? null : lateTierFor(data.settings.attendance_policy, raw);
       const brkMin = breakByEmp[empId] ? (breakByEmp[empId][date] || 0) : 0;
@@ -3680,11 +3780,11 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const early = shift && lastOut && !weekend ? Math.max(0, timeToMin(shift.end_time) - minutesOf(lastOut.punch_time)) : 0;
       const earlyExc = exc === 'early_leave' || excusedEarlyMap[empId + '|' + date];
       const earlyTier = early > 0 && !earlyExc ? earlyTierFor(data.settings.attendance_policy, early) : null;
-      return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut, missDec: mdec, needs: !lastOut && !weekend && !!firstIn && date < localDay(new Date()) && !mdec, flagged, excused: !!exc, tier, brkMin, brkOver, brkTier, early: earlyExc ? 0 : early, earlyTier, breakAsIn };
+      return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut, missDec: mdec, needs: openMiss && !autoPen, autoPen, missLeft, flagged, excused: !!exc, tier, brkMin, brkOver, brkTier, early: earlyExc ? 0 : early, earlyTier, breakAsIn };
     }).sort((a, b) => b.date.localeCompare(a.date) || eName(a.emp).localeCompare(eName(b.emp)));
-  }, [punches, fEmp, data.employees, data.shifts, excused, breakByEmp, excusedBreak, excusedEarlyMap, missDec]);
+  }, [punches, fEmp, data.employees, data.shifts, data.settings.attendance_policy, excused, breakByEmp, excusedBreak, excusedEarlyMap, missDec]);
   const needsN = rows.filter((r) => r.needs).length;
-  const missTxt = (r) => !r.missing || r.weekend ? '' : r.needs ? t.missNeeds : r.missDec ? t.missingOut + ' · ' + (r.missDec.status === 'approved' ? t.excused : missPenaltyLabel(t, r.missDec)) : t.missingOut;
+  const missTxt = (r) => !r.missing || r.weekend ? '' : r.needs ? t.missNeeds : r.autoPen ? t.missingOut + ' · ' + t.missAuto + ': ' + missPenaltyLabel(t, r.autoPen) : r.missDec ? t.missingOut + ' · ' + (r.missDec.status === 'approved' ? t.excused : missPenaltyLabel(t, r.missDec)) : t.missingOut;
   const canDecideDay = (r) => !!(r && r.emp && (isHr || (r.emp.manager_id && data.employees.some((e) => e.user_id === me.id && e.id === r.emp.manager_id))));
 
   const [exporting, setExporting] = useState(false);
@@ -3873,7 +3973,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                         <span className="flex flex-wrap gap-1">
                           {r.weekend && <Badge>{t.weekendLbl}</Badge>}
                           {r.excused && <Badge tone="green">✓ {t.excused}</Badge>}
-                          {r.missing && !r.weekend && (r.needs ? <Badge tone="red">⚠ {t.missNeeds}</Badge> : r.missDec ? <Badge tone={r.missDec.status === 'approved' ? 'green' : 'red'}>{t.missingOut} · {r.missDec.status === 'approved' ? '✓ ' + t.excused : missPenaltyLabel(t, r.missDec)}</Badge> : <Badge tone="amber">{t.missingOut}</Badge>)}
+                          {r.missing && !r.weekend && (r.needs ? <Badge tone="red">⚠ {t.missNeeds}{r.missLeft != null ? ' · ' + (r.missLeft <= 0 ? t.missLeftLast : t.missLeft.replace('{n}', r.missLeft)) : ''}</Badge> : r.autoPen ? <Badge tone="red">{t.missingOut} · {t.missAuto}: {missPenaltyLabel(t, r.autoPen)}</Badge> : r.missDec ? <Badge tone={r.missDec.status === 'approved' ? 'green' : 'red'}>{t.missingOut} · {r.missDec.status === 'approved' ? '✓ ' + t.excused : missPenaltyLabel(t, r.missDec)}</Badge> : <Badge tone="amber">{t.missingOut}</Badge>)}
                           {r.flagged && <Badge tone="red">📍 {t.outsideBranch}</Badge>}
                           {r.breakAsIn && <Badge tone="amber">☕→🕐 {t.breakAsIn}</Badge>}
                           {!r.weekend && !r.missing && !bad && !r.excused && <span className="text-xs text-emerald-600">✓</span>}
@@ -3929,7 +4029,8 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
             <p className="text-sm font-semibold text-slate-800">⚠ {t.missTitle}</p>
             {dayView.missDec ? (
               <p className="mt-1 text-xs text-slate-600"><b className={dayView.missDec.status === 'approved' ? 'text-emerald-700' : 'text-rose-700'}>{dayView.missDec.status === 'approved' ? '✓ ' + t.excused : missPenaltyLabel(t, dayView.missDec)}</b> · {dayView.missDec.reason}</p>
-            ) : <p className="mt-1 text-xs text-rose-800">{t.missHint}</p>}
+            ) : dayView.autoPen ? <p className="mt-1 text-xs text-rose-800"><b>{t.missAuto}: {missPenaltyLabel(t, dayView.autoPen)}</b> · {t.missAutoHint.replace('{n}', missingPolicy(data.settings.attendance_policy).days)}</p>
+            : <p className="mt-1 text-xs text-rose-800">{t.missHint}</p>}
             {canDecideDay(dayView) && (
               <div className="mt-2 space-y-2">
                 <div className="flex gap-2">
@@ -6995,6 +7096,7 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
     if (saved) setProfiles((prev) => ({ ...prev, clients: saved }));
     audit('insert', 'engaz_imports', log ? log.id : ez.name, null, { kind: 'clients', entries: entries.length, removed: res && res.removed });
     setBusy(false);
+    window.dispatchEvent(new Event('hv-engaz-imported'));
     toast(t.ezImported + ': ' + entries.length + (res && res.removed ? ' · ' + t.ezRemoved + ': ' + res.removed : ''));
     onImported();
   }
@@ -8548,8 +8650,8 @@ const HV_TOUR_STEPS = [
     en: ['Live board', 'Who is working, on break or finished today, their last activity, total breaks (⚠ = over the allowance) and net worked time. 💻 means the laptop agent is connected. It refreshes every 30 seconds.'],
     ar: ['اللوحة الحية', 'من يعمل الآن ومن في استراحة ومن أنهى يومه، وآخر نشاط، وإجمالي الاستراحات (⚠ تعني تجاوز الرصيد)، وصافي وقت العمل. علامة 💻 تعني أن برنامج اللابتوب متصل. تتحدث كل 30 ثانية.'] },
   { c: 'att', page: 'attendance', target: 'rev-table', action: 'att-tab-review', roles: HV_TOUR_ADMIN,
-    en: ['Review attendance', 'Pick the dates and, if you like, one employee. Each employee-day is one row: first in, last out, hours, late, left early, breaks and overtime with the penalty tier; badges flag weekends, missing check-outs and punches outside the branch. Tap a row for every punch and the day\'s breaks — HR or the direct manager can Excuse this day there. A day that ended without a check-out is marked "needs a decision" in red and counted in the banner at the top: open it and either Excuse it or Take action (warning, hours, quarter / half / full day); HR can instead enter the real check-out time.'],
-    ar: ['مراجعة الحضور', 'اختر الفترة وموظفاً محدداً إن أردت. كل يوم لكل موظف في سطر: أول دخول وآخر خروج والساعات والتأخير والانصراف المبكر والاستراحات والإضافي مع شريحة الجزاء، وتوضح الشارات أيام الراحة ونسيان الانصراف والبصمة خارج الفرع. اضغط على السطر لرؤية كل البصمات واستراحات اليوم، ومن هناك يمكن للموارد البشرية أو المدير المباشر «إعفاء هذا اليوم». اليوم الذي انتهى بدون بصمة انصراف يظهر بالأحمر «تحتاج قراراً» ويُحسب في التنبيه أعلى الصفحة: افتحه ثم اختر «إعفاء» أو «اتخاذ إجراء» (إنذار، ساعات، ربع / نصف / يوم كامل)، ويمكن للموارد البشرية بدلاً من ذلك إدخال وقت الانصراف الحقيقي.'] },
+    en: ['Review attendance', 'Pick the dates and, if you like, one employee. Each employee-day is one row: first in, last out, hours, late, left early, breaks and overtime with the penalty tier; badges flag weekends, missing check-outs and punches outside the branch. Tap a row for every punch and the day\'s breaks — HR or the direct manager can Excuse this day there. A day that ended without a check-out is marked "needs a decision" in red and counted in the banner at the top: open it and either Excuse it or Take action (warning, hours, quarter / half / full day); HR can instead enter the real check-out time. The tag shows how many days are left: after that the default penalty from the Rules tab applies by itself, and a later decision still replaces it.'],
+    ar: ['مراجعة الحضور', 'اختر الفترة وموظفاً محدداً إن أردت. كل يوم لكل موظف في سطر: أول دخول وآخر خروج والساعات والتأخير والانصراف المبكر والاستراحات والإضافي مع شريحة الجزاء، وتوضح الشارات أيام الراحة ونسيان الانصراف والبصمة خارج الفرع. اضغط على السطر لرؤية كل البصمات واستراحات اليوم، ومن هناك يمكن للموارد البشرية أو المدير المباشر «إعفاء هذا اليوم». اليوم الذي انتهى بدون بصمة انصراف يظهر بالأحمر «تحتاج قراراً» ويُحسب في التنبيه أعلى الصفحة: افتحه ثم اختر «إعفاء» أو «اتخاذ إجراء» (إنذار، ساعات، ربع / نصف / يوم كامل)، ويمكن للموارد البشرية بدلاً من ذلك إدخال وقت الانصراف الحقيقي. تُظهر الشارة عدد الأيام المتبقية، وبعدها يُطبق الجزاء الافتراضي من تبويب القواعد تلقائياً، وأي قرار لاحق يلغيه.'] },
   { c: 'att', page: 'attendance', target: 'rev-manual', action: 'att-tab-review', roles: ['ceo', 'hr'],
     en: ['Manual punch, print & Excel', 'A forgotten punch is added here by HR with the time, direction and a required reason; a wrong punch is deleted from the day view. Print the review as one list or one sheet per employee with signature lines, or download it to Excel. Every change goes to the audit log.'],
     ar: ['البصمة اليدوية والطباعة وExcel', 'البصمة المنسية تضيفها الموارد البشرية من هنا مع الوقت والاتجاه وسبب إلزامي، والبصمة الخاطئة تُحذف من تفاصيل اليوم. اطبع المراجعة كقائمة واحدة أو ورقة لكل موظف بخانات التوقيع، أو نزّلها Excel. كل تعديل يُسجَّل في سجل التدقيق.'] },
@@ -8560,8 +8662,8 @@ const HV_TOUR_STEPS = [
     en: ['Lock the month', 'After reviewing, lock the month per branch. Nobody — not even HR — can then add or delete punches for that branch and month until it is unlocked. Payroll warns you when the month is not locked yet.'],
     ar: ['قفل الشهر', 'بعد المراجعة اقفل الشهر لكل فرع، فلا يستطيع أحد (حتى الموارد البشرية) إضافة أو حذف بصمات لهذا الفرع والشهر حتى يُفتح. وتنبهك صفحة الرواتب إذا لم يكن الشهر مقفولاً بعد.'] },
   { c: 'att', page: 'attendance', target: 'rules-late', action: 'att-tab-rules', roles: ['ceo', 'hr'],
-    en: ['Lateness, break & early-leave rules', 'Set the lateness tiers (from which minute, which penalty), the daily break allowance with its tiers, and the early-leave tiers. The highest tier reached applies once per day; changes affect payroll runs created or recalculated afterwards.'],
-    ar: ['قواعد التأخير والاستراحة والانصراف المبكر', 'حدد شرائح التأخير (من أي دقيقة وما الجزاء)، ورصيد الاستراحة اليومي وشرائحه، وشرائح الانصراف المبكر. تُطبق أعلى شريحة مرة واحدة في اليوم، والتغيير يسري على مسيرات الرواتب التي تُنشأ أو يُعاد حسابها بعده.'] },
+    en: ['Lateness, break & early-leave rules', 'Set the lateness tiers (from which minute, which penalty), the daily break allowance with its tiers, and the early-leave tiers. At the bottom, Missing check-out sets how many days a missing punch may wait for a decision and the default penalty that applies if nobody decides. The highest tier reached applies once per day; changes affect payroll runs created or recalculated afterwards.'],
+    ar: ['قواعد التأخير والاستراحة والانصراف المبكر', 'حدد شرائح التأخير (من أي دقيقة وما الجزاء)، ورصيد الاستراحة اليومي وشرائحه، وشرائح الانصراف المبكر. وفي الأسفل «بصمة الانصراف الناقصة» تحدد عدد الأيام المتاحة للقرار والجزاء الافتراضي إذا لم يُتخذ قرار. تُطبق أعلى شريحة مرة واحدة في اليوم، والتغيير يسري على مسيرات الرواتب التي تُنشأ أو يُعاد حسابها بعده.'] },
 
   /* ---------- leave ---------- */
   { c: 'leave', page: 'leave', target: 'leave-balance', action: 'leave-tab-mine',
@@ -8597,8 +8699,8 @@ const HV_TOUR_STEPS = [
     en: ['Approve results', 'Approve or reject your team\'s pending results. HR and managers can also log a result on an employee\'s behalf from here.'],
     ar: ['اعتماد النتائج', 'اعتمد أو ارفض نتائج فريقك المعلقة. ويمكن للموارد البشرية والمديرين تسجيل نتيجة نيابة عن موظف من هنا.'] },
   { c: 'kpi', page: 'kpi', target: 'kpi-engaz', action: 'kpi-tab-engaz', roles: ['ceo', 'hr', 'manager'],
-    en: ['Engaz import & sales performance', 'Upload the weekly Engaz export: the clients export is recognised automatically, rep names are matched once and remembered, and importing again never counts twice. The Sales performance tab shows leads, follow-ups, viewings, deals and closing % per rep.'],
-    ar: ['استيراد إنجاز وأداء المبيعات', 'ارفع ملف إنجاز الأسبوعي: يُتعرف على ملف العملاء تلقائياً، وتُطابق أسماء المندوبين مرة واحدة وتُحفظ، وإعادة الاستيراد لا تكرر العدّ. ويعرض تبويب «أداء المبيعات» العملاء المحتملين والمتابعات والمعاينات والصفقات ونسبة الإغلاق لكل مندوب.'] },
+    en: ['Engaz import & sales performance', 'Upload the weekly Engaz export (the sales manager gets a reminder on the home page from day 6 after the last upload, and CEOs and HR see it when a week has passed): the clients export is recognised automatically, rep names are matched once and remembered, and importing again never counts twice. The Sales performance tab shows leads, follow-ups, viewings, deals and closing % per rep.'],
+    ar: ['استيراد إنجاز وأداء المبيعات', 'ارفع ملف إنجاز الأسبوعي (يظهر لمدير المبيعات تذكير في الصفحة الرئيسية من اليوم السادس بعد آخر رفع، ويراه المديرون التنفيذيون والموارد البشرية بعد مرور أسبوع): يُتعرف على ملف العملاء تلقائياً، وتُطابق أسماء المندوبين مرة واحدة وتُحفظ، وإعادة الاستيراد لا تكرر العدّ. ويعرض تبويب «أداء المبيعات» العملاء المحتملين والمتابعات والمعاينات والصفقات ونسبة الإغلاق لكل مندوب.'] },
   { c: 'kpi', page: 'kpi', target: 'kpi-metrics', action: 'kpi-tab-metrics', roles: ['ceo', 'hr'],
     en: ['Metrics & points', 'HR defines each metric: its category, points per unit and points per 1M EGP of deal value, and can switch a metric off without losing its history.'],
     ar: ['المؤشرات والنقاط', 'تحدد الموارد البشرية كل مؤشر: فئته والنقاط لكل وحدة والنقاط لكل مليون جنيه من قيمة الصفقة، ويمكن إيقاف مؤشر دون فقدان سجله.'] },
@@ -8925,6 +9027,7 @@ function App() {
       <Toast msg={msg} />
       <PresenceModal live={live} toast={toast} />
       <Shell me={me} page={page} setPage={setPage} onSignOut={() => sb.auth.signOut()}>
+        {ready && ['dashboard', 'me', 'kpi'].includes(page) && <EngazReminder me={me} data={data} page={page} setPage={setPage} />}
         {!ready ? <Empty text={t.loading} />
           : !allowed ? <Card><Empty text={t.noPermission} /></Card>
           : page === 'dashboard' ? (me.role === 'staff' ? <MyPage {...shared} setPage={setPage} /> : <Dashboard {...shared} />)
