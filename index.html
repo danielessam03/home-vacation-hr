@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.43';
+const APP_VERSION = 'v3.44';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -202,6 +202,10 @@ const T = {
     reviewTab: 'Review', lockTab: 'Lock',
     lateMin: 'Late (min)', workedH: 'Worked', otMin: 'OT (min)', missingOut: 'Missing punch', weekendLbl: 'Weekend', statusLbl: 'Status', penaltyLbl: 'Penalty',
     breaksOfDay: 'Breaks of the day', breakReasons: { manual: 'Started by the employee', prompt_timeout: 'No answer to the prompt', agent_idle: 'Laptop idle', device: 'Fingerprint device' }, noBreaks: 'No breaks recorded', stillOnBreak: 'still on break',
+    missNeeds: 'Missing punch · needs a decision', missBanner: 'days ended without a check-out. Each one must be excused or have action taken.', missOnly: 'Show only these', missAll: 'Show all days',
+    missTitle: 'Missing check-out', missHint: 'The employee checked in but never checked out, and the day is over. Decide what happens.', missExcuse: 'Excuse it', missExcuseHint: 'Forgot to punch out. No deduction.', missAction: 'Take action', missActionHint: 'Something went wrong. Choose the penalty.',
+    missAddOut: 'Enter the real check-out time', missAddOutHint: 'The day is then judged normally (hours, early leave, overtime).', missPenalty: 'Penalty', missPenWarn: 'Warning only', missPenHours: 'Deduct {n} h', missPenQuarter: 'Deduct quarter day', missPenHalf: 'Deduct half day', missPenFull: 'Deduct full day', missPenDay: 'Deduct {n} day',
+    missHoursLbl: 'Hours to deduct', missSavedExc: 'Excused. No deduction for the missing punch.', missSavedAct: 'Action recorded. It will show in payroll.', missChange: 'Change the decision', missDedLbl: 'Missing punch', missPendingPay: 'missing punches in this month are still undecided. Decide them in Attendance → Review, then recalculate.', missUndecided: 'undecided', missPenalised: 'penalised', leadNote: 'Sales team leaders and managers are not ranked on this board.',
     excuseDay: 'Excuse this day', excuseWhat: 'What to excuse', excuseSaved: 'Excused. No deduction for that day.', excuseExisting: 'Already excused', excuseHint: 'Creates an accepted note on the employee\'s behalf. The day then carries no deduction for the chosen item.',
     prAttTitle: 'Attendance report', prList: 'All in one list', prListHint: 'Every employee-day on screen, in date order, with the totals on top.', prPerEmp: 'One sheet per employee', prPerEmpHint: 'Each employee on their own page with their totals and signature lines.', prSigEmp: 'Employee signature', prSigMgr: 'Direct manager', prSigHr: 'HR', prPopup: 'Allow pop-ups for this site to print.', prDays: 'Days', prChoose: 'What do you want to print?',
     totalsTab: 'Totals', totalLbl: 'Total', totalLate: 'Late (total)', totalEarly: 'Left early (total)', totalBreakOver: 'Break overrun (total)', totalOt: 'Overtime (total)', totalDeducted: 'Deducted (EGP)',
@@ -442,6 +446,10 @@ const T = {
     reviewTab: 'المراجعة', lockTab: 'القفل',
     lateMin: 'تأخير (د)', workedH: 'ساعات العمل', otMin: 'إضافي (د)', missingOut: 'بصمة ناقصة', weekendLbl: 'إجازة أسبوعية', statusLbl: 'الحالة', penaltyLbl: 'الجزاء',
     breaksOfDay: 'استراحات اليوم', breakReasons: { manual: 'بدأها الموظف', prompt_timeout: 'لم يرد على التنبيه', agent_idle: 'اللابتوب بلا نشاط', device: 'جهاز البصمة' }, noBreaks: 'لا توجد استراحات مسجلة', stillOnBreak: 'ما زال في استراحة',
+    missNeeds: 'بصمة ناقصة · تحتاج قراراً', missBanner: 'يوم انتهى بدون بصمة انصراف. كل يوم يجب إعفاؤه أو اتخاذ إجراء بشأنه.', missOnly: 'عرض هذه الأيام فقط', missAll: 'عرض كل الأيام',
+    missTitle: 'بصمة انصراف ناقصة', missHint: 'الموظف سجّل الحضور ولم يسجّل الانصراف وانتهى اليوم. حدّد ما يتم.', missExcuse: 'إعفاء', missExcuseHint: 'نسي تسجيل الانصراف. بدون خصم.', missAction: 'اتخاذ إجراء', missActionHint: 'حدث خطأ ما. اختر الجزاء.',
+    missAddOut: 'إدخال وقت الانصراف الحقيقي', missAddOutHint: 'يُحسب اليوم بعدها بشكل عادي (الساعات، الانصراف المبكر، الإضافي).', missPenalty: 'الجزاء', missPenWarn: 'إنذار فقط', missPenHours: 'خصم {n} ساعة', missPenQuarter: 'خصم ربع يوم', missPenHalf: 'خصم نصف يوم', missPenFull: 'خصم يوم كامل', missPenDay: 'خصم {n} يوم',
+    missHoursLbl: 'عدد الساعات المخصومة', missSavedExc: 'تم الإعفاء. لا خصم عن البصمة الناقصة.', missSavedAct: 'تم تسجيل الإجراء وسيظهر في الرواتب.', missChange: 'تغيير القرار', missDedLbl: 'بصمة ناقصة', missPendingPay: 'بصمة ناقصة في هذا الشهر لم يُتخذ فيها قرار. احسمها من الحضور ← المراجعة ثم أعد الحساب.', missUndecided: 'بدون قرار', missPenalised: 'عليها جزاء', leadNote: 'قادة ومديرو فريق المبيعات لا يظهرون في ترتيب هذه اللوحة.',
     excuseDay: 'إعفاء هذا اليوم', excuseWhat: 'ما الذي يُعفى', excuseSaved: 'تم الإعفاء. لا خصم عن هذا اليوم.', excuseExisting: 'معفى بالفعل', excuseHint: 'ينشئ إذناً مقبولاً نيابة عن الموظف. لا يُخصم عن هذا اليوم للبند المختار.',
     prAttTitle: 'تقرير الحضور والانصراف', prList: 'قائمة واحدة للجميع', prListHint: 'كل أيام الموظفين المعروضة بترتيب التاريخ مع الإجماليات في الأعلى.', prPerEmp: 'ورقة لكل موظف', prPerEmpHint: 'كل موظف في صفحة مستقلة مع إجمالياته وأماكن التوقيع.', prSigEmp: 'توقيع الموظف', prSigMgr: 'المدير المباشر', prSigHr: 'الموارد البشرية', prPopup: 'اسمح بالنوافذ المنبثقة لهذا الموقع للطباعة.', prDays: 'أيام', prChoose: 'ماذا تريد أن تطبع؟',
     totalsTab: 'الإجماليات', totalLbl: 'الإجمالي', totalLate: 'التأخير (إجمالي)', totalEarly: 'الانصراف المبكر (إجمالي)', totalBreakOver: 'تجاوز الاستراحة (إجمالي)', totalOt: 'الإضافي (إجمالي)', totalDeducted: 'المخصوم (جنيه)',
@@ -1166,6 +1174,10 @@ function breakMinutesByDay(sessions) {
   }
   return out;
 }
+/* Missing check-out decided as "action taken": warning, fixed hours or part of a day. */
+function missingPenaltyAmount(d, hourRate, dayRate) { const v = Number(d.penalty_value) || 0; return d.penalty_kind === 'hours' ? v * hourRate : d.penalty_kind === 'day_fraction' ? v * dayRate : 0; }
+const missPenaltyLabel = (t, d) => d.penalty_kind === 'hours' ? t.missPenHours.replace('{n}', Number(d.penalty_value)) : d.penalty_kind === 'day_fraction'
+  ? (Number(d.penalty_value) === 1 ? t.missPenFull : Number(d.penalty_value) === 0.5 ? t.missPenHalf : Number(d.penalty_value) === 0.25 ? t.missPenQuarter : t.missPenDay.replace('{n}', Number(d.penalty_value))) : t.missPenWarn;
 function lateTierAmount(policy, tier, rawMinutes, hourRate, dayRate) {
   if (!tier) return 0;
   const tiers = lateTiers(policy);
@@ -1219,7 +1231,13 @@ function computePayrollItem(emp, ctx) {
   }
   const byDay = {};
   for (const p of ctx.punches) (byDay[localDay(p.punch_time)] = byDay[localDay(p.punch_time)] || []).push(p);
-  const excusedDays = new Set((ctx.exceptions || []).filter((x) => x.employee_id === emp.id && x.status === 'approved' && x.kind !== 'break').map((x) => x.exc_date));
+  const excusedDays = new Set((ctx.exceptions || []).filter((x) => x.employee_id === emp.id && x.status === 'approved' && x.kind !== 'break' && x.kind !== 'missing_punch').map((x) => x.exc_date));
+  /* missing check-out on a finished day: excused, penalised, or still waiting for a decision */
+  const missDec = {};
+  for (const x of (ctx.exceptions || [])) if (x.employee_id === emp.id && x.kind === 'missing_punch' && (x.status === 'approved' || x.status === 'rejected')) missDec[x.exc_date] = x;
+  const todayStr = localDay(new Date());
+  let missDays = 0, missDed = 0, missPending = 0;
+  const missDetail = [];
   if (!emp.attendance_exempt) for (const [date, list] of Object.entries(byDay)) {
     if (weekend.includes(new Date(date + 'T00:00:00').getDay())) continue;
     list.sort((a, b) => a.punch_time.localeCompare(b.punch_time));
@@ -1243,6 +1261,11 @@ function computePayrollItem(emp, ctx) {
         const tier = earlyTierFor(attPolicy, early);
         if (tier) { earlyDays++; const amt = earlyTierAmount(attPolicy, tier, early, hourRate, dayRate); earlyDed += amt; earlyDetail.push({ date, minutes: early, tier: tier.label_en || tier.kind, kind: tier.kind, amount: r2(amt) }); }
       }
+    }
+    if (!lastOut && date < todayStr) {
+      const d = missDec[date];
+      if (!d) missPending++;
+      else if (d.status === 'rejected') { missDays++; const amt = missingPenaltyAmount(d, hourRate, dayRate); missDed += amt; missDetail.push({ date, kind: d.penalty_kind || 'none', value: Number(d.penalty_value) || 0, amount: r2(amt) }); }
     }
   }
 
@@ -1300,7 +1323,7 @@ function computePayrollItem(emp, ctx) {
   }
   loanDed = r2(loanDed);
 
-  const totalDed = r2(lateDed + r2(breakDed) + r2(earlyDed) + unpaidDed + sickDed + insEmployee + tax + loanDed);
+  const totalDed = r2(lateDed + r2(breakDed) + r2(earlyDed) + r2(missDed) + unpaidDed + sickDed + insEmployee + tax + loanDed);
   return {
     loan_deduction: loanDed, loan_details: loanDetails,
     basic_salary: r2(basic), allowances, allowances_total: r2(allowTotal),
@@ -1309,6 +1332,7 @@ function computePayrollItem(emp, ctx) {
     late_minutes: Math.round(late), late_deduction: lateDed, late_days: lateDays, late_detail: lateDetail,
     break_minutes: breakMin, break_over_minutes: breakOver, break_deduction: r2(breakDed), break_detail: breakDetail,
     early_minutes: earlyMin, early_days: earlyDays, early_deduction: r2(earlyDed), early_detail: earlyDetail,
+    missing_days: missDays, missing_deduction: r2(missDed), missing_detail: missDetail, missing_pending: missPending,
     unpaid_days: unpaidDays, unpaid_deduction: unpaidDed,
     sick_days: sickDays, sick_deduction: r2(sickDed),
     other_deductions: 0, other_deductions_note: null,
@@ -1323,7 +1347,7 @@ function recomputePayrollItem(item, ctx) {
   const exemption = Number((ctx.taxSettings || {}).personal_exemption_annual) || 0;
   const annualTaxable = Math.max(0, (gross - item.insurance_employee) * 12 - exemption);
   const tax = r2(calcAnnualTax(annualTaxable, ctx.taxBrackets) / 12);
-  const totalDed = r2(item.late_deduction + (Number(item.break_deduction) || 0) + (Number(item.early_deduction) || 0) + item.unpaid_deduction + item.sick_deduction
+  const totalDed = r2(item.late_deduction + (Number(item.break_deduction) || 0) + (Number(item.early_deduction) || 0) + (Number(item.missing_deduction) || 0) + item.unpaid_deduction + item.sick_deduction
     + item.insurance_employee + tax + (Number(item.loan_deduction) || 0) + (Number(item.other_deductions) || 0));
   return { ...item, gross_pay: gross, income_tax: tax, total_deductions: totalDed, net_pay: r2(gross - totalDed) };
 }
@@ -1425,6 +1449,7 @@ function printPayslip(item, emp, run, company, t) {
     ...(item.late_deduction > 0 ? [['خصم تأخير / Lateness (' + item.late_minutes + ' د/min)', item.late_deduction]] : []),
     ...(Number(item.break_deduction) > 0 ? [['تجاوز الاستراحة / Break overrun (' + item.break_over_minutes + ' د/min)', item.break_deduction]] : []),
     ...(Number(item.early_deduction) > 0 ? [['انصراف مبكر / Left early (' + item.early_minutes + ' د/min)', item.early_deduction]] : []),
+    ...(Number(item.missing_deduction) > 0 ? [['بصمة انصراف ناقصة / Missing check-out (' + item.missing_days + ')', item.missing_deduction]] : []),
     ...(item.unpaid_deduction > 0 ? [['إجازة بدون مرتب / Unpaid leave (' + Number(item.unpaid_days) + ')', item.unpaid_deduction]] : []),
     ...(item.sick_deduction > 0 ? [['تسوية مرضية / Sick adjustment (' + Number(item.sick_days) + ')', item.sick_deduction]] : []),
     ['التأمينات الاجتماعية / Social insurance', item.insurance_employee],
@@ -2897,7 +2922,7 @@ function AttendanceTotalsTab({ me, data, eName }) {
         sb.from('attendance_punches').select('employee_id, punch_time, direction').gte('punch_time', new Date(from + 'T00:00:00').toISOString()).lt('punch_time', new Date(nextM + 'T00:00:00').toISOString()),
         sb.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', y + '-' + pad2(m) + '-31').gte('end_date', from),
         sb.from('leave_types').select('*'),
-        sb.from('attendance_exceptions').select('employee_id, exc_date, kind, status').eq('status', 'approved').gte('exc_date', from).lt('exc_date', nextM),
+        sb.from('attendance_exceptions').select('employee_id, exc_date, kind, status, penalty_kind, penalty_value').in('status', ['approved', 'rejected']).gte('exc_date', from).lt('exc_date', nextM),
         sb.from('work_sessions').select('employee_id, started_at, ended_at, status, break_seconds, break_started_at').gte('started_at', new Date(from + 'T00:00:00').toISOString()).lt('started_at', new Date(nextM + 'T00:00:00').toISOString()),
       ]);
       const ctx = {
@@ -2912,8 +2937,8 @@ function AttendanceTotalsTab({ me, data, eName }) {
         const it = computePayrollItem(emp, { ...ctx, punches });
         const days = new Set(punches.map((p) => localDay(p.punch_time))).size;
         return { emp, days, late: it.late_minutes, lateDays: it.late_days, lateDed: it.late_deduction, early: it.early_minutes, earlyDed: it.early_deduction,
-          brk: it.break_over_minutes, brkDed: it.break_deduction, ot: it.ot_minutes, otAmt: it.ot_amount,
-          ded: r2(it.late_deduction + (it.early_deduction || 0) + (it.break_deduction || 0)) };
+          brk: it.break_over_minutes, brkDed: it.break_deduction, ot: it.ot_minutes, otAmt: it.ot_amount, miss: it.missing_days, missPend: it.missing_pending, missDed: it.missing_deduction,
+          ded: r2(it.late_deduction + (it.early_deduction || 0) + (it.break_deduction || 0) + (it.missing_deduction || 0)) };
       }).filter((r) => r.days > 0).sort((a, b) => b.ded - a.ded || b.late - a.late);
       setRows(out);
     })();
@@ -2924,10 +2949,10 @@ function AttendanceTotalsTab({ me, data, eName }) {
   function printTotals() {
     const mny = (v, c) => v ? { v: money(v), c } : '';
     const tm = (v, c) => v ? { v: hm(v), c } : '';
-    const head = [t.selectEmployee, t.presentDays, t.lateMin, t.earlyMinLbl, '☕ ' + t.breakOverLbl, t.otMin, ...(canMoney ? [t.lateDedLbl, t.earlyDedLbl, t.breakDedLbl, t.totalDeducted, t.otLbl] : [])];
-    const body = shown.map((r) => [{ v: eName(r.emp), c: 'b' }, r.days, r.late ? { v: hm(r.late) + (r.lateDays ? ' · ' + r.lateDays + ' ' + t.daysUnit : ''), c: 'bad' } : '', tm(r.early, 'bad'), tm(r.brk, 'bad'), tm(r.ot, 'good'),
-      ...(canMoney ? [mny(r.lateDed), mny(r.earlyDed), mny(r.brkDed), mny(r.ded, 'bad'), mny(r.otAmt, 'good')] : [])]);
-    const total = [t.totalLbl, sum('days'), hm(sum('late')), hm(sum('early')), hm(sum('brk')), hm(sum('ot')), ...(canMoney ? [money(sum('lateDed')), money(sum('earlyDed')), money(sum('brkDed')), money(sum('ded')), money(sum('otAmt'))] : [])];
+    const head = [t.selectEmployee, t.presentDays, t.lateMin, t.earlyMinLbl, '☕ ' + t.breakOverLbl, t.missDedLbl, t.otMin, ...(canMoney ? [t.lateDedLbl, t.earlyDedLbl, t.breakDedLbl, t.missDedLbl, t.totalDeducted, t.otLbl] : [])];
+    const body = shown.map((r) => [{ v: eName(r.emp), c: 'b' }, r.days, r.late ? { v: hm(r.late) + (r.lateDays ? ' · ' + r.lateDays + ' ' + t.daysUnit : ''), c: 'bad' } : '', tm(r.early, 'bad'), tm(r.brk, 'bad'), (r.missPend || r.miss) ? { v: (r.missPend ? r.missPend + ' ' + t.missUndecided : '') + (r.missPend && r.miss ? ' · ' : '') + (r.miss ? r.miss + ' ' + t.missPenalised : ''), c: 'bad' } : '', tm(r.ot, 'good'),
+      ...(canMoney ? [mny(r.lateDed), mny(r.earlyDed), mny(r.brkDed), mny(r.missDed), mny(r.ded, 'bad'), mny(r.otAmt, 'good')] : [])]);
+    const total = [t.totalLbl, sum('days'), hm(sum('late')), hm(sum('early')), hm(sum('brk')), (sum('missPend') ? sum('missPend') + ' ' + t.missUndecided : '') + (sum('miss') ? ' ' + sum('miss') + ' ' + t.missPenalised : ''), hm(sum('ot')), ...(canMoney ? [money(sum('lateDed')), money(sum('earlyDed')), money(sum('brkDed')), money(sum('missDed')), money(sum('ded')), money(sum('otAmt'))] : [])];
     const tiles = [{ label: t.totalLate, v: hm(sum('late')), c: 'bad' }, { label: t.totalEarly, v: hm(sum('early')), c: 'bad' }, { label: t.totalBreakOver, v: hm(sum('brk')), c: 'bad' }, { label: t.totalOt, v: hm(sum('ot')), c: 'good' }, ...(canMoney ? [{ label: t.totalDeducted, v: money(sum('ded')), c: 'bad' }] : [])];
     const month = new Date(ym + '-01T00:00:00').toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-GB', { month: 'long', year: 'numeric' });
     const who = fEmp ? eName(data.employees.find((e) => e.id === fEmp)) : '';
@@ -2964,8 +2989,8 @@ function AttendanceTotalsTab({ me, data, eName }) {
           <Card title={t.totalsTab} action={shown.length > 0 && <Btn size="sm" variant="soft" onClick={printTotals}>🖨️ {t.print}</Btn>}>
             {shown.length === 0 ? <Empty text={t.noData} /> : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead><tr>{[t.selectEmployee, t.presentDays, t.lateMin, t.earlyMinLbl, '☕ ' + t.breakOverLbl, t.otMin, ...(canMoney ? [t.lateDedLbl, t.earlyDedLbl, t.breakDedLbl, t.totalDeducted, t.otLbl] : [])].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
+                <table className="w-full min-w-[860px] text-sm">
+                  <thead><tr>{[t.selectEmployee, t.presentDays, t.lateMin, t.earlyMinLbl, '☕ ' + t.breakOverLbl, t.missDedLbl, t.otMin, ...(canMoney ? [t.lateDedLbl, t.earlyDedLbl, t.breakDedLbl, t.missDedLbl, t.totalDeducted, t.otLbl] : [])].map((h, i) => <th key={i} className="py-2 text-start text-xs font-semibold text-slate-400">{h}</th>)}</tr></thead>
                   <tbody>
                     {shown.map((r) => (
                       <tr key={r.emp.id} className="border-t border-slate-100">
@@ -2974,13 +2999,14 @@ function AttendanceTotalsTab({ me, data, eName }) {
                         <td className={r.late > 0 ? 'font-semibold text-rose-600' : ''}>{r.late ? hm(r.late) + (r.lateDays ? ' · ' + r.lateDays + ' ' + t.daysUnit : '') : ''}</td>
                         <td className={r.early > 0 ? 'font-semibold text-rose-600' : ''}>{r.early ? hm(r.early) : ''}</td>
                         <td className={r.brk > 0 ? 'font-semibold text-rose-600' : ''}>{r.brk ? hm(r.brk) : ''}</td>
+                        <td className="text-xs font-semibold text-rose-600">{(r.missPend ? r.missPend + ' ' + t.missUndecided : '') + (r.missPend && r.miss ? ' · ' : '') + (r.miss ? r.miss + ' ' + t.missPenalised : '')}</td>
                         <td className={r.ot > 0 ? 'font-semibold text-emerald-600' : ''}>{r.ot ? hm(r.ot) : ''}</td>
-                        {canMoney && <><td>{r.lateDed ? money(r.lateDed) : ''}</td><td>{r.earlyDed ? money(r.earlyDed) : ''}</td><td>{r.brkDed ? money(r.brkDed) : ''}</td><td className="font-bold text-rose-700">{r.ded ? money(r.ded) : ''}</td><td className="text-emerald-700">{r.otAmt ? money(r.otAmt) : ''}</td></>}
+                        {canMoney && <><td>{r.lateDed ? money(r.lateDed) : ''}</td><td>{r.earlyDed ? money(r.earlyDed) : ''}</td><td>{r.brkDed ? money(r.brkDed) : ''}</td><td>{r.missDed ? money(r.missDed) : ''}</td><td className="font-bold text-rose-700">{r.ded ? money(r.ded) : ''}</td><td className="text-emerald-700">{r.otAmt ? money(r.otAmt) : ''}</td></>}
                       </tr>
                     ))}
                     <tr className="border-t-2 border-slate-300 font-bold">
-                      <td className="py-2">{t.totalLbl}</td><td>{sum('days')}</td><td className="text-rose-700">{hm(sum('late'))}</td><td className="text-rose-700">{hm(sum('early'))}</td><td className="text-rose-700">{hm(sum('brk'))}</td><td className="text-emerald-700">{hm(sum('ot'))}</td>
-                      {canMoney && <><td>{money(sum('lateDed'))}</td><td>{money(sum('earlyDed'))}</td><td>{money(sum('brkDed'))}</td><td className="text-rose-700">{money(sum('ded'))}</td><td className="text-emerald-700">{money(sum('otAmt'))}</td></>}
+                      <td className="py-2">{t.totalLbl}</td><td>{sum('days')}</td><td className="text-rose-700">{hm(sum('late'))}</td><td className="text-rose-700">{hm(sum('early'))}</td><td className="text-rose-700">{hm(sum('brk'))}</td><td className="text-xs text-rose-700">{sum('missPend') ? sum('missPend') + ' ' + t.missUndecided : ''}{sum('miss') ? ' ' + sum('miss') + ' ' + t.missPenalised : ''}</td><td className="text-emerald-700">{hm(sum('ot'))}</td>
+                      {canMoney && <><td>{money(sum('lateDed'))}</td><td>{money(sum('earlyDed'))}</td><td>{money(sum('brkDed'))}</td><td>{money(sum('missDed'))}</td><td className="text-rose-700">{money(sum('ded'))}</td><td className="text-emerald-700">{money(sum('otAmt'))}</td></>}
                     </tr>
                   </tbody>
                 </table>
@@ -3130,10 +3156,10 @@ function ExceptionsTab({ me, myEmp, data, toast, audit, eName, admin, isHr }) {
       <li className="space-y-2 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-800">{showName ? eName(emp) + ' · ' : ''}{t.excKinds[x.kind]} · {x.exc_date}{x.minutes ? ' · ' + x.minutes + ' ' + t.minutesLbl : ''}</p>
+            <p className="truncate text-sm font-semibold text-slate-800">{showName ? eName(emp) + ' · ' : ''}{t.excKinds[x.kind] || t.missTitle} · {x.exc_date}{x.minutes ? ' · ' + x.minutes + ' ' + t.minutesLbl : ''}</p>
             <p className="text-xs text-slate-500">{x.reason}</p>
           </div>
-          <Badge tone={tone(x.status)}>{x.status === 'approved' ? t.excused : t.kpiStatus[x.status]}</Badge>
+          <Badge tone={tone(x.status)}>{x.status === 'approved' ? t.excused : x.kind === 'missing_punch' ? missPenaltyLabel(t, x) : t.kpiStatus[x.status]}</Badge>
         </div>
         {x.status === 'pending' && (canDecide(x) ? (
           <div className="flex gap-2"><Btn size="sm" className="flex-1" onClick={() => decide(x, 'approved')}>{t.approve}</Btn><Btn size="sm" variant="danger" className="flex-1" onClick={() => decide(x, 'rejected')}>{t.reject}</Btn></div>
@@ -3579,6 +3605,13 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   const [sessions, setSessions] = useState([]);  // live sessions in range (break minutes)
   const [excusedBreak, setExcusedBreak] = useState({});
   const [excusedEarlyMap, setExcusedEarlyMap] = useState({});
+  const [missDec, setMissDec] = useState({});      // 'empId|date' -> decision on a missing check-out
+  const [miss, setMiss] = useState(null);          // { row, mode: 'excuse' | 'action', pen, hours, reason }
+  const [onlyNeeds, setOnlyNeeds] = useState(false);
+  useEffect(() => {
+    sb.from('attendance_exceptions').select('*').eq('kind', 'missing_punch').gte('exc_date', from).lte('exc_date', to)
+      .then(({ data: d }) => { const m = {}; for (const x of d || []) m[x.employee_id + '|' + x.exc_date] = x; setMissDec(m); });
+  }, [from, to]);
 
   useEffect(() => {
     sb.from('attendance_exceptions').select('employee_id, exc_date, kind').eq('status', 'approved').in('kind', ['late', 'early_leave']).gte('exc_date', from).lte('exc_date', to)
@@ -3638,6 +3671,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const flagged = list.some((p) => p.source === 'web' && p.within_geofence === false);
       const exc = excused[empId + '|' + date];
       const breakAsIn = !!(firstIn && firstIn.note && /^Break-(start|end) pressed first/.test(firstIn.note));
+      const mdec = !lastOut ? (missDec[empId + '|' + date] || null) : null;
       const raw = shift && firstIn ? Math.max(0, minutesOf(firstIn.punch_time) - timeToMin(shift.start_time)) : 0;
       const tier = weekend || exc ? null : lateTierFor(data.settings.attendance_policy, raw);
       const brkMin = breakByEmp[empId] ? (breakByEmp[empId][date] || 0) : 0;
@@ -3646,9 +3680,12 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const early = shift && lastOut && !weekend ? Math.max(0, timeToMin(shift.end_time) - minutesOf(lastOut.punch_time)) : 0;
       const earlyExc = exc === 'early_leave' || excusedEarlyMap[empId + '|' + date];
       const earlyTier = early > 0 && !earlyExc ? earlyTierFor(data.settings.attendance_policy, early) : null;
-      return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut, flagged, excused: !!exc, tier, brkMin, brkOver, brkTier, early: earlyExc ? 0 : early, earlyTier, breakAsIn };
+      return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut, missDec: mdec, needs: !lastOut && !weekend && !!firstIn && date < localDay(new Date()) && !mdec, flagged, excused: !!exc, tier, brkMin, brkOver, brkTier, early: earlyExc ? 0 : early, earlyTier, breakAsIn };
     }).sort((a, b) => b.date.localeCompare(a.date) || eName(a.emp).localeCompare(eName(b.emp)));
-  }, [punches, fEmp, data.employees, data.shifts, excused, breakByEmp, excusedBreak, excusedEarlyMap]);
+  }, [punches, fEmp, data.employees, data.shifts, excused, breakByEmp, excusedBreak, excusedEarlyMap, missDec]);
+  const needsN = rows.filter((r) => r.needs).length;
+  const missTxt = (r) => !r.missing || r.weekend ? '' : r.needs ? t.missNeeds : r.missDec ? t.missingOut + ' · ' + (r.missDec.status === 'approved' ? t.excused : missPenaltyLabel(t, r.missDec)) : t.missingOut;
+  const canDecideDay = (r) => !!(r && r.emp && (isHr || (r.emp.manager_id && data.employees.some((e) => e.user_id === me.id && e.id === r.emp.manager_id))));
 
   const [exporting, setExporting] = useState(false);
   const cols = useColumnWidths('review', [96, 180, 80, 80, 96, 170, 170, 190, 80, 200]);
@@ -3665,7 +3702,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
         [t.earlyMinLbl + ' (min)']: r.early || 0, [t.earlyMinLbl + ' · ' + t.penaltyLbl]: lbl(r.earlyTier),
         [t.breakTotal + ' (min)']: r.weekend ? '' : (r.brkMin || 0), [t.breakOverLbl + ' (min)']: r.brkOver || 0, [t.breakTotal + ' · ' + t.penaltyLbl]: lbl(r.brkTier),
         [t.otMin]: r.ot || 0,
-        [t.statusLbl]: [r.weekend ? t.weekendLbl : '', r.excused ? t.excused : '', r.missing && !r.weekend ? t.missingOut : '', r.flagged ? t.outsideBranch : ''].filter(Boolean).join(', '),
+        [t.statusLbl]: [r.weekend ? t.weekendLbl : '', r.excused ? t.excused : '', missTxt(r), r.flagged ? t.outsideBranch : ''].filter(Boolean).join(', '),
       }));
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(out);
@@ -3683,7 +3720,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     const lbl = (tier) => tier ? ((lang === 'ar' ? tier.label_ar : tier.label_en) || tier.kind) : '';
     const hmM = (m) => { const n = Math.round(Number(m) || 0); return Math.floor(n / 60) + 'h ' + String(n % 60).padStart(2, '0') + 'm'; };
     const hrs = (h) => h ? Math.floor(h) + 'h ' + String(Math.round((h % 1) * 60)).padStart(2, '0') + 'm' : '';
-    const status = (r) => [r.weekend ? t.weekendLbl : '', r.excused ? '✓ ' + t.excused : '', r.missing && !r.weekend ? t.missingOut : '', r.flagged ? t.outsideBranch : '', r.breakAsIn ? t.breakAsIn : ''].filter(Boolean).join(' · ');
+    const status = (r) => [r.weekend ? t.weekendLbl : '', r.excused ? '✓ ' + t.excused : '', missTxt(r), r.flagged ? t.outsideBranch : '', r.breakAsIn ? t.breakAsIn : ''].filter(Boolean).join(' · ');
     const pen = (n, tier) => n > 0 ? { v: n + (tier ? ' · ' + lbl(tier) : ''), c: 'bad' } : { v: '·', c: 'muted' };
     const line = (r, withName) => ({ _cls: r.weekend ? 'wk' : '', cells: [
       r.date + ' ' + t.daysShort[new Date(r.date + 'T00:00:00').getDay()], ...(withName ? [{ v: eName(r.emp), c: 'b' }] : []),
@@ -3737,6 +3774,25 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     toast(t.excuseSaved);
   }
 
+  /* missing check-out on a finished day: excuse it, or take action (warning / deduction) */
+  async function saveMiss() {
+    if (!miss.reason.trim()) return toast(t.reasonLbl, 'error');
+    const r = miss.row, key = r.emp.id + '|' + r.date, now = new Date().toISOString();
+    const pen = miss.mode === 'excuse' ? { penalty_kind: null, penalty_value: null }
+      : miss.pen === 'none' ? { penalty_kind: 'none', penalty_value: 0 }
+      : miss.pen === 'hours' ? { penalty_kind: 'hours', penalty_value: Math.max(0.25, Number(miss.hours) || 1) }
+      : { penalty_kind: 'day_fraction', penalty_value: Number(miss.pen) };
+    const body = { status: miss.mode === 'excuse' ? 'approved' : 'rejected', ...pen, reason: miss.reason.trim(), decided_by: me.id, decided_at: now };
+    const old = missDec[key];
+    const q = old ? sb.from('attendance_exceptions').update(body).eq('id', old.id) : sb.from('attendance_exceptions').insert({ employee_id: r.emp.id, exc_date: r.date, kind: 'missing_punch', created_by: me.id, ...body });
+    const { data: saved, error } = await q.select().single();
+    if (error) return toast(error.message, 'error');
+    setMissDec((prev) => ({ ...prev, [key]: saved }));
+    audit(old ? 'update' : 'insert', 'attendance_exceptions', saved.id, old || null, saved);
+    setMiss(null); setDayView(null);
+    toast(miss.mode === 'excuse' ? t.missSavedExc : t.missSavedAct);
+  }
+
   async function saveManual() {
     if (!manual.employee_id || !manual.note) return toast(t.punchNote, 'error');
     const emp = data.employees.find((e) => e.id === manual.employee_id);
@@ -3776,6 +3832,13 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
         {isHr && <Btn data-tour="rev-manual" onClick={() => setManual({ employee_id: fEmp || '', date: todayISO(), time: '09:00', direction: 'in', note: '' })}>+ {t.manualPunch}</Btn>}
       </div>
 
+      {needsN > 0 && (
+        <div data-tour="rev-missing" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+          <span>⚠ <b>{needsN}</b> {t.missBanner}</span>
+          <Btn size="sm" variant="soft" onClick={() => setOnlyNeeds(!onlyNeeds)}>{onlyNeeds ? t.missAll : t.missOnly}</Btn>
+        </div>
+      )}
+
       <Card tour="rev-table" title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
         action={rows.length > 0 && <span data-tour="rev-export" className="flex gap-2"><Btn size="sm" variant="ghost" onClick={cols.reset} title={t.resetDefaults}>↔</Btn><Btn size="sm" variant="soft" onClick={() => setPrintPick(true)}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn></span>}>
         {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
@@ -3790,7 +3853,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => {
+                {(onlyNeeds && needsN > 0 ? rows.filter((r) => r.needs) : rows).map((r, i) => {
                   const lbl = (tier) => tier ? ((lang === 'ar' ? tier.label_ar : tier.label_en) || tier.kind) : '';
                   const Pen = ({ tier }) => tier ? <span className={cx('ms-1 inline-block rounded px-1 py-px text-[10px] font-semibold leading-tight', tier.kind === 'none' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-700')}>{lbl(tier)}</span> : null;
                   const hm = r.hours ? Math.floor(r.hours) + 'h ' + String(Math.round((r.hours % 1) * 60)).padStart(2, '0') + 'm' : '';
@@ -3810,7 +3873,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                         <span className="flex flex-wrap gap-1">
                           {r.weekend && <Badge>{t.weekendLbl}</Badge>}
                           {r.excused && <Badge tone="green">✓ {t.excused}</Badge>}
-                          {r.missing && !r.weekend && <Badge tone="amber">{t.missingOut}</Badge>}
+                          {r.missing && !r.weekend && (r.needs ? <Badge tone="red">⚠ {t.missNeeds}</Badge> : r.missDec ? <Badge tone={r.missDec.status === 'approved' ? 'green' : 'red'}>{t.missingOut} · {r.missDec.status === 'approved' ? '✓ ' + t.excused : missPenaltyLabel(t, r.missDec)}</Badge> : <Badge tone="amber">{t.missingOut}</Badge>)}
                           {r.flagged && <Badge tone="red">📍 {t.outsideBranch}</Badge>}
                           {r.breakAsIn && <Badge tone="amber">☕→🕐 {t.breakAsIn}</Badge>}
                           {!r.weekend && !r.missing && !bad && !r.excused && <span className="text-xs text-emerald-600">✓</span>}
@@ -3861,6 +3924,23 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
             <Btn className="w-full" variant="soft" onClick={() => setExcuse({ row: dayView, kinds: { late: dayView.late > 0, early_leave: dayView.early > 0, break: dayView.brkOver > 0 }, reason: '' })}>✓ {t.excuseDay}</Btn>
           </div>
         )}
+        {dayView && dayView.emp && dayView.missing && !dayView.weekend && dayView.firstIn && dayView.date < localDay(new Date()) && (
+          <div className={cx('mt-3 rounded-xl border p-3', dayView.missDec ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50')}>
+            <p className="text-sm font-semibold text-slate-800">⚠ {t.missTitle}</p>
+            {dayView.missDec ? (
+              <p className="mt-1 text-xs text-slate-600"><b className={dayView.missDec.status === 'approved' ? 'text-emerald-700' : 'text-rose-700'}>{dayView.missDec.status === 'approved' ? '✓ ' + t.excused : missPenaltyLabel(t, dayView.missDec)}</b> · {dayView.missDec.reason}</p>
+            ) : <p className="mt-1 text-xs text-rose-800">{t.missHint}</p>}
+            {canDecideDay(dayView) && (
+              <div className="mt-2 space-y-2">
+                <div className="flex gap-2">
+                  <Btn size="sm" className="flex-1" variant="soft" onClick={() => setMiss({ row: dayView, mode: 'excuse', pen: 'none', hours: 1, reason: '' })}>✓ {t.missExcuse}</Btn>
+                  <Btn size="sm" className="flex-1" variant="danger" onClick={() => setMiss({ row: dayView, mode: 'action', pen: 'none', hours: 1, reason: '' })}>⚠ {t.missAction}</Btn>
+                </div>
+                {isHr && <Btn size="sm" className="w-full" variant="outline" title={t.missAddOutHint} onClick={() => { const sh = shiftForDay(dayView.emp, dayView.date, data.shifts) || defShift; setManual({ employee_id: dayView.emp.id, date: dayView.date, time: sh ? String(sh.end_time).slice(0, 5) : '17:00', direction: 'out', note: '' }); setDayView(null); }}>🕐 {t.missAddOut}</Btn>}
+              </div>
+            )}
+          </div>
+        )}
         {dayView && dayView.excused && <p className="mt-2 text-center text-xs text-emerald-700">✓ {t.excuseExisting}</p>}
       </Modal>
 
@@ -3874,6 +3954,34 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
               <label key={k} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!excuse.kinds[k]} onChange={(e) => setExcuse({ ...excuse, kinds: { ...excuse.kinds, [k]: e.target.checked } })} />{l} · {m} {t.minutesLbl}</label>
             ))}
             <Field label={t.reasonLbl}><textarea className={cx(inputCls, 'min-h-[80px]')} value={excuse.reason} onChange={(e) => setExcuse({ ...excuse, reason: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
+
+      <Modal open={!!miss} onClose={() => setMiss(null)} title={miss ? t.missTitle + ' · ' + eName(miss.row.emp) + ' · ' + miss.row.date : ''}
+        footer={<><Btn className="flex-1" onClick={saveMiss}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setMiss(null)}>{t.cancel}</Btn></>}>
+        {miss && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              {[['excuse', '✓ ' + t.missExcuse, t.missExcuseHint], ['action', '⚠ ' + t.missAction, t.missActionHint]].map(([k, l, h]) => (
+                <button key={k} type="button" onClick={() => setMiss({ ...miss, mode: k })} className={cx('rounded-xl border-2 p-2.5 text-start', miss.mode === k ? (k === 'excuse' ? 'border-emerald-600 bg-emerald-50' : 'border-rose-600 bg-rose-50') : 'border-slate-200 bg-white')}>
+                  <span className="block text-sm font-semibold text-slate-800">{l}</span><span className="block text-xs text-slate-500">{h}</span>
+                </button>
+              ))}
+            </div>
+            {miss.mode === 'action' && (
+              <Field label={t.missPenalty}>
+                <Select value={miss.pen} onChange={(e) => setMiss({ ...miss, pen: e.target.value })}>
+                  <option value="none">{t.missPenWarn}</option>
+                  <option value="hours">{t.missHoursLbl}</option>
+                  <option value="0.25">{t.missPenQuarter}</option>
+                  <option value="0.5">{t.missPenHalf}</option>
+                  <option value="1">{t.missPenFull}</option>
+                </Select>
+              </Field>
+            )}
+            {miss.mode === 'action' && miss.pen === 'hours' && <Field label={t.missHoursLbl}><Input type="number" inputMode="decimal" min="0.25" step="0.25" value={miss.hours} onChange={(e) => setMiss({ ...miss, hours: e.target.value })} /></Field>}
+            <Field label={t.reasonLbl}><textarea className={cx(inputCls, 'min-h-[80px]')} value={miss.reason} onChange={(e) => setMiss({ ...miss, reason: e.target.value })} /></Field>
           </>
         )}
       </Modal>
@@ -5414,7 +5522,7 @@ function PayrollPage({ me, data, toast, audit }) {
       sb.from('leave_types').select('*'),
       sb.from('loans').select('*').eq('status', 'active'),
     ]);
-    const { data: exc } = await sb.from('attendance_exceptions').select('employee_id, exc_date, kind, status').eq('status', 'approved').gte('exc_date', from).lt('exc_date', nextM);
+    const { data: exc } = await sb.from('attendance_exceptions').select('employee_id, exc_date, kind, status, penalty_kind, penalty_value').in('status', ['approved', 'rejected']).gte('exc_date', from).lt('exc_date', nextM);
 
     const { data: ws } = await sb.from('work_sessions').select('employee_id, started_at, ended_at, status, break_seconds, break_started_at').gte('started_at', new Date(from + 'T00:00:00').toISOString()).lt('started_at', new Date(nextM + 'T00:00:00').toISOString());
     const ctx = { ...baseCtx(Number(year), Number(month)), leaves: lv.data || [], leaveTypes: ty.data || [], loans: ln.data || [], exceptions: exc || [], sessions: ws || [] };
@@ -5436,7 +5544,8 @@ function PayrollPage({ me, data, toast, audit }) {
     audit('insert', 'payroll_runs', run.id, null, { ...run, employees: saved.length });
     setNewRun(null);
     setOpen(run);
-    toast(t.saved);
+    const pend = rows.reduce((n, r) => n + (r.missing_pending || 0), 0);
+    if (pend) toast('⚠ ' + pend + ' ' + t.missPendingPay, 'error'); else toast(t.saved);
   }
 
   async function recalc() {
@@ -5454,7 +5563,7 @@ function PayrollPage({ me, data, toast, audit }) {
       sb.from('leave_types').select('*'),
       sb.from('loans').select('*').eq('status', 'active'),
     ]);
-    const { data: exc } = await sb.from('attendance_exceptions').select('employee_id, exc_date, kind, status').eq('status', 'approved').gte('exc_date', from).lt('exc_date', nextM);
+    const { data: exc } = await sb.from('attendance_exceptions').select('employee_id, exc_date, kind, status, penalty_kind, penalty_value').in('status', ['approved', 'rejected']).gte('exc_date', from).lt('exc_date', nextM);
     const { data: ws } = await sb.from('work_sessions').select('employee_id, started_at, ended_at, status, break_seconds, break_started_at').gte('started_at', new Date(from + 'T00:00:00').toISOString()).lt('started_at', new Date(nextM + 'T00:00:00').toISOString());
     const ctx = { ...baseCtx(open.year, open.month), leaves: lv.data || [], leaveTypes: ty.data || [], loans: ln.data || [], exceptions: exc || [], sessions: ws || [] };
     const rows = emps.map((emp) => ({
@@ -5465,7 +5574,8 @@ function PayrollPage({ me, data, toast, audit }) {
     if (error) return toast(error.message, 'error');
     setItems(saved.sort((a, b) => b.net_pay - a.net_pay));
     audit('update', 'payroll_runs', open.id, null, { action: 'recalculated' });
-    toast(t.saved);
+    const pend = rows.reduce((n, r) => n + (r.missing_pending || 0), 0);
+    if (pend) toast('⚠ ' + pend + ' ' + t.missPendingPay, 'error'); else toast(t.saved);
   }
 
   async function setStatus(status) {
@@ -5611,6 +5721,7 @@ function PayrollPage({ me, data, toast, audit }) {
                   [t.lateDedLbl + ' (' + editItem.late_minutes + ' ' + t.minutesLbl + (editItem.late_days ? ' · ' + editItem.late_days + ' ' + t.lateDaysLbl : '') + ')', -editItem.late_deduction],
                   [t.breakDedLbl + ' (' + (editItem.break_over_minutes || 0) + ' ' + t.minutesLbl + ')', -(Number(editItem.break_deduction) || 0)],
                   [t.earlyDedLbl + ' (' + (editItem.early_minutes || 0) + ' ' + t.minutesLbl + (editItem.early_days ? ' · ' + editItem.early_days + ' ' + t.daysUnit : '') + ')', -(Number(editItem.early_deduction) || 0)],
+                  ...(Number(editItem.missing_days) || Number(editItem.missing_pending) ? [[t.missDedLbl + ' (' + (editItem.missing_days || 0) + ' ' + t.missPenalised + (editItem.missing_pending ? ' · ' + editItem.missing_pending + ' ' + t.missUndecided : '') + ')', -(Number(editItem.missing_deduction) || 0)]] : []),
                   [t.unpaidDedLbl + ' (' + Number(editItem.unpaid_days) + ' ' + t.daysUnit + ')', -editItem.unpaid_deduction],
                   [t.sickDedLbl + ' (' + Number(editItem.sick_days) + ' ' + t.daysUnit + ')', -editItem.sick_deduction],
                   [t.insEmp, -editItem.insurance_employee],
@@ -6284,7 +6395,7 @@ function MyPage({ me, data, toast, setPage, live }) {
           <div className="space-y-1 text-sm">
             {[
               [t.basicLbl, slip.item.basic_salary], [t.allowLbl, slip.item.allowances_total], [t.otLbl, slip.item.ot_amount], [t.otherEarn, slip.item.other_earnings],
-              [t.lateDedLbl, -slip.item.late_deduction], [t.breakDedLbl, -(Number(slip.item.break_deduction) || 0)], [t.earlyDedLbl, -(Number(slip.item.early_deduction) || 0)], [t.unpaidDedLbl, -slip.item.unpaid_deduction], [t.sickDedLbl, -slip.item.sick_deduction],
+              [t.lateDedLbl, -slip.item.late_deduction], [t.breakDedLbl, -(Number(slip.item.break_deduction) || 0)], [t.earlyDedLbl, -(Number(slip.item.early_deduction) || 0)], [t.missDedLbl, -(Number(slip.item.missing_deduction) || 0)], [t.unpaidDedLbl, -slip.item.unpaid_deduction], [t.sickDedLbl, -slip.item.sick_deduction],
               [t.insEmp, -slip.item.insurance_employee], [t.taxLbl, -slip.item.income_tax], [t.loanDedLbl, -(slip.item.loan_deduction || 0)], [t.otherDed, -slip.item.other_deductions],
             ].filter(([, v]) => Number(v) !== 0).map(([k, v], i) => (
               <div key={i} className="flex justify-between"><span className="text-slate-500">{k}</span><b className={Number(v) < 0 ? 'text-rose-600' : ''}>{money(Math.abs(Number(v)))}{Number(v) < 0 ? ' -' : ''}</b></div>
@@ -7159,6 +7270,9 @@ function KpiPage({ me, data, toast, audit }) {
 
   const deptOf = (e) => data.departments.find((d) => d.id === e.department_id);
   const isSales = (e) => { const d = deptOf(e); return !!((d && /sales|مبيعات/i.test(d.name_en + ' ' + d.name_ar)) || /sales/i.test(e.job_title_en || '') || /مبيعات/.test(e.job_title_ar || '')); };
+  /* Sales team leaders / managers do not compete with the people they manage (they get their own board later). */
+  const isSalesLead = (e) => isSales(e) && (data.employees.some((x) => x.status === 'active' && x.manager_id === e.id) || /leader|manager|head|supervisor|director/i.test(e.job_title_en || '') || /مدير|قائد|رئيس|مشرف/.test(e.job_title_ar || ''));
+  const isSalesRep = (e) => isSales(e) && !isSalesLead(e);
   const catOf = (mt) => (mt && mt.category) || 'sales';
   /* Sales board: sales-category results for the sales team only.
      Company board: every active non-exempt employee, every category, plus
@@ -7186,12 +7300,12 @@ function KpiPage({ me, data, toast, audit }) {
       return Object.values(acc).sort((a, b) => b.points - a.points || eName(empById(a.employee_id)).localeCompare(eName(empById(b.employee_id))));
     };
     return {
-      sales: build(isSales, (mt) => catOf(mt) === 'sales', false),
-      company: build((e) => !e.attendance_exempt, () => true, true),
+      sales: build(isSalesRep, (mt) => catOf(mt) === 'sales', false),
+      company: build((e) => !e.attendance_exempt && !isSalesLead(e), () => true, true),
     };
   }, [entries, metrics, att, data.employees, data.departments, lang]);
   const board = boards[boardKind];
-  const salesTeamSize = data.employees.filter((e) => e.status === 'active' && isSales(e)).length;
+  const salesTeamSize = data.employees.filter((e) => e.status === 'active' && isSalesRep(e)).length;
   const myRank = myEmp ? board.findIndex((b) => b.employee_id === myEmp.id) + 1 : 0;
 
   const canApprove = (en) => {
@@ -7285,6 +7399,7 @@ function KpiPage({ me, data, toast, audit }) {
             ))}
           </div>
           <p className="text-xs text-slate-500">{boardKind === 'sales' ? t.salesBoardHint : t.companyBoardHint}</p>
+          {data.employees.some((e) => e.status === 'active' && isSalesLead(e)) && <p className="text-xs text-slate-400">{t.leadNote}</p>}
           {boardKind === 'sales' && salesTeamSize === 0 && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{t.noSalesTeam}</div>}
           {board.length > 0 && board[0].points > 0 && (
             <div className="rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 p-5 text-white shadow">
@@ -7343,7 +7458,7 @@ function KpiPage({ me, data, toast, audit }) {
         </>
       )}
 
-      {tab === 'sales' && <SalesPerformance data={data} entries={entries} metrics={metrics} isSales={isSales} eName={eName} />}
+      {tab === 'sales' && <SalesPerformance data={data} entries={entries} metrics={metrics} isSales={isSalesRep} eName={eName} />}
       {tab === 'engaz' && <EngazImportTab me={me} myEmp={myEmp} data={data} toast={toast} audit={audit} metrics={metrics} onImported={() => setReloadKey((k) => k + 1)} />}
       {tab === 'metrics' && (
         <Card tour="kpi-metrics" title={t.metricsTab} action={<Btn size="sm" onClick={() => setMForm({ name_en: '', name_ar: '', code: '', category: 'sales', points_per_unit: 1, value_points_per_million: 0, has_value: false, is_active: true })}>+ {t.add}</Btn>}>
@@ -8433,8 +8548,8 @@ const HV_TOUR_STEPS = [
     en: ['Live board', 'Who is working, on break or finished today, their last activity, total breaks (⚠ = over the allowance) and net worked time. 💻 means the laptop agent is connected. It refreshes every 30 seconds.'],
     ar: ['اللوحة الحية', 'من يعمل الآن ومن في استراحة ومن أنهى يومه، وآخر نشاط، وإجمالي الاستراحات (⚠ تعني تجاوز الرصيد)، وصافي وقت العمل. علامة 💻 تعني أن برنامج اللابتوب متصل. تتحدث كل 30 ثانية.'] },
   { c: 'att', page: 'attendance', target: 'rev-table', action: 'att-tab-review', roles: HV_TOUR_ADMIN,
-    en: ['Review attendance', 'Pick the dates and, if you like, one employee. Each employee-day is one row: first in, last out, hours, late, left early, breaks and overtime with the penalty tier; badges flag weekends, missing check-outs and punches outside the branch. Tap a row for every punch and the day\'s breaks — HR or the direct manager can Excuse this day there.'],
-    ar: ['مراجعة الحضور', 'اختر الفترة وموظفاً محدداً إن أردت. كل يوم لكل موظف في سطر: أول دخول وآخر خروج والساعات والتأخير والانصراف المبكر والاستراحات والإضافي مع شريحة الجزاء، وتوضح الشارات أيام الراحة ونسيان الانصراف والبصمة خارج الفرع. اضغط على السطر لرؤية كل البصمات واستراحات اليوم، ومن هناك يمكن للموارد البشرية أو المدير المباشر «إعفاء هذا اليوم».'] },
+    en: ['Review attendance', 'Pick the dates and, if you like, one employee. Each employee-day is one row: first in, last out, hours, late, left early, breaks and overtime with the penalty tier; badges flag weekends, missing check-outs and punches outside the branch. Tap a row for every punch and the day\'s breaks — HR or the direct manager can Excuse this day there. A day that ended without a check-out is marked "needs a decision" in red and counted in the banner at the top: open it and either Excuse it or Take action (warning, hours, quarter / half / full day); HR can instead enter the real check-out time.'],
+    ar: ['مراجعة الحضور', 'اختر الفترة وموظفاً محدداً إن أردت. كل يوم لكل موظف في سطر: أول دخول وآخر خروج والساعات والتأخير والانصراف المبكر والاستراحات والإضافي مع شريحة الجزاء، وتوضح الشارات أيام الراحة ونسيان الانصراف والبصمة خارج الفرع. اضغط على السطر لرؤية كل البصمات واستراحات اليوم، ومن هناك يمكن للموارد البشرية أو المدير المباشر «إعفاء هذا اليوم». اليوم الذي انتهى بدون بصمة انصراف يظهر بالأحمر «تحتاج قراراً» ويُحسب في التنبيه أعلى الصفحة: افتحه ثم اختر «إعفاء» أو «اتخاذ إجراء» (إنذار، ساعات، ربع / نصف / يوم كامل)، ويمكن للموارد البشرية بدلاً من ذلك إدخال وقت الانصراف الحقيقي.'] },
   { c: 'att', page: 'attendance', target: 'rev-manual', action: 'att-tab-review', roles: ['ceo', 'hr'],
     en: ['Manual punch, print & Excel', 'A forgotten punch is added here by HR with the time, direction and a required reason; a wrong punch is deleted from the day view. Print the review as one list or one sheet per employee with signature lines, or download it to Excel. Every change goes to the audit log.'],
     ar: ['البصمة اليدوية والطباعة وExcel', 'البصمة المنسية تضيفها الموارد البشرية من هنا مع الوقت والاتجاه وسبب إلزامي، والبصمة الخاطئة تُحذف من تفاصيل اليوم. اطبع المراجعة كقائمة واحدة أو ورقة لكل موظف بخانات التوقيع، أو نزّلها Excel. كل تعديل يُسجَّل في سجل التدقيق.'] },
@@ -8473,8 +8588,8 @@ const HV_TOUR_STEPS = [
 
   /* ---------- KPIs ---------- */
   { c: 'kpi', page: 'kpi', target: 'kpi-board', action: 'kpi-tab-board',
-    en: ['Leaderboard', 'Choose the month at the top. Sales team ranks the sales results of the Sales department; All employees adds every category plus automatic attendance points for on-time days. Points per result are set by HR in Metrics & points.'],
-    ar: ['لوحة المتصدرين', 'اختر الشهر من الأعلى. «فريق المبيعات» يرتب نتائج مبيعات قسم المبيعات، و«كل الموظفين» يجمع كل الفئات مع نقاط حضور تلقائية عن أيام الالتزام بالموعد. نقاط كل نتيجة تحددها الموارد البشرية من «المؤشرات والنقاط».'] },
+    en: ['Leaderboard', 'Choose the month at the top. Sales team ranks the sales results of the sales reps (team leaders and managers are not ranked); All employees adds every category plus automatic attendance points for on-time days. Points per result are set by HR in Metrics & points.'],
+    ar: ['لوحة المتصدرين', 'اختر الشهر من الأعلى. «فريق المبيعات» يرتب نتائج مندوبي المبيعات (قادة ومديرو الفريق لا يدخلون الترتيب)، و«كل الموظفين» يجمع كل الفئات مع نقاط حضور تلقائية عن أيام الالتزام بالموعد. نقاط كل نتيجة تحددها الموارد البشرية من «المؤشرات والنقاط».'] },
   { c: 'kpi', page: 'kpi', target: 'kpi-add', action: 'kpi-tab-mine',
     en: ['Log a result', 'Under My results, log what you achieved (a lead, a viewing, a closing … with the deal value when asked). It counts once your manager or HR approves it, and you can delete it while it is pending.'],
     ar: ['تسجيل نتيجة', 'من «نتائجي» سجّل ما حققته (عميل محتمل أو معاينة أو إغلاق… مع قيمة الصفقة عند الطلب). تُحتسب بعد اعتماد مديرك أو الموارد البشرية، ويمكنك حذفها طالما لم تُعتمد.'] },
