@@ -18,6 +18,10 @@
  *     clear the saved copy, instead of an empty white screen.
  *
  * Off-switch for the saved copy: open the system with ?nosw=1
+ *  5. STALE COPY — if this address does not answer but another does, the
+ *     page moves there (same #hash) so the current version always runs.
+ *  4. ALERTS — HVCore.watchAlerts(supabaseClient, cb) keeps the per-system
+ *     counters of public.hv_alert_counts() fresh for the 🏢 switcher.
  * ===================================================================== */
 (function () {
   'use strict';
@@ -170,6 +174,72 @@
   }
   setTimeout(function () { check(); setInterval(check, 2000); }, START_MS);
 
+  // ---------------------------------------------------------------- cross-system alerts (one red counter per system in the switcher)
+  // public.hv_alert_counts() answers, for the signed-in person, what is waiting in every system they may open:
+  //   { hr: { n: 3, items: [{ en, ar, n }, ...] }, maint: {...}, crm: {...}, ops: {...}, fin: {...} }
+  // The app hands over its Supabase client once; the answer is refreshed every minute and when the tab comes back.
+  var alertCbs = [], alertData = null, alertTimer = null, alertClient = null;
+  function fetchAlerts() {
+    if (!alertClient || document.hidden) return;
+    try {
+      alertClient.rpc('hv_alert_counts').then(function (r) {
+        if (!r || r.error || !r.data || typeof r.data !== 'object') return;
+        alertData = r.data;
+        alertCbs.forEach(function (cb) { try { cb(alertData); } catch (e) {} });
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function watchAlerts(client, cb) {
+    if (client) alertClient = client;
+    if (cb) { alertCbs.push(cb); if (alertData) { try { cb(alertData); } catch (e) {} } }
+    if (!alertTimer) {
+      fetchAlerts();
+      alertTimer = setInterval(fetchAlerts, 60000);
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) fetchAlerts(); });
+      window.addEventListener('focus', fetchAlerts);
+    }
+    return function () { alertCbs = alertCbs.filter(function (x) { return x !== cb; }); };
+  }
+  function alertN(data, key) { var p = data && data[key]; return p && p.n ? Number(p.n) : 0; }
+  // total waiting in the OTHER systems (what the switcher button shows)
+  function alertOthers(data, here) { var s = 0; for (var k in (data || {})) if (k !== here) s += alertN(data, k); return s; }
+  // tooltip text: one line per item, in the page's language
+  function alertTitle(data, key, arabic) {
+    var p = data && data[key]; if (!p || !p.items || !p.items.length) return '';
+    var A = arabic == null ? ar() : arabic;
+    return p.items.map(function (i) { return (A ? i.ar : i.en) + ': ' + i.n; }).join('\n');
+  }
+
+  // ---------------------------------------------------------------- stale saved copy: if THIS address does not answer, move to one that does
+  // The office network sometimes cannot reach the address the person opened (2026-09-30/10-08): the saved copy opens,
+  // but it may be an OLD version. If this address does not answer and another one does, the same page (same #hash)
+  // is opened there, so the person always runs the current version. Off-switch: ?stay=1
+  function ownBase() {
+    if (!APP || !SYSTEMS[APP]) return null;
+    var full = location.origin + location.pathname;
+    for (var i = 0; i < SYSTEMS[APP].urls.length; i++) { var b = norm(SYSTEMS[APP].urls[i]); if (full === b || full.indexOf(b + '/') === 0) return SYSTEMS[APP].urls[i]; }
+    return null;
+  }
+  function moveIfStale() {
+    if (/[?&](nosw|stay)=1/.test(location.search)) return;
+    var mine = ownBase(); if (!mine) return;
+    var here = match(location.href) || { rest: '' };
+    probe(mine).then(function (ok) {
+      if (ok) return;
+      best(APP).then(function (url) {
+        if (!url || norm(url) === norm(mine)) return;
+        var A = ar();
+        var bar = document.createElement('div');
+        bar.setAttribute('dir', A ? 'rtl' : 'ltr');
+        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483646;background:#b45309;color:#fff;font:14px/1.4 Cairo,Inter,Arial,sans-serif;padding:10px 16px;text-align:center';
+        bar.textContent = A ? 'هذا العنوان لا يستجيب من شبكتك الآن — جارٍ فتح النظام من عنوان يعمل…' : 'This address is not answering from your network — opening the system from an address that works…';
+        (document.body || document.documentElement).appendChild(bar);
+        setTimeout(function () { location.replace(url + here.rest); }, 900);
+      });
+    });
+  }
+  setTimeout(moveIfStale, 1500);
+
   // ---------------------------------------------------------------- on-demand code files: this address first, the public CDN as fallback
   function loadScript(local, cdn) {
     return new Promise(function (resolve, reject) {
@@ -178,5 +248,6 @@
     });
   }
 
-  window.HVCore = { version: 2, app: APP, systems: SYSTEMS, match: match, probe: probe, best: best, open: open, clearSaved: clearSaved, loadScript: loadScript };
+  window.HVCore = { version: 4, app: APP, systems: SYSTEMS, match: match, probe: probe, best: best, open: open, clearSaved: clearSaved, loadScript: loadScript,
+    watchAlerts: watchAlerts, alertN: alertN, alertOthers: alertOthers, alertTitle: alertTitle, refreshAlerts: fetchAlerts };
 })();
