@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.45';
+const APP_VERSION = 'v3.46';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -341,7 +341,8 @@ const T = {
     ezUnassigned: 'clients in the file have no follow-up and no rep yet (listed in the export).', ezRepeat: 'Count a second "Done deal" on the same client as a new deal (renewal / second unit)',
     ezImportNote: 'Import saves the results of the matched reps into KPIs (the whole file, every date). Reps set to "Not matched" are left out. Importing a newer export updates the same clients and never counts twice.',
     ezHowTitle: 'How the Engaz file is read',
-    ezHow: ['Lead: the client counts for the rep who holds it now (the last follow-up), dated from that rep\'s first follow-up.', 'Own lead: the lead channel is the rep\'s own name (they brought the client).', 'Follow-up: every comment a rep logged on a client.', 'Meeting: a "Meeting" stage (one per client, rep and day).', 'Deal: the first "Done deal" stage, as a rental when the project is Rent and a sale when it is Sale, for the rep who logged it.', 'Lost: the last stage is Cancellation; the reason comes from the clients sheet. Still open: the lead is neither closed nor lost.', 'Closing %: deals ÷ leads in the chosen period.'],
+    ezTeamTotal: 'Whole team', ezLeadsIn: 'Leads received', ezClosedOf: 'Closed (of these)', ezLostOf: 'Lost (of these)', ezGroupLeads: 'Leads received in the period', ezGroupActivity: 'Activity in the period', ezGroupOutcome: 'What became of those leads',
+    ezHow: ['Leads received: clients whose first contact falls in the chosen period (the day the lead came in). Each counts for the rep who holds it now (the last follow-up), so a lead handed over later moves with it but keeps its original date.', 'Own lead: the lead channel is the rep\'s own name (they brought the client).', 'Follow-up: every comment a rep logged on a client.', 'Meeting: a "Meeting" stage (one per client, rep and day).', 'Deal: the first "Done deal" stage, as a rental when the project is Rent and a sale when it is Sale, for the rep who logged it.', 'Closing %: deals closed in the period ÷ leads received in the period.', 'Closed / Lost / Still open (of these): what became of the leads received in the period, as of today — closed (a Done deal at any time), cancelled (reason from the clients sheet), or still being worked. The three always add up to the leads received.'],
     ezImported: 'Saved', ezRemoved: 'outdated removed',
     kpiCats: { sales: 'Sales', property: 'Property & bookings', maintenance: 'Maintenance', attendance: 'Attendance', general: 'General', operations: 'Marketing & data entry (HV Ops)' },
     onTimeDays: 'on-time days', lateDays: 'late', noSalesTeam: 'Nobody is in the Sales department yet. Open each sales rep\'s employee card and set the department to Sales.',
@@ -588,7 +589,8 @@ const T = {
     ezUnassigned: 'عميل في الملف بدون متابعة وبدون مندوب حتى الآن (موجودون في ملف التصدير).', ezRepeat: 'احتساب "Done deal" ثانٍ لنفس العميل كصفقة جديدة (تجديد / وحدة ثانية)',
     ezImportNote: 'الاستيراد يحفظ نتائج المندوبين المطابقين في مؤشرات الأداء (كل الملف وكل التواريخ). المندوب غير المطابق لا يُحتسب. استيراد تصدير أحدث يحدّث نفس العملاء ولا يحسب مرتين.',
     ezHowTitle: 'كيف تتم قراءة ملف إنجاز',
-    ezHow: ['عميل محتمل: يُحسب العميل للمندوب المسؤول عنه الآن (آخر متابعة)، بتاريخ أول متابعة لهذا المندوب.', 'عميل من مصدره: قناة العميل هي اسم المندوب نفسه (هو من جلب العميل).', 'متابعة: كل تعليق سجله المندوب على عميل.', 'اجتماع: مرحلة "Meeting" (مرة لكل عميل ومندوب ويوم).', 'صفقة: أول مرحلة "Done deal"، إيجار إذا كان المشروع Rent وبيع إذا كان Sale، للمندوب الذي سجلها.', 'مفقود: آخر مرحلة هي Cancellation والسبب من ورقة العملاء. ما زال مفتوحاً: لم يُغلق ولم يُفقد.', 'نسبة الإغلاق: الصفقات ÷ العملاء المحتملين في الفترة المختارة.'],
+    ezTeamTotal: 'الفريق كله', ezLeadsIn: 'عملاء وصلوا', ezClosedOf: 'أُغلق (منهم)', ezLostOf: 'فُقد (منهم)', ezGroupLeads: 'العملاء الذين وصلوا في الفترة', ezGroupActivity: 'النشاط خلال الفترة', ezGroupOutcome: 'ماذا حدث لهؤلاء العملاء',
+    ezHow: ['عملاء وصلوا: العملاء الذين كان أول تواصل معهم خلال الفترة المختارة (يوم وصول العميل). يُحسب كل عميل للمندوب المسؤول عنه الآن (آخر متابعة)، فالعميل المحوَّل لاحقاً ينتقل معه لكنه يحتفظ بتاريخه الأصلي.', 'عميل من مصدره: قناة العميل هي اسم المندوب نفسه (هو من جلب العميل).', 'متابعة: كل تعليق سجله المندوب على عميل.', 'اجتماع: مرحلة "Meeting" (مرة لكل عميل ومندوب ويوم).', 'صفقة: أول مرحلة "Done deal"، إيجار إذا كان المشروع Rent وبيع إذا كان Sale، للمندوب الذي سجلها.', 'نسبة الإغلاق: الصفقات المغلقة في الفترة ÷ العملاء الذين وصلوا في الفترة.', 'أُغلق / فُقد / ما زال مفتوحاً (منهم): ماذا حدث حتى اليوم للعملاء الذين وصلوا في الفترة — أُغلق (Done deal في أي وقت)، أو أُلغي (السبب من ورقة العملاء)، أو ما زال قيد المتابعة. الثلاثة مجموعها دائماً يساوي العملاء الذين وصلوا.'],
     ezImported: 'تم الحفظ', ezRemoved: 'قديم تم حذفه',
     kpiCats: { sales: 'مبيعات', property: 'عقارات وحجوزات', maintenance: 'صيانة', attendance: 'حضور', general: 'عام', operations: 'التسويق وإدخال البيانات (HV Ops)' },
     onTimeDays: 'يوم في الموعد', lateDays: 'تأخير', noSalesTeam: 'لا يوجد أحد في قسم المبيعات بعد. افتح بطاقة كل مندوب مبيعات واختر قسم المبيعات.',
@@ -6890,12 +6892,11 @@ function parseEngazClients(wb, det) {
     const real = acts.filter((a) => a.rep && !ENGAZ_ADMIN.test(a.rep));
     const pick = real.length ? real : acts.filter((a) => a.rep);
     const owner = pick.length ? pick[pick.length - 1].rep : '';
-    const ownerFirst = owner ? acts.find((a) => a.rep === owner) : null;
     const deals = acts.filter((a) => isDeal(a.stage));
     const last = acts.length ? acts[acts.length - 1] : null;
     const kind = /rent|ايجار|إيجار|تأجير/i.test(x.project || '') ? 'rental' : 'closing';
     const own = !!(owner && x.channel && (norm(x.channel) === norm(owner) || norm(x.channel).split(' ')[0] === norm(owner).split(' ')[0]));
-    return { ...x, acts, owner, leadDay: ownerFirst ? ownerFirst.day : null, deals, kind, own,
+    return { ...x, acts, owner, leadDay: acts.length ? acts[0].day : null, deals, kind, own,
       meetings: acts.filter((a) => isMeeting(a.stage)),
       stage: last ? last.stage : '', lastDay: last ? last.day : null, firstDay: acts.length ? acts[0].day : null,
       lost: !!(last && isCancel(last.stage)), lostBy: last && isCancel(last.stage) ? last.rep : '', lostDay: last && isCancel(last.stage) ? last.day : null };
@@ -6907,20 +6908,26 @@ const inPeriod = (d, p) => !!d && (!p.from || d >= p.from) && (!p.to || d <= p.t
 /** Per Engaz rep, for the period. */
 function engazClientReport(parsed, period, opts) {
   const rep = {};
-  const R = (n) => rep[n] = rep[n] || { rep: n, leads: 0, own: 0, followUps: 0, meetings: 0, closing: 0, rental: 0, lost: 0, reasons: {}, open: 0 };
+  const R = (n) => rep[n] = rep[n] || { rep: n, leads: 0, own: 0, followUps: 0, meetings: 0, closing: 0, rental: 0, closedOf: 0, lost: 0, reasons: {}, open: 0 };
   let unassigned = 0;
   for (const x of parsed.clients) {
     if (!x.acts.length) { if (x.inClients) unassigned++; continue; }
-    if (x.owner && inPeriod(x.leadDay, period)) { const r = R(x.owner); r.leads++; if (x.own) r.own++; if (!x.lost && !x.deals.length) r.open++; }
+    if (x.owner && inPeriod(x.leadDay, period)) {
+      const r = R(x.owner); r.leads++; if (x.own) r.own++;
+      if (x.deals.length) r.closedOf++;
+      else if (x.lost) { r.lost++; const why = x.cancelReason || '—'; r.reasons[why] = (r.reasons[why] || 0) + 1; }
+      else r.open++;
+    }
     for (const a of x.acts) if (a.rep && inPeriod(a.day, period)) R(a.rep).followUps++;
     const seenM = new Set();
     for (const a of x.meetings) { const k = a.rep + a.day; if (a.rep && !seenM.has(k) && inPeriod(a.day, period)) { seenM.add(k); R(a.rep).meetings++; } }
     for (const d of engazDealsOf(x, opts)) if (d.rep && inPeriod(d.day, period)) R(d.rep)[x.kind]++;
-    if (x.lost && x.lostBy && inPeriod(x.lostDay, period)) { const r = R(x.lostBy); r.lost++; const why = x.cancelReason || '—'; r.reasons[why] = (r.reasons[why] || 0) + 1; }
   }
-  const rows = Object.values(rep).map((r) => ({ ...r, deals: r.closing + r.rental, conv: r.leads ? Math.round((r.closing + r.rental) / r.leads * 1000) / 10 : null }))
-    .sort((a, b) => b.deals - a.deals || b.leads - a.leads || b.followUps - a.followUps);
-  return { rows, unassigned };
+  const fin = (r) => ({ ...r, deals: r.closing + r.rental, conv: r.leads ? Math.round((r.closing + r.rental) / r.leads * 1000) / 10 : null });
+  const rows = Object.values(rep).map(fin).sort((a, b) => b.deals - a.deals || b.leads - a.leads || b.followUps - a.followUps);
+  const total = fin(rows.reduce((a, r) => { for (const k of ['leads', 'own', 'followUps', 'meetings', 'closing', 'rental', 'closedOf', 'lost', 'open']) a[k] += r[k]; for (const [k, v] of Object.entries(r.reasons)) a.reasons[k] = (a.reasons[k] || 0) + v; return a; },
+    { rep: '', leads: 0, own: 0, followUps: 0, meetings: 0, closing: 0, rental: 0, closedOf: 0, lost: 0, reasons: {}, open: 0 }));
+  return { rows, total, unassigned };
 }
 /** First "Done deal" per client; later ones only when the option says so. */
 function engazDealsOf(x, opts) { return (opts && opts.repeatDeals) ? x.deals : x.deals.slice(0, 1); }
@@ -7107,8 +7114,8 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
       await loadXLSX();
       const inP = (x) => !period.from && !period.to ? true : !x.acts.length || x.acts.some((a) => inPeriod(a.day, period));
       const empN = (n) => { const e = data.employees.find((x) => x.id === ezAgents[n]); return e ? eName(e) : ''; };
-      const byRep = rep.rows.map((r) => ({ [t.ezRep]: r.rep, [t.ezEmployee]: empN(r.rep), [t.leadsLbl]: r.leads, [t.ezOwnLeads]: r.own, [t.ezFollowLbl]: r.followUps, [t.ezMeetings]: r.meetings,
-        [t.salesCnt]: r.closing, [t.rentalsCnt]: r.rental, [t.convLbl]: r.conv === null ? '' : r.conv + '%', [t.ezLost]: r.lost, [t.ezReasons]: Object.entries(r.reasons).map(([k, v]) => k + ': ' + v).join(', '), [t.ezOpen]: r.open }));
+      const byRep = [...rep.rows, { ...rep.total, rep: 'Σ ' + t.ezTeamTotal }].map((r) => ({ [t.ezRep]: r.rep, [t.ezEmployee]: r.rep.startsWith('Σ') ? '' : empN(r.rep), [t.ezLeadsIn]: r.leads, [t.ezOwnLeads]: r.own, [t.ezFollowLbl]: r.followUps, [t.ezMeetings]: r.meetings,
+        [t.salesCnt]: r.closing, [t.rentalsCnt]: r.rental, [t.convLbl]: r.conv === null ? '' : r.conv + '%', [t.ezClosedOf]: r.closedOf, [t.ezLostOf]: r.lost, [t.ezReasons]: Object.entries(r.reasons).map(([k, v]) => k + ': ' + v).join(', '), [t.ezOpen]: r.open }));
       const cl = ez.parsed.clients.filter(inP).map((x) => {
         const deal = x.deals[0];
         return { Client: x.name, Mobile: x.mobile, 'Rent / Sale': (x.project || '').trim(), Channel: x.channel || '', Rep: x.owner || '', Employee: x.owner ? empN(x.owner) : '', 'Current stage': x.stage || (x.acts.length ? '' : 'No follow-up yet'),
@@ -7119,7 +7126,7 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
         .sort((a, b) => (a.Date < b.Date ? 1 : -1));
       const wb = XLSX.utils.book_new();
       const add = (rows, name, widths) => { const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]); ws['!cols'] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
-      add(byRep, 'By rep', [20, 20, 8, 10, 11, 10, 8, 9, 10, 8, 40, 10]);
+      add(byRep, 'By rep', [20, 20, 8, 10, 11, 10, 8, 9, 10, 9, 9, 40, 10]);
       add(cl, 'Clients', [24, 15, 10, 16, 18, 18, 18, 11, 13, 10, 9, 11, 16, 20, 60]);
       add(fu, 'Follow-ups', [24, 15, 10, 19, 18, 22, 70]);
       XLSX.writeFile(wb, 'Engaz-report' + (period.from || period.to ? '-' + (period.from || 'start') + '_' + (period.to || localDay(new Date())) : '') + '.xlsx');
@@ -7180,9 +7187,13 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
                 <Input type="date" className="!w-auto" value={period.to || ''} onChange={(e) => setPeriod({ ...period, to: e.target.value })} />
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
-                  <thead><tr className="text-[11px] uppercase tracking-wide text-slate-400">
-                    {[[t.ezRep, ''], [t.ezEmployee, ''], [t.leadsLbl, 'text-end'], [t.ezOwnLeads, 'text-end'], [t.ezFollowLbl, 'text-end'], [t.ezMeetings, 'text-end'], [t.salesCnt, 'text-end'], [t.rentalsCnt, 'text-end'], [t.convLbl, 'text-end'], [t.ezLost, 'text-end'], [t.ezOpen, 'text-end']].map(([h, c], i) =>
+                <table className="w-full min-w-[980px] border-separate border-spacing-0 text-sm">
+                  <thead>
+                  <tr className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    <th colSpan={2}></th><th colSpan={2} className="border-b border-slate-200 bg-slate-50 px-2 py-1 text-center">{t.ezGroupLeads}</th><th colSpan={5} className="border-b border-slate-200 bg-brand-50 px-2 py-1 text-center">{t.ezGroupActivity}</th><th colSpan={3} className="border-b border-slate-200 bg-amber-50 px-2 py-1 text-center">{t.ezGroupOutcome}</th>
+                  </tr>
+                  <tr className="text-[11px] uppercase tracking-wide text-slate-400">
+                    {[[t.ezRep, ''], [t.ezEmployee, ''], [t.ezLeadsIn, 'text-end'], [t.ezOwnLeads, 'text-end'], [t.ezFollowLbl, 'text-end'], [t.ezMeetings, 'text-end'], [t.salesCnt, 'text-end'], [t.rentalsCnt, 'text-end'], [t.convLbl, 'text-end'], [t.ezClosedOf, 'text-end'], [t.ezLostOf, 'text-end'], [t.ezOpen, 'text-end']].map(([h, c], i) =>
                       <th key={i} className={cx('whitespace-nowrap border-b border-slate-200 px-2 py-2 text-start font-semibold', c)}>{h}</th>)}
                   </tr></thead>
                   <tbody>
@@ -7196,17 +7207,27 @@ function EngazImportTab({ me, myEmp, data, toast, audit, metrics, onImported }) 
                             {data.employees.filter((e) => e.status === 'active').map((e) => <option key={e.id} value={e.id}>{eName(e)}</option>)}
                           </Select>
                         </td>
-                        {r.empty ? <td colSpan={9} className="border-b border-slate-100 px-2 py-2 text-xs text-slate-400">{t.ezNothingInPeriod}</td> : (
+                        {r.empty ? <td colSpan={10} className="border-b border-slate-100 px-2 py-2 text-xs text-slate-400">{t.ezNothingInPeriod}</td> : (
                           <>
                             {num(r.leads, 'font-semibold text-slate-800')}{num(r.own)}{num(r.followUps)}{num(r.meetings)}
                             {num(r.closing, 'font-bold text-emerald-600')}{num(r.rental, 'font-bold text-emerald-600')}
                             <td className={cx('border-b border-slate-100 px-2 py-2 text-end tabular-nums', r.conv === null ? 'text-slate-300' : r.conv >= 10 ? 'font-bold text-emerald-600' : 'text-slate-700')}>{r.conv === null ? '—' : r.conv + '%'}</td>
+                            {num(r.closedOf, 'font-semibold text-emerald-700')}
                             <td className={cx('border-b border-slate-100 px-2 py-2 text-end tabular-nums', r.lost ? 'text-rose-600' : 'text-slate-300')} title={Object.entries(r.reasons).map(([k, v]) => k + ': ' + v).join('\n')}>{r.lost || '·'}</td>
                             {num(r.open, 'text-amber-700')}
                           </>
                         )}
                       </tr>
                     ))}
+                    {rep.rows.length > 1 && (
+                      <tr className="font-bold">
+                        <td className="border-t-2 border-slate-300 px-2 py-2 text-slate-800" colSpan={2}>Σ {t.ezTeamTotal}</td>
+                        {num(rep.total.leads, 'text-slate-800')}{num(rep.total.own)}{num(rep.total.followUps)}{num(rep.total.meetings)}
+                        {num(rep.total.closing, 'text-emerald-600')}{num(rep.total.rental, 'text-emerald-600')}
+                        <td className={cx('border-b border-slate-100 px-2 py-2 text-end tabular-nums', rep.total.conv === null ? 'text-slate-300' : 'text-slate-800')}>{rep.total.conv === null ? '—' : rep.total.conv + '%'}</td>
+                        {num(rep.total.closedOf, 'text-emerald-700')}{num(rep.total.lost, 'text-rose-600')}{num(rep.total.open, 'text-amber-700')}
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
