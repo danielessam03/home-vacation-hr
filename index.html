@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.46';
+const APP_VERSION = 'v3.47';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -1744,12 +1744,21 @@ const NAV = [
 
 const HV_APPS = [
   /* `access` = the app_users checkbox that opens the system; the menu only lists what is ticked for the signed-in account */
-  { key: 'appHr', icon: '👥', url: 'https://home-vacation-hr.pages.dev', here: true, access: 'access_hr' },
-  { key: 'appMaint', icon: '🔧', url: 'https://hv-maintenance-system.pages.dev', access: 'access_maint' },
-  { key: 'appCrm', icon: '🏠', url: 'https://property-management-crm.pages.dev', access: 'access_crm' },
-  { key: 'appOps', icon: '📋', url: 'https://home-vacation-ops.pages.dev', access: 'access_ops' },
-  { key: 'appFin', icon: '💰', url: 'https://home-vacation-finance.pages.dev', access: 'access_fin' },
+  { key: 'appHr', sys: 'hr', icon: '👥', url: 'https://home-vacation-hr.pages.dev', here: true, access: 'access_hr' },
+  { key: 'appMaint', sys: 'maint', icon: '🔧', url: 'https://hv-maintenance-system.pages.dev', access: 'access_maint' },
+  { key: 'appCrm', sys: 'crm', icon: '🏠', url: 'https://property-management-crm.pages.dev', access: 'access_crm' },
+  { key: 'appOps', sys: 'ops', icon: '📋', url: 'https://home-vacation-ops.pages.dev', access: 'access_ops' },
+  { key: 'appFin', sys: 'fin', icon: '💰', url: 'https://home-vacation-finance.pages.dev', access: 'access_fin' },
 ];
+/* red counters of what is waiting in each Home Vacation system — public.hv_alert_counts() via HVCore.watchAlerts */
+const useHvAlerts = (uid) => {
+  const [a, setA] = useState(null);
+  useEffect(() => { if (!uid || !window.HVCore || !HVCore.watchAlerts) return; return HVCore.watchAlerts(sb, setA); }, [uid]);
+  return a;
+};
+const hvN = (a, k) => (window.HVCore && HVCore.alertN ? HVCore.alertN(a, k) : 0);
+const hvTitle = (a, k, ar) => (window.HVCore && HVCore.alertTitle ? HVCore.alertTitle(a, k, ar) : '');
+
 
 const WIDE_PAGES = ['attendance', 'payroll', 'reports', 'kpi', 'leave'];
 function Shell({ me, page, setPage, onSignOut, children }) {
@@ -1758,6 +1767,9 @@ function Shell({ me, page, setPage, onSignOut, children }) {
   const items = NAV.filter((n) => n.roles.includes(me.role));
   const label = (k) => t[k];
   const [apps, setApps] = useState(false);
+  const alerts = useHvAlerts(me.id);
+  const othersN = window.HVCore && HVCore.alertOthers ? HVCore.alertOthers(alerts, 'hr') : 0;
+  const othersTitle = HV_APPS.filter((a) => !a.here && hvN(alerts, a.sys) > 0).map((a) => t[a.key] + ': ' + hvN(alerts, a.sys)).join('\n');
 
   return (
     <div className="flex min-h-full flex-col">
@@ -1773,7 +1785,7 @@ function Shell({ me, page, setPage, onSignOut, children }) {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <button data-tour="tb-systems" onClick={() => setApps(true)} title={t.apps} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">🏢</button>
+            <button data-tour="tb-systems" onClick={() => setApps(true)} title={othersTitle || t.apps} className="relative rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">🏢{othersN > 0 && <span className="absolute -end-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{othersN > 99 ? '99+' : othersN}</span>}</button>
             <button data-tour="tb-lang" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
               {lang === 'ar' ? 'EN' : 'ع'}
             </button>
@@ -1800,10 +1812,10 @@ function Shell({ me, page, setPage, onSignOut, children }) {
           {HV_APPS.filter((a) => a.here || me[a.access]).map((a) => (
             <li key={a.key}>
               {a.here ? (
-                <div className="flex items-center justify-between py-3 text-sm"><span className="font-semibold text-slate-800">{a.icon} {t[a.key]}</span><Badge tone="teal">{t.currentApp}</Badge></div>
+                <div className="flex items-center justify-between py-3 text-sm"><span className="flex items-center font-semibold text-slate-800">{a.icon} {t[a.key]}{hvN(alerts, a.sys) > 0 && <span title={hvTitle(alerts, a.sys, lang === 'ar')} style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 11, fontWeight: 700, alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginInlineStart: 6, flexShrink: 0 }}>{hvN(alerts, a.sys)}</span>}</span><Badge tone="teal">{t.currentApp}</Badge></div>
               ) : (
                 <a href={a.url} target="_blank" rel="noreferrer" className="flex items-center justify-between py-3 text-sm font-semibold text-brand-700" onClick={() => setApps(false)}>
-                  <span>{a.icon} {t[a.key]}</span><span>↗</span>
+                  <span className="flex items-center">{a.icon} {t[a.key]}{hvN(alerts, a.sys) > 0 && <span title={hvTitle(alerts, a.sys, lang === 'ar')} style={{ display: 'inline-flex', minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 11, fontWeight: 700, alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginInlineStart: 6, flexShrink: 0 }}>{hvN(alerts, a.sys)}</span>}</span><span>↗</span>
                 </a>
               )}
             </li>
@@ -8821,8 +8833,8 @@ const HV_TOUR_STEPS = [
     en: ['Roles — who sees what', 'CEO: everything, and the only one who approves payroll. HR: employees, attendance, leave, jobs, compliance, reports, users and settings — but never salaries or payroll. Accountant: payroll, loans, salaries, compliance, reports and settings. Manager: their team\'s attendance, leave, notes and KPI approvals. Staff: their own check-in, leave, KPIs, loans and payslips.'],
     ar: ['الأدوار — من يرى ماذا', 'المدير التنفيذي: كل شيء، وهو وحده من يعتمد الرواتب. الموارد البشرية: الموظفون والحضور والإجازات والوظائف والامتثال والتقارير والمستخدمون والإعدادات، دون الرواتب أبداً. المحاسب: الرواتب والسلف والمرتبات والامتثال والتقارير والإعدادات. المدير المباشر: حضور فريقه وإجازاتهم وأذوناتهم واعتماد مؤشراتهم. الموظف: حضوره وإجازاته ومؤشراته وسلفه وقسائم راتبه فقط.'] },
   { c: 'access', target: 'tb-systems',
-    en: ['Systems switcher', 'The 🏢 button lists the other Home Vacation systems your login can open — Maintenance, CRM, HV Ops, HV Finance — with the same username and password. You can restart this tour any time from the Tour button.'],
-    ar: ['التنقل بين الأنظمة', 'زر 🏢 يعرض أنظمة هوم فاكيشن الأخرى التي يفتحها حسابك (الصيانة، CRM، HV Ops، HV Finance) بنفس اسم المستخدم وكلمة المرور. ويمكنك إعادة هذه الجولة في أي وقت من زر «جولة».'] },
+    en: ['Systems switcher', 'The 🏢 button lists the other Home Vacation systems your login can open — Maintenance, CRM, HV Ops, HV Finance — with the same username and password. A red counter on the button and next to each system shows how many things are waiting for you there (approvals, tasks, alerts); hover it to see what. You can restart this tour any time from the Tour button.'],
+    ar: ['التنقل بين الأنظمة', 'زر 🏢 يعرض أنظمة هوم فاكيشن الأخرى التي يفتحها حسابك (الصيانة، CRM، HV Ops، HV Finance) بنفس اسم المستخدم وكلمة المرور. عدّاد أحمر على الزر وبجانب كل نظام يوضح كم شيئاً ينتظرك هناك (اعتمادات، مهام، تنبيهات)؛ مرّر عليه لترى التفاصيل. ويمكنك إعادة هذه الجولة في أي وقت من زر «جولة».'] },
 ];
 /** The steps this role gets: role-limited steps filtered, 'me' steps moved to the staff home page. */
 function hvTourStepsFor(role) {
