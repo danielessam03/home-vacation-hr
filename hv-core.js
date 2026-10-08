@@ -20,6 +20,8 @@
  * Off-switch for the saved copy: open the system with ?nosw=1
  *  5. STALE COPY — if this address does not answer but another does, the
  *     page moves there (same #hash) so the current version always runs.
+ *  6. 🔔 NOTIFICATIONS — a bell in every system (for everyone) listing what
+ *     waits in each system; a line opens the right screen, here or there.
  *  4. ALERTS — HVCore.watchAlerts(supabaseClient, cb) keeps the per-system
  *     counters of public.hv_alert_counts() fresh for the 🏢 switcher.
  * ===================================================================== */
@@ -210,6 +212,123 @@
     return p.items.map(function (i) { return (A ? i.ar : i.en) + ': ' + i.n; }).join('\n');
   }
 
+  // ---------------------------------------------------------------- 🔔 notifications: one button in every system, for everyone
+  // Lists what hv_alert_counts() reports, this system first. A line of THIS system opens its screen through the tour
+  // engine (HVTour.go(page, action)); a line of another system opens that system at "#go/<page>/<action>", which the
+  // copy of this file running there turns into the same navigation once the app has started.
+  var bellBtn = null, bellPanel = null, bellOpen = false;
+  var SYS_ORDER = ['hr', 'maint', 'crm', 'ops', 'fin'];
+  function bellCss() {
+    if (document.getElementById('hv-bell-css')) return;
+    var st = document.createElement('style'); st.id = 'hv-bell-css';
+    st.textContent = '.hv-bell{position:fixed;z-index:2147482000;display:none;align-items:center;justify-content:center;width:46px;height:46px;border:0;border-radius:999px;background:#0f172a;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}' +
+      '.hv-bell svg{width:22px;height:22px}.hv-bell b{position:absolute;top:-6px;inset-inline-end:-6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#e11d48;color:#fff;font:700 12px/22px system-ui,Arial,sans-serif;text-align:center}' +
+      '.hv-bell-panel{position:fixed;z-index:2147482001;width:min(380px,calc(100vw - 24px));max-height:min(70vh,560px);overflow:auto;border-radius:16px;background:#fff;color:#0f172a;box-shadow:0 16px 48px rgba(0,0,0,.3);font:14px/1.45 Cairo,Inter,system-ui,Arial,sans-serif}' +
+      '.hv-bell-panel h3{margin:0;padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:15px;display:flex;justify-content:space-between;align-items:center}.hv-bell-panel h3 button{border:0;background:none;font-size:18px;cursor:pointer;color:#64748b}' +
+      '.hv-bell-sys{padding:10px 16px 4px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#64748b;display:flex;justify-content:space-between}.hv-bell-sys i{font-style:normal;color:#e11d48}' +
+      '.hv-bell-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 16px;border:0;background:none;text-align:start;cursor:pointer;font:inherit;color:inherit}.hv-bell-item:hover{background:#f1f5f9}' +
+      '.hv-bell-item b{min-width:26px;height:22px;padding:0 7px;border-radius:11px;background:#e11d48;color:#fff;font-size:12px;line-height:22px;text-align:center;flex-shrink:0}.hv-bell-item span{flex:1}.hv-bell-item small{color:#94a3b8}' +
+      '.hv-bell-empty{padding:28px 16px;text-align:center;color:#64748b}.hv-bell-foot{padding:8px 16px 12px;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9}' +
+      '@media print{.hv-bell,.hv-bell-panel{display:none!important}}';
+    document.head.appendChild(st);
+  }
+  function bellPlace() {
+    if (!bellBtn) return;
+    var tour = document.querySelector('.hvt-btn');
+    var A = ar(), mobile = window.innerWidth < 640;
+    var bottom = tour && tour.style.bottom ? tour.style.bottom : (mobile ? '76px' : '24px');
+    bellBtn.style.bottom = bottom;
+    // the opposite corner from the Tour button (tour: right in LTR, left in RTL)
+    bellBtn.style.left = A ? 'auto' : '16px'; bellBtn.style.right = A ? '16px' : 'auto';
+    var show = !!alertData && Object.keys(alertData).length > 0 && !(tour && tour.style.display === 'none' && !document.querySelector('.hvt-root'));
+    bellBtn.style.display = show ? 'flex' : 'none';
+    if (bellPanel) { bellPanel.style.bottom = (parseInt(bottom, 10) + 56) + 'px'; bellPanel.style.left = A ? 'auto' : '16px'; bellPanel.style.right = A ? '16px' : 'auto'; }
+  }
+  function bellRender() {
+    if (!bellBtn) return;
+    var total = 0; for (var k in (alertData || {})) total += alertN(alertData, k);
+    var b = bellBtn.querySelector('b'); b.textContent = total > 99 ? '99+' : String(total); b.style.display = total > 0 ? 'block' : 'none';
+    bellBtn.title = ar() ? 'التنبيهات' : 'Notifications';
+    if (bellPanel && bellOpen) bellFill();
+    bellPlace();
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function bellFill() {
+    var A = ar(), keys = SYS_ORDER.filter(function (k) { return alertData && alertData[k]; });
+    if (APP && keys.indexOf(APP) > 0) { keys.splice(keys.indexOf(APP), 1); keys.unshift(APP); }
+    var html = '<h3><span>🔔 ' + (A ? 'التنبيهات' : 'Notifications') + '</span><button type="button" data-hv-bell="close" aria-label="close">✕</button></h3>';
+    var any = false;
+    keys.forEach(function (k) {
+      var p = alertData[k]; var items = (p && p.items) || [];
+      var name = SYSTEMS[k] ? (A ? SYSTEMS[k].ar : SYSTEMS[k].en) : k;
+      html += '<div class="hv-bell-sys"><span>' + esc(name) + (k === APP ? ' · ' + (A ? 'هذا النظام' : 'this system') : '') + '</span><i>' + (alertN(alertData, k) || '') + '</i></div>';
+      if (!items.length) { html += '<div class="hv-bell-item" style="cursor:default;color:#94a3b8">' + (A ? 'لا شيء ينتظرك هنا' : 'Nothing waiting here') + '</div>'; return; }
+      items.forEach(function (it, i) {
+        any = true;
+        html += '<button type="button" class="hv-bell-item" data-hv-bell="go" data-k="' + k + '" data-i="' + i + '"><b>' + esc(it.n) + '</b><span>' + esc(A ? it.ar : it.en) + '</span><small>' + (k === APP ? '›' : '↗') + '</small></button>';
+      });
+    });
+    if (!keys.length) html += '<div class="hv-bell-empty">' + (A ? 'لا تنبيهات' : 'No notifications') + '</div>';
+    html += '<div class="hv-bell-foot">' + (A ? 'يتحدث كل دقيقة · اضغط على سطر لفتح الشاشة' : 'Refreshes every minute · tap a line to open its screen') + '</div>';
+    bellPanel.innerHTML = html;
+  }
+  function bellGo(k, i) {
+    var it = alertData && alertData[k] && alertData[k].items && alertData[k].items[i]; if (!it) return;
+    bellToggle(false);
+    if (k === APP) {
+      if (window.HVTour && HVTour.go) HVTour.go(it.page, it.action);
+      else location.hash = '#go/' + (it.page || '') + (it.action ? '/' + it.action : '');
+      return;
+    }
+    open(k, '#go/' + (it.page || '') + (it.action ? '/' + it.action : ''), false, (SYSTEMS[k] && SYSTEMS[k].urls[0]) || '');
+  }
+  function bellToggle(force) {
+    bellOpen = force == null ? !bellOpen : !!force;
+    if (bellOpen) {
+      if (!bellPanel) {
+        bellPanel = document.createElement('div'); bellPanel.className = 'hv-bell-panel'; bellPanel.setAttribute('dir', ar() ? 'rtl' : 'ltr');
+        bellPanel.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var el = e.target.closest ? e.target.closest('[data-hv-bell]') : null; if (!el) return;
+          var what = el.getAttribute('data-hv-bell');
+          if (what === 'close') bellToggle(false);
+          if (what === 'go') bellGo(el.getAttribute('data-k'), Number(el.getAttribute('data-i')));
+        });
+        document.body.appendChild(bellPanel);
+      }
+      bellPanel.setAttribute('dir', ar() ? 'rtl' : 'ltr');
+      bellFill(); bellPanel.style.display = 'block'; bellPlace(); fetchAlerts();
+    } else if (bellPanel) bellPanel.style.display = 'none';
+  }
+  function bellInit() {
+    if (bellBtn || !document.body) return;
+    bellCss();
+    bellBtn = document.createElement('button'); bellBtn.type = 'button'; bellBtn.className = 'hv-bell';
+    bellBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><b style="display:none"></b>';
+    bellBtn.onclick = function (e) { e.stopPropagation(); bellToggle(); };
+    document.addEventListener('click', function () { if (bellOpen) bellToggle(false); });
+    document.body.appendChild(bellBtn);
+    alertCbs.push(function () { bellRender(); });
+    setInterval(bellPlace, 1000);
+    bellRender();
+  }
+  if (document.body) bellInit(); else document.addEventListener('DOMContentLoaded', bellInit);
+
+  // "#go/<page>/<action>" — arrival from another system's 🔔: navigate once the app (and the tour engine) is up
+  function goFromHash() {
+    var m = /^#go\/([^\/]*)(?:\/([^\/]*))?/.exec(location.hash || ''); if (!m) return;
+    var page = decodeURIComponent(m[1] || ''), action = decodeURIComponent(m[2] || '');
+    var tries = 0;
+    (function wait() {
+      if (window.HVTour && HVTour.go && HVTour.page && HVTour.page() != null) {
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+        HVTour.go(page, action);
+      } else if (tries++ < 60) setTimeout(wait, 500);
+    })();
+  }
+  goFromHash();
+  window.addEventListener('hashchange', goFromHash);
+
   // ---------------------------------------------------------------- stale saved copy: if THIS address does not answer, move to one that does
   // The office network sometimes cannot reach the address the person opened (2026-09-30/10-08): the saved copy opens,
   // but it may be an OLD version. If this address does not answer and another one does, the same page (same #hash)
@@ -248,6 +367,6 @@
     });
   }
 
-  window.HVCore = { version: 4, app: APP, systems: SYSTEMS, match: match, probe: probe, best: best, open: open, clearSaved: clearSaved, loadScript: loadScript,
-    watchAlerts: watchAlerts, alertN: alertN, alertOthers: alertOthers, alertTitle: alertTitle, refreshAlerts: fetchAlerts };
+  window.HVCore = { version: 5, app: APP, systems: SYSTEMS, match: match, probe: probe, best: best, open: open, clearSaved: clearSaved, loadScript: loadScript,
+    watchAlerts: watchAlerts, openNotifications: function () { bellToggle(true); }, alertN: alertN, alertOthers: alertOthers, alertTitle: alertTitle, refreshAlerts: fetchAlerts };
 })();

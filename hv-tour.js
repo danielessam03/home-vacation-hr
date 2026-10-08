@@ -247,5 +247,8 @@
     init(options) { cfg = options; css(); button(); tick(); if (!timer) timer = setInterval(tick, 1000); },
     start, startForPage, manual, stop,
     update(options) { cfg = Object.assign({}, cfg, options); tick(); },
+    // navigation for other kit parts (the 🔔 notifications panel in hv-core): go to a page, then fire a tour action (e.g. a tab)
+    go(page, action) { try { if (page && cfg && cfg.goPage) cfg.goPage(page); } catch (e) {} if (action) setTimeout(() => fire(action), 450); },
+    page() { try { return cfg && cfg.getPage ? cfg.getPage() : null; } catch (e) { return null; } },
   };
 })();
