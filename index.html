@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.47';
+const APP_VERSION = 'v3.48';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -1753,7 +1753,14 @@ const HV_APPS = [
 /* red counters of what is waiting in each Home Vacation system — public.hv_alert_counts() via HVCore.watchAlerts */
 const useHvAlerts = (uid) => {
   const [a, setA] = useState(null);
-  useEffect(() => { if (!uid || !window.HVCore || !HVCore.watchAlerts) return; return HVCore.watchAlerts(sb, setA); }, [uid]);
+  useEffect(() => {
+    if (!uid) return;
+    if (window.HVCore && HVCore.watchAlerts) return HVCore.watchAlerts(sb, setA);
+    // older saved copy of hv-core.js: poll directly
+    let alive = true; const run = () => { try { sb.rpc('hv_alert_counts').then(({ data }) => { if (alive && data && typeof data === 'object') setA(data); }).catch(() => {}); } catch (e) {} };
+    run(); const tm = setInterval(run, 60000);
+    return () => { alive = false; clearInterval(tm); };
+  }, [uid]);
   return a;
 };
 const hvN = (a, k) => (window.HVCore && HVCore.alertN ? HVCore.alertN(a, k) : 0);
