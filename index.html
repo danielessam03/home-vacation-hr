@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.48';
+const APP_VERSION = 'v3.49';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -223,6 +223,7 @@ const T = {
     excTab: 'Exceptions', excRequest: 'Late / break note', excKinds: { late: 'Late arrival', break: 'Longer break', early_leave: 'Leaving early' }, excMinutes: 'Expected minutes',
     excHint: 'Write the note before it happens (today or a later date). If it is accepted, that day carries no lateness deduction and no violation.', excused: 'Excused', excPending: 'Notes to approve', excMine: 'My notes', excAll: 'All notes',
     excTooLate: 'The note must be sent before the day, not after it.', excApprovedMsg: 'Accepted. The day is excused.',
+    breakFromDevice: 'started on the fingerprint machine', endBreakHere: 'End break here', breakEndedHere: 'Break ended. You are back at work.',
     startBreak: 'Start break', onBreakSince: 'On break since', breakManualHint: 'You are on break. Take a live selfie to end it and resume work.', breakBig: 'Break',
     breakAsIn: 'Break pressed first, counted as check-in', dirIn: 'In', dirOut: 'Out', dirBreakOut: 'Break start', dirBreakIn: 'Break end', dirOtIn: 'Overtime in', dirOtOut: 'Overtime out', dirUnknown: 'Unknown button', deviceBreak: 'Fingerprint device', firstIn: 'First in', lastOut: 'Last out',
     manualPunch: 'Manual punch', punchNote: 'Reason (required)', punchTime: 'Time',
@@ -471,6 +472,7 @@ const T = {
     excTab: 'الاستثناءات', excRequest: 'إذن تأخير / استراحة', excKinds: { late: 'تأخير في الحضور', break: 'استراحة أطول', early_leave: 'انصراف مبكر' }, excMinutes: 'الدقائق المتوقعة',
     excHint: 'اكتب الإذن قبل حدوثه (اليوم أو تاريخ لاحق). إذا قُبل، لا يُخصم تأخير ولا تُسجَّل مخالفة في ذلك اليوم.', excused: 'معذور', excPending: 'أذونات بانتظار الاعتماد', excMine: 'أذوناتي', excAll: 'كل الأذونات',
     excTooLate: 'يجب إرسال الإذن قبل اليوم لا بعده.', excApprovedMsg: 'تم القبول. اليوم معذور.',
+    breakFromDevice: 'بدأت من جهاز البصمة', endBreakHere: 'إنهاء الاستراحة من هنا', breakEndedHere: 'انتهت الاستراحة. عدت إلى العمل.',
     startBreak: 'بدء استراحة', onBreakSince: 'في استراحة منذ', breakManualHint: 'أنت في استراحة. التقط سيلفي حية لإنهائها والعودة للعمل.', breakBig: 'استراحة',
     breakAsIn: 'ضغط استراحة أولاً، احتُسب حضوراً', dirIn: 'حضور', dirOut: 'انصراف', dirBreakOut: 'بداية استراحة', dirBreakIn: 'نهاية استراحة', dirOtIn: 'دخول إضافي', dirOtOut: 'خروج إضافي', dirUnknown: 'زر غير معروف', deviceBreak: 'جهاز البصمة', firstIn: 'أول حضور', lastOut: 'آخر انصراف',
     manualPunch: 'بصمة يدوية', punchNote: 'السبب (إلزامي)', punchTime: 'الوقت',
@@ -3332,16 +3334,52 @@ function ExceptionsTab({ me, myEmp, data, toast, audit, eName, admin, isHr }) {
   );
 }
 
-function BreakButton({ live, data }) {
+/* Break button. Breaks started here (live session) and breaks started on the fingerprint machine
+   (break_out punch) are both shown; a machine break can be ended here (a break_in punch, source 'web'),
+   and an online break ended on the machine is closed by the DB trigger (migration_051). */
+function BreakButton({ live, data, myEmp, toast, onPunch }) {
   const { t } = useL();
   const ses = live && live.session;
   const [, tick] = useState(0);
-  useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 15000); return () => clearInterval(id); }, []);
-  if (!ses) return null;
+  const [punches, setPunches] = useState([]);      // today's punches of this person (machine breaks live here)
+  const [busy, setBusy] = useState(false);
+  const empId = myEmp ? myEmp.id : null;
+  const loadPunches = useCallback(() => {
+    if (!empId) return;
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    sb.from('attendance_punches').select('id, punch_time, direction, source').eq('employee_id', empId).gte('punch_time', start.toISOString()).order('punch_time')
+      .then(({ data: d }) => setPunches(d || []));
+  }, [empId]);
+  useEffect(() => { loadPunches(); const id = setInterval(() => { tick((x) => x + 1); loadPunches(); }, 20000); return () => clearInterval(id); }, [loadPunches]);
+  const lastBrk = [...punches].reverse().find((p) => p.direction === 'break_out' || p.direction === 'break_in');
+  const devOpen = lastBrk && lastBrk.direction === 'break_out' ? lastBrk : null;
+  const devMin = deviceBreaksByDay(punches)[localDay(new Date())] || 0;
+  if (!ses && !devOpen) return null;
   const policy = (data && data.settings.attendance_policy) || {};
   const allow = breakAllowance(policy);
-  const usedToday = Math.round(((ses.break_seconds || 0) + (ses.status === 'break' && ses.break_started_at ? Math.round((Date.now() - new Date(ses.break_started_at).getTime()) / 1000) : 0)) / 60);
+  const usedToday = Math.round(((ses ? ses.break_seconds || 0 : 0) + (ses && ses.status === 'break' && ses.break_started_at ? Math.round((Date.now() - new Date(ses.break_started_at).getTime()) / 1000) : 0)) / 60) + devMin;
   const left = allow - usedToday;
+  async function endDeviceBreak() {
+    setBusy(true);
+    const { data: row, error } = await sb.from('attendance_punches').insert({
+      employee_id: empId, employee_device_code: myEmp.device_code || myEmp.employee_code,
+      punch_time: new Date().toISOString(), direction: 'break_in', device_id: 'web', source: 'web',
+      note: 'Break ended online (started on the fingerprint machine)',
+    }).select().single();
+    setBusy(false);
+    if (error) { if (toast) toast(error.message.includes('ATTENDANCE_LOCKED') ? t.monthLocked : error.message, 'error'); return; }
+    setPunches((prev) => [...prev, row]);
+    if (onPunch) onPunch(row);
+    if (live && live.refresh) live.refresh();
+    if (toast) toast(t.breakEndedHere);
+  }
+  if (devOpen) return (
+    <div className={cx('rounded-2xl border-2 p-4 text-center', left < 0 ? 'border-rose-400 bg-rose-100' : 'border-amber-300 bg-amber-50')}>
+      <p className={cx('text-lg font-bold', left < 0 ? 'text-rose-700' : 'text-amber-800')}>⏸️ {t.onBreak} · {left < 0 ? t.breakExceeded + ' ' + (-left) + ' ' + t.minutesLbl : left + ' ' + t.minutesLbl + ' ' + t.breakLeft}</p>
+      <p className="text-xs text-slate-600">{t.onBreakSince} {fmtTime(devOpen.punch_time)} · {t.breakFromDevice}</p>
+      <Btn className="mt-3 w-full" size="lg" disabled={busy} onClick={endDeviceBreak}>▶ {busy ? t.loading : t.endBreakHere}</Btn>
+    </div>
+  );
   if (ses.status === 'break') return (
     <div className={cx('rounded-2xl border-2 p-4 text-center', left < 0 ? 'border-rose-400 bg-rose-100' : 'border-amber-300 bg-amber-50')}>
       <p className={cx('text-lg font-bold', left < 0 ? 'text-rose-700' : 'text-amber-800')}>⏸️ {t.onBreak} · {left < 0 ? t.breakExceeded + ' ' + (-left) + ' ' + t.minutesLbl : left + ' ' + t.minutesLbl + ' ' + t.breakLeft}</p>
@@ -3415,7 +3453,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
             {busy ? t.gettingLoc : nextDir === 'in' ? '🕐 ' + t.checkIn : '🏁 ' + t.checkOut}
           </Btn>
         </div>
-        {live && live.session && <div className="pt-1"><BreakButton live={live} data={data} /></div>}
+        {live && <div className="pt-1"><BreakButton live={live} data={data} myEmp={myEmp} toast={toast} onPunch={(row) => setTodays((prev) => [...(prev || []), row])} /></div>}
       </Card>
       {live && (
         <Card tour="att-live" title={'🟢 ' + t.liveSession}>
@@ -6402,7 +6440,7 @@ function MyPage({ me, data, toast, setPage, live }) {
         <p className="mt-1 text-sm text-brand-200">{(lang === 'ar' ? myEmp.job_title_ar : myEmp.job_title_en) || '—'} · {branch ? (lang === 'ar' ? branch.name_ar : branch.name_en) : '—'} · {myEmp.employee_code}</p>
       </div>
 
-      {!myEmp.attendance_exempt && live && live.session && <BreakButton live={live} data={data} />}
+      {!myEmp.attendance_exempt && live && <BreakButton live={live} data={data} myEmp={myEmp} toast={toast} />}
       <div data-tour="my-quick" className={cx('grid gap-2', myEmp.attendance_exempt ? 'grid-cols-2' : 'grid-cols-4')}>
         {!myEmp.attendance_exempt && <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance')}>🕐<span>{t.goCheckIn}</span></Btn>}
         {!myEmp.attendance_exempt && <Btn variant="soft" className="flex-col !py-3 text-xs" onClick={() => setPage('attendance', 'exceptions')}>⏰<span>{t.excRequest}</span></Btn>}
