@@ -1,7 +1,7 @@
 /* =====================================================================
  * HV Core — keeps every Home Vacation system reachable.
  * Source: hv-shared/kit/hv-core.js — the SAME file ships inside every system
- * (HR, Maintenance, CRM, HV Ops, HV Finance); kit/sync.sh copies it there.
+ * (HR, Maintenance, CRM, HV Ops, HV Finance, HV Management); kit/sync.sh copies it there.
  * Load it FIRST in <head>, same folder as index.html:
  *     <script src="hv-core.js" data-app="hr"></script>
  *
@@ -35,7 +35,8 @@
     maint: { en: 'Maintenance', ar: 'إدارة الصيانة', urls: ['https://maintenance.home-vacation.com/', 'https://hv-maintenance-system.pages.dev/', 'https://danielessam03.github.io/hv-maintenance-system/'] },
     crm:   { en: 'Property management (CRM)', ar: 'إدارة العقارات (CRM)', urls: ['https://crm.home-vacation.com/', 'https://property-management-crm.pages.dev/'] },
     ops:   { en: 'HV Ops', ar: 'HV Ops', urls: ['https://ops.home-vacation.com/', 'https://home-vacation-ops.pages.dev/', 'https://danielessam03.github.io/home-vacation-ops/', 'https://hvops-home-vacation.pages.dev/'] },
-    fin:   { en: 'HV Finance', ar: 'الحسابات والمالية', urls: ['https://finance.home-vacation.com/', 'https://home-vacation-finance.pages.dev/'] }
+    fin:   { en: 'HV Finance', ar: 'الحسابات والمالية', urls: ['https://finance.home-vacation.com/', 'https://home-vacation-finance.pages.dev/'] },
+    mgmt:  { en: 'HV Management', ar: 'الإدارة العليا', urls: ['https://home-vacation-management.pages.dev/', 'https://hvmgmt-home-vacation.pages.dev/'] }
   };
   var PROBE_MS = 3500, START_MS = 12000;
   var me = document.currentScript;
@@ -217,7 +218,7 @@
   // engine (HVTour.go(page, action)); a line of another system opens that system at "#go/<page>/<action>", which the
   // copy of this file running there turns into the same navigation once the app has started.
   var bellBtn = null, bellPanel = null, bellOpen = false;
-  var SYS_ORDER = ['hr', 'maint', 'crm', 'ops', 'fin'];
+  var SYS_ORDER = ['mgmt', 'hr', 'maint', 'crm', 'ops', 'fin'];
   function bellCss() {
     if (document.getElementById('hv-bell-css')) return;
     var st = document.createElement('style'); st.id = 'hv-bell-css';
