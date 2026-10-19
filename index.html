@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.50';
+const APP_VERSION = 'v3.51';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -132,6 +132,12 @@ const T = {
     notConfigured: 'Supabase is not configured yet. Add your project URL and anon key at the top of index.html.',
     inactive: 'Your account is deactivated. Contact HR.',
     dashboard: 'Dashboard', settings: 'Settings', users: 'Users & roles', audit: 'Audit log', profile: 'My profile',
+    tasks: 'Tasks', tk: { mine: 'My tasks', everyone: 'Everyone', open: 'Open', closed: 'Done & cancelled', none: 'No open tasks for you right now.', noneAll: 'No open tasks.', noneClosed: 'Nothing done yet.',
+      hint: 'Tasks the CEO gives you from HV Management. Tap Start when you begin and Done when you finish.', from: 'from', noDue: 'no due date', dueOn: 'due', late: 'late', dueToday: 'due today',
+      start: 'Start', done: 'Done ✓', cancel: 'Cancel task', cancelQ: 'Cancel this task? It closes for good.', doneTitle: 'Mark as done', doneHint: 'Done is final: the task closes and the person who gave it sees it at once.',
+      note: 'Note (optional)', notePh: 'e.g. sent by email at 3 pm', show: 'Show', hide: 'Hide', last: 'Latest', banner: 'You have {n} open task(s)', bannerLate: '{n} late', loadErr: 'The task list is not ready yet.',
+      status: { todo: 'To do', doing: 'In progress', done: 'Done', cancelled: 'Cancelled' }, prio: { low: 'Low', normal: 'Normal', high: 'High', urgent: 'Urgent' },
+      err: { TASK_CLOSED: 'This task is already closed.', NOT_YOUR_TASK: 'This task is not yours.', BAD_STATUS: 'You cannot do that with this task.', TASK_NOT_FOUND: 'Task not found.' } },
     branches: 'Branches', holidays: 'Holidays', workWeek: 'Work week', tax: 'Income tax', insurance: 'Social insurance', company: 'Company',
     role: 'Role', roles: { ceo: 'CEO', hr: 'HR', accountant: 'Accountant', manager: 'Manager', staff: 'Staff' },
     branch: 'Branch', allBranches: 'All branches', active: 'Active', inactiveLbl: 'Inactive', status: 'Status',
@@ -381,6 +387,12 @@ const T = {
     notConfigured: 'لم يتم ضبط Supabase بعد. أضف رابط المشروع والمفتاح في أعلى ملف index.html.',
     inactive: 'حسابك موقوف. تواصل مع الموارد البشرية.',
     dashboard: 'الرئيسية', settings: 'الإعدادات', users: 'المستخدمون والصلاحيات', audit: 'سجل التدقيق', profile: 'ملفي',
+    tasks: 'المهام', tk: { mine: 'مهامي', everyone: 'الكل', open: 'مفتوحة', closed: 'منجزة وملغاة', none: 'لا توجد مهام مفتوحة لك الآن.', noneAll: 'لا توجد مهام مفتوحة.', noneClosed: 'لا شيء منجز بعد.',
+      hint: 'المهام التي يعطيها لك المدير التنفيذي من HV Management. اضغط «ابدأ» عند البدء و«تم» عند الانتهاء.', from: 'من', noDue: 'بدون موعد', dueOn: 'الموعد', late: 'متأخرة', dueToday: 'موعدها اليوم',
+      start: 'ابدأ', done: 'تم ✓', cancel: 'إلغاء المهمة', cancelQ: 'إلغاء هذه المهمة؟ ستُغلق نهائياً.', doneTitle: 'تسجيلها كمنجزة', doneHint: '«تم» نهائية: تُغلق المهمة ويراها من أعطاها فوراً.',
+      note: 'ملاحظة (اختياري)', notePh: 'مثلاً: أُرسلت بالبريد الساعة 3', show: 'عرض', hide: 'إخفاء', last: 'آخرها', banner: 'لديك {n} مهمة مفتوحة', bannerLate: '{n} متأخرة', loadErr: 'قائمة المهام غير جاهزة بعد.',
+      status: { todo: 'لم تبدأ', doing: 'جارية', done: 'منجزة', cancelled: 'ملغاة' }, prio: { low: 'منخفضة', normal: 'عادية', high: 'مهمة', urgent: 'عاجلة' },
+      err: { TASK_CLOSED: 'هذه المهمة مغلقة بالفعل.', NOT_YOUR_TASK: 'هذه المهمة ليست لك.', BAD_STATUS: 'لا يمكنك فعل ذلك بهذه المهمة.', TASK_NOT_FOUND: 'المهمة غير موجودة.' } },
     branches: 'الفروع', holidays: 'العطلات الرسمية', workWeek: 'أسبوع العمل', tax: 'ضريبة الدخل', insurance: 'التأمينات الاجتماعية', company: 'بيانات الشركة',
     role: 'الصلاحية', roles: { ceo: 'المدير التنفيذي', hr: 'الموارد البشرية', accountant: 'المحاسب', manager: 'مدير مباشر', staff: 'موظف' },
     branch: 'الفرع', allBranches: 'كل الفروع', active: 'نشط', inactiveLbl: 'موقوف', status: 'الحالة',
@@ -1729,6 +1741,7 @@ function AuthScreen({ toast }) {
 const NAV = [
   { key: 'dashboard', icon: '🏠', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'me',        icon: '🙋', roles: ['ceo', 'hr', 'accountant', 'manager'] },
+  { key: 'tasks',     icon: '✅', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'attendance', icon: '🕐', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'leave',      icon: '🌴', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
   { key: 'kpi',        icon: '🏆', roles: ['ceo', 'hr', 'accountant', 'manager', 'staff'] },
@@ -6381,7 +6394,7 @@ function MyPage({ me, data, toast, setPage, live }) {
     if (!myEmp) return;
     const mStart = new Date(); mStart.setDate(1); mStart.setHours(0, 0, 0, 0);
     (async () => {
-      const [items, runs, reqs, adjs, types, punches, trips, loans, docs] = await Promise.all([
+      const [items, runs, reqs, adjs, types, punches, trips, loans, docs, myTasks] = await Promise.all([
         sb.from('payroll_items').select('*').eq('employee_id', myEmp.id),
         sb.from('payroll_runs').select('*').eq('status', 'approved').order('year', { ascending: false }).order('month', { ascending: false }),
         sb.from('leave_requests').select('*').eq('employee_id', myEmp.id).gte('start_date', year + '-01-01').order('created_at', { ascending: false }),
@@ -6391,6 +6404,7 @@ function MyPage({ me, data, toast, setPage, live }) {
         sb.from('trips').select('*').eq('employee_id', myEmp.id).gte('started_at', mStart.toISOString()),
         sb.from('loans').select('*').eq('employee_id', myEmp.id).eq('status', 'active'),
         sb.from('employee_documents').select('*').eq('employee_id', myEmp.id).order('created_at', { ascending: false }),
+        sb.from('hr_tasks').select('id, due_date').eq('employee_id', myEmp.id).in('status', ['todo', 'doing']),
       ]);
       /* linked maintenance account -> my open tasks (shared database) */
       const { data: hvu } = await sb.from('hv_users').select('id, username').eq('employee_id', myEmp.id).maybeSingle();
@@ -6409,7 +6423,7 @@ function MyPage({ me, data, toast, setPage, live }) {
       setD({
         items: items.data || [], runs: runs.data || [], reqs: reqs.data || [], adjs: adjs.data || [], types: types.data || [],
         punches: punches.data || [], trips: trips.data || [], loans: loans.data || [], docs: docs.data || [],
-        hvu, tasks, taskTypes, props,
+        hvu, tasks, taskTypes, props, myTasks: myTasks.data || [],
       });
     })();
   }, [myEmp && myEmp.id]);
@@ -6440,6 +6454,17 @@ function MyPage({ me, data, toast, setPage, live }) {
         <p className="text-xl font-bold">{name}</p>
         <p className="mt-1 text-sm text-brand-200">{(lang === 'ar' ? myEmp.job_title_ar : myEmp.job_title_en) || '—'} · {branch ? (lang === 'ar' ? branch.name_ar : branch.name_en) : '—'} · {myEmp.employee_code}</p>
       </div>
+
+      {d && d.myTasks.length > 0 && (() => {
+        const lateN = d.myTasks.filter((x) => x.due_date && x.due_date < localDay(new Date())).length;
+        return (
+          <button data-tour="my-tasks" onClick={() => setPage('tasks')} className="flex w-full items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-start">
+            <span className="text-sm font-semibold text-amber-900">✅ {t.tk.banner.replace('{n}', d.myTasks.length)}
+              {lateN > 0 && <span className="ms-2 rounded-full bg-rose-600 px-2 py-0.5 text-xs font-bold text-white">{t.tk.bannerLate.replace('{n}', lateN)}</span>}</span>
+            <span className="text-lg text-amber-700">{lang === 'ar' ? '‹' : '›'}</span>
+          </button>
+        );
+      })()}
 
       {!myEmp.attendance_exempt && live && <BreakButton live={live} data={data} myEmp={myEmp} toast={toast} />}
       <div data-tour="my-quick" className={cx('grid gap-2', myEmp.attendance_exempt ? 'grid-cols-2' : 'grid-cols-4')}>
@@ -8620,6 +8645,120 @@ function AuditPage({ me }) {
 /* =====================================================================
    10. Profile
    ===================================================================== */
+/* =====================================================================
+   9c. Tasks (migration_054) -- tasks given from HV Management -> Give a task -> HR.
+   Everyone sees their own; CEO / HR can switch to Everyone and cancel. Start / Done go
+   through hr_task_set_status (the table is read-only for the app). Done is final (Daniel).
+   ===================================================================== */
+function TasksPage({ me, data, toast }) {
+  const { lang, t } = useL();
+  const X = t.tk;
+  const boss = ['ceo', 'hr'].includes(me.role);
+  const myEmp = data.employees.find((e) => e.user_id === me.id);
+  const [rows, setRows] = useState(null);
+  const [loadErr, setLoadErr] = useState(false);
+  const [scope, setScope] = useState('mine');
+  const [showClosed, setShowClosed] = useState(false);
+  const [doneFor, setDoneFor] = useState(null);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(() => {
+    sb.from('hr_tasks').select('*').order('created_at', { ascending: false }).limit(500)
+      .then(({ data: d, error }) => { setLoadErr(!!error); setRows(d || []); });
+  }, []);
+  useEffect(() => { load(); const tm = setInterval(load, 120000); return () => clearInterval(tm); }, [load]);
+
+  const today = localDay(new Date());
+  const isMine = (r) => r.assigned_to === me.id || (myEmp && r.employee_id === myEmp.id);
+  const list = (rows || []).filter((r) => scope === 'all' || isMine(r));
+  const dueKey = (r) => r.due_date || '9999-12-31';
+  const open = list.filter((r) => r.status === 'todo' || r.status === 'doing').sort((a, b) => dueKey(a).localeCompare(dueKey(b)) || b.created_at.localeCompare(a.created_at));
+  const closed = list.filter((r) => r.status === 'done' || r.status === 'cancelled').sort((a, b) => (b.completed_at || b.cancelled_at || '').localeCompare(a.completed_at || a.cancelled_at || ''));
+  const empName = (id) => { const e = data.employees.find((x) => x.id === id); return e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—'; };
+  const errText = (error) => { const k = Object.keys(X.err).find((c) => (error.message || '').includes(c)); return k ? X.err[k] : error.message; };
+
+  async function setStatus(r, status, noteText) {
+    setBusy(true);
+    const { data: row, error } = await sb.rpc('hr_task_set_status', { p_id: r.id, p_status: status, p_note: noteText || null });
+    setBusy(false);
+    if (error) { toast(errText(error), 'error'); load(); return false; }
+    setRows((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    toast(t.saved);
+    return true;
+  }
+
+  const firstOpen = open[0] && open[0].id;
+  const TaskRow = ({ r }) => {
+    const isOpen = r.status === 'todo' || r.status === 'doing';
+    const mine = isOpen && isMine(r);
+    const canCancel = isOpen && (boss || r.created_by === me.id);
+    const late = isOpen && r.due_date && r.due_date < today;
+    const tone = r.status === 'done' ? 'green' : r.status === 'cancelled' ? 'slate' : late ? 'red' : r.status === 'doing' ? 'teal' : 'amber';
+    return (
+      <li className="py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-800">{r.title}</p>
+            {scope === 'all' && <p className="text-xs font-semibold text-brand-700">👤 {empName(r.employee_id)}</p>}
+            {r.description && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{r.description}</p>}
+            <p className={cx('mt-1 text-xs', late ? 'font-semibold text-rose-600' : 'text-slate-500')}>
+              {r.due_date ? X.dueOn + ' ' + r.due_date + (late ? ' · ' + X.late : r.due_date === today && isOpen ? ' · ' + X.dueToday : '') : X.noDue}
+              {r.created_by_name ? ' · ' + X.from + ' ' + r.created_by_name : ''}
+            </p>
+            {r.done_note && <p className="mt-1 text-xs text-slate-500">📝 {r.done_note}</p>}
+            {!isOpen && (r.completed_at || r.cancelled_at) && <p className="mt-0.5 text-[11px] text-slate-400">{fmtDateTime(r.completed_at || r.cancelled_at)}</p>}
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <Badge tone={tone}>{late && r.status === 'todo' ? X.late : X.status[r.status]}</Badge>
+            {['high', 'urgent'].includes(r.priority) && <Badge tone={r.priority === 'urgent' ? 'red' : 'amber'}>{X.prio[r.priority]}</Badge>}
+          </div>
+        </div>
+        {(mine || canCancel) && (
+          <div data-tour={r.id === firstOpen ? 'tasks-actions' : undefined} className="mt-2 flex flex-wrap gap-2">
+            {mine && r.status === 'todo' && <Btn size="sm" variant="outline" disabled={busy} onClick={() => setStatus(r, 'doing')}>▶ {X.start}</Btn>}
+            {mine && <Btn size="sm" disabled={busy} onClick={() => { setNote(''); setDoneFor(r); }}>{X.done}</Btn>}
+            {canCancel && <Btn size="sm" variant="ghost" className="text-rose-600" disabled={busy} onClick={() => { if (window.confirm(X.cancelQ)) setStatus(r, 'cancelled'); }}>{X.cancel}</Btn>}
+          </div>
+        )}
+      </li>
+    );
+  };
+
+  return (
+    <>
+      {boss && (
+        <div data-tour="tasks-scope" className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          {[['mine', X.mine], ['all', X.everyone]].map(([k, l]) => (
+            <button key={k} onClick={() => setScope(k)} className={cx('flex-1 rounded-lg py-2 text-sm font-semibold', scope === k ? 'bg-white text-brand-800 shadow-sm' : 'text-slate-500')}>{l}</button>
+          ))}
+        </div>
+      )}
+      <Card tour="tasks-list" title={(scope === 'all' ? X.everyone : X.mine) + ' · ' + X.open + (rows ? ' (' + open.length + ')' : '')}>
+        <p className="mb-1 text-xs text-slate-500">{X.hint}</p>
+        {rows === null ? <Empty text={t.loading} /> : loadErr ? <Empty text={X.loadErr} /> : open.length === 0 ? <Empty text={scope === 'all' ? X.noneAll : X.none} /> : (
+          <ul className="divide-y divide-slate-100">{open.map((r) => <TaskRow key={r.id} r={r} />)}</ul>
+        )}
+      </Card>
+      {rows && closed.length > 0 && (
+        <Card title={X.closed + ' (' + closed.length + ')'} action={<button onClick={() => setShowClosed(!showClosed)} className="text-xs font-semibold text-brand-700">{showClosed ? X.hide : X.show}</button>}>
+          {showClosed ? <ul className="divide-y divide-slate-100">{closed.slice(0, 100).map((r) => <TaskRow key={r.id} r={r} />)}</ul> : <p className="truncate text-xs text-slate-400">{X.last}: {closed[0].title}</p>}
+        </Card>
+      )}
+      <Modal open={!!doneFor} onClose={() => setDoneFor(null)} title={X.doneTitle}
+        footer={<Btn className="flex-1" disabled={busy} onClick={async () => { if (await setStatus(doneFor, 'done', note)) setDoneFor(null); }}>{X.done}</Btn>}>
+        {doneFor && (
+          <>
+            <p className="text-sm font-semibold text-slate-800">{doneFor.title}</p>
+            <Field label={X.note}><textarea rows={3} className={inputCls} value={note} placeholder={X.notePh} onChange={(e) => setNote(e.target.value)} /></Field>
+            <p className="text-xs text-slate-500">{X.doneHint}</p>
+          </>
+        )}
+      </Modal>
+    </>
+  );
+}
+
 function ProfilePage({ me, setMe, toast }) {
   const { lang, t, setLang } = useL();
   const [f, setF] = useState(me);
@@ -8666,6 +8805,7 @@ const HV_TOUR_ADMIN = ['ceo', 'hr', 'accountant', 'manager'];
 const HV_TOUR_CHAPTERS = [
   ['start', 'Getting started', 'البداية'],
   ['self', 'My HR (self-service)', 'خدمتي (الخدمة الذاتية)'],
+  ['tasks', 'Tasks', 'المهام'],
   ['att', 'Attendance', 'الحضور والانصراف'],
   ['leave', 'Leave & make-up days', 'الإجازات وأيام التعويض'],
   ['kpi', 'KPIs & leaderboard', 'مؤشرات الأداء ولوحة المتصدرين'],
@@ -8708,6 +8848,20 @@ const HV_TOUR_STEPS = [
   { c: 'self', page: 'me', target: 'my-requests',
     en: ['Requests, attendance & more', 'Your leave requests with their status, then your latest check-ins this month, your trips, active loans, open maintenance tasks and the documents HR uploaded for you.'],
     ar: ['الطلبات والحضور وغيرها', 'طلبات إجازتك وحالة كل طلب، ثم آخر تسجيلات حضورك هذا الشهر، ومشاويرك، والسلف النشطة، ومهام الصيانة المفتوحة، والمستندات التي رفعتها لك الموارد البشرية.'] },
+  { c: 'self', page: 'me', target: 'my-tasks',
+    en: ['Open tasks', 'When a task is waiting for you, this yellow bar shows how many — and how many are late, in red. Tap it to open Tasks.'],
+    ar: ['المهام المفتوحة', 'عندما تنتظرك مهمة يظهر هذا الشريط الأصفر بعددها، وبالأحمر عدد المتأخر منها. اضغط عليه لفتح صفحة المهام.'] },
+
+  /* ---------- tasks (given from HV Management -> Give a task -> HR) ---------- */
+  { c: 'tasks', page: 'tasks', target: 'tasks-list',
+    en: ['Your tasks', 'Tasks the CEO gives you from HV Management appear here, the nearest due day first. Each one shows what to do, who gave it and the due day (red = late) — urgent and high ones are marked. The 🔔 counts your open and late tasks.'],
+    ar: ['مهامك', 'هنا تظهر المهام التي يعطيها لك المدير التنفيذي من HV Management، الأقرب موعداً أولاً. كل مهمة توضح المطلوب ومن أعطاها والموعد (الأحمر = متأخرة)، والعاجلة والمهمة عليها علامة. وزر 🔔 يعدّ مهامك المفتوحة والمتأخرة.'] },
+  { c: 'tasks', page: 'tasks', target: 'tasks-actions',
+    en: ['Start, then Done', 'Tap Start when you begin and Done ✓ when you finish — you can add a short note. Done is final: the task closes and the person who gave it sees it at once. Finished and cancelled tasks are kept under "Done & cancelled".'],
+    ar: ['ابدأ ثم تم', 'اضغط «ابدأ» عندما تبدأ و«تم ✓» عندما تنتهي، ويمكنك كتابة ملاحظة قصيرة. «تم» نهائية: تُغلق المهمة ويراها من أعطاها فوراً. وتبقى المهام المنجزة والملغاة في «منجزة وملغاة».'] },
+  { c: 'tasks', page: 'tasks', target: 'tasks-scope', roles: ['ceo', 'hr'],
+    en: ["Everyone's tasks", "CEO and HR can switch to Everyone to follow every employee's tasks and cancel one that is no longer needed. Tasks are given from HV Management → Give a task → HR (the accountants' Finance tasks live in HV Finance)."],
+    ar: ['مهام الجميع', 'يمكن للمدير التنفيذي والموارد البشرية اختيار «الكل» لمتابعة مهام كل الموظفين وإلغاء مهمة لم تعد مطلوبة. تُعطى المهام من HV Management ← إعطاء مهمة ← الموارد البشرية (ومهام الحسابات في HV Finance).'] },
 
   /* ---------- attendance ---------- */
   { c: 'att', page: 'attendance', target: 'att-tabs',
@@ -9111,6 +9265,7 @@ function App() {
           : !allowed ? <Card><Empty text={t.noPermission} /></Card>
           : page === 'dashboard' ? (me.role === 'staff' ? <MyPage {...shared} setPage={setPage} /> : <Dashboard {...shared} />)
           : page === 'me' ? <MyPage {...shared} setPage={setPage} />
+          : page === 'tasks' ? <TasksPage {...shared} />
           : page === 'attendance' ? <AttendancePage {...shared} initialTab={pageTab} key={pageTab || 'att'} />
           : page === 'leave' ? <LeavePage {...shared} />
           : page === 'kpi' ? <KpiPage {...shared} />
