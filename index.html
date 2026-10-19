@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.52';
+const APP_VERSION = 'v3.53';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -211,7 +211,7 @@ const T = {
     missLeft: '{n} days left', missLeftLast: 'last day', missAuto: 'automatic', missAutoHint: 'Nobody decided within {n} days, so the default penalty applies. You can still excuse it or choose another action.',
     missRules: 'Missing check-out', missRulesHint: 'A day that ended without a check-out waits for a decision (excuse / take action). If nobody decides in time, this default penalty applies by itself. A later decision always replaces it.', missAutoOn: 'Apply a default penalty when nobody decides', missAutoDays: 'Days to decide', missAutoFrom: 'Applies to days from', missAutoPen: 'Default penalty',
     ezDueTitle: 'Weekly Engaz update', ezDueNever: 'The Engaz export has never been uploaded.', ezDueLate: 'The last Engaz upload was {n} days ago ({d}). This week\'s file is overdue.', ezDueSoon: 'The last Engaz upload was {n} days ago ({d}). This week\'s file is due.', ezDueBtn: 'Upload now', ezDueLater: 'Remind me later', ezDueWho: 'Sales manager', ezDueHow: 'Export the clients file from Engaz and upload it in KPIs → Engaz import. It takes about a minute.',
-    stillIn: 'Still at work', missNeeds: 'Missing punch · needs a decision', missBanner: 'days ended without a check-out. Each one must be excused or have action taken.', missOnly: 'Show only these', missAll: 'Show all days',
+    stillIn: 'Still at work', soFar: 'so far', legendIn: 'currently in', legendMissing: 'missing check-out', legendWeekend: 'rest day', missNeeds: 'Missing punch · needs a decision', missBanner: 'days ended without a check-out. Each one must be excused or have action taken.', missOnly: 'Show only these', missAll: 'Show all days',
     missTitle: 'Missing check-out', missHint: 'The employee checked in but never checked out, and the day is over. Decide what happens.', missExcuse: 'Excuse it', missExcuseHint: 'Forgot to punch out. No deduction.', missAction: 'Take action', missActionHint: 'Something went wrong. Choose the penalty.',
     missAddOut: 'Enter the real check-out time', missAddOutHint: 'The day is then judged normally (hours, early leave, overtime).', missPenalty: 'Penalty', missPenWarn: 'Warning only', missPenHours: 'Deduct {n} h', missPenQuarter: 'Deduct quarter day', missPenHalf: 'Deduct half day', missPenFull: 'Deduct full day', missPenDay: 'Deduct {n} day',
     missHoursLbl: 'Hours to deduct', missSavedExc: 'Excused. No deduction for the missing punch.', missSavedAct: 'Action recorded. It will show in payroll.', missChange: 'Change the decision', missDedLbl: 'Missing punch', missPendingPay: 'missing punches in this month are still undecided. Decide them in Attendance → Review, then recalculate.', missUndecided: 'undecided', missPenalised: 'penalised', leadNote: 'Sales team leaders and managers are not ranked on this board.',
@@ -466,7 +466,7 @@ const T = {
     missLeft: 'باقي {n} يوم', missLeftLast: 'آخر يوم', missAuto: 'تلقائي', missAutoHint: 'لم يُتخذ قرار خلال {n} أيام، فطُبّق الجزاء الافتراضي. ما زال بإمكانك الإعفاء أو اختيار إجراء آخر.',
     missRules: 'بصمة الانصراف الناقصة', missRulesHint: 'اليوم الذي ينتهي بدون بصمة انصراف ينتظر قراراً (إعفاء / إجراء). إذا لم يُتخذ قرار في الوقت المحدد يُطبق هذا الجزاء الافتراضي تلقائياً، وأي قرار لاحق يلغيه.', missAutoOn: 'تطبيق جزاء افتراضي إذا لم يُتخذ قرار', missAutoDays: 'عدد الأيام المتاحة للقرار', missAutoFrom: 'يسري على الأيام من تاريخ', missAutoPen: 'الجزاء الافتراضي',
     ezDueTitle: 'تحديث إنجاز الأسبوعي', ezDueNever: 'لم يُرفع ملف إنجاز من قبل.', ezDueLate: 'آخر رفع لملف إنجاز كان منذ {n} يوم ({d}). ملف هذا الأسبوع متأخر.', ezDueSoon: 'آخر رفع لملف إنجاز كان منذ {n} يوم ({d}). حان موعد ملف هذا الأسبوع.', ezDueBtn: 'ارفع الآن', ezDueLater: 'ذكّرني لاحقاً', ezDueWho: 'مدير المبيعات', ezDueHow: 'صدّر ملف العملاء من إنجاز وارفعه من مؤشرات الأداء ← استيراد من إنجاز. يستغرق حوالي دقيقة.',
-    stillIn: 'ما زال في العمل', missNeeds: 'بصمة ناقصة · تحتاج قراراً', missBanner: 'يوم انتهى بدون بصمة انصراف. كل يوم يجب إعفاؤه أو اتخاذ إجراء بشأنه.', missOnly: 'عرض هذه الأيام فقط', missAll: 'عرض كل الأيام',
+    stillIn: 'ما زال في العمل', soFar: 'حتى الآن', legendIn: 'في العمل الآن', legendMissing: 'بصمة انصراف ناقصة', legendWeekend: 'يوم راحة', missNeeds: 'بصمة ناقصة · تحتاج قراراً', missBanner: 'يوم انتهى بدون بصمة انصراف. كل يوم يجب إعفاؤه أو اتخاذ إجراء بشأنه.', missOnly: 'عرض هذه الأيام فقط', missAll: 'عرض كل الأيام',
     missTitle: 'بصمة انصراف ناقصة', missHint: 'الموظف سجّل الحضور ولم يسجّل الانصراف وانتهى اليوم. حدّد ما يتم.', missExcuse: 'إعفاء', missExcuseHint: 'نسي تسجيل الانصراف. بدون خصم.', missAction: 'اتخاذ إجراء', missActionHint: 'حدث خطأ ما. اختر الجزاء.',
     missAddOut: 'إدخال وقت الانصراف الحقيقي', missAddOutHint: 'يُحسب اليوم بعدها بشكل عادي (الساعات، الانصراف المبكر، الإضافي).', missPenalty: 'الجزاء', missPenWarn: 'إنذار فقط', missPenHours: 'خصم {n} ساعة', missPenQuarter: 'خصم ربع يوم', missPenHalf: 'خصم نصف يوم', missPenFull: 'خصم يوم كامل', missPenDay: 'خصم {n} يوم',
     missHoursLbl: 'عدد الساعات المخصومة', missSavedExc: 'تم الإعفاء. لا خصم عن البصمة الناقصة.', missSavedAct: 'تم تسجيل الإجراء وسيظهر في الرواتب.', missChange: 'تغيير القرار', missDedLbl: 'بصمة ناقصة', missPendingPay: 'بصمة ناقصة في هذا الشهر لم يُتخذ فيها قرار. احسمها من الحضور ← المراجعة ثم أعد الحساب.', missUndecided: 'بدون قرار', missPenalised: 'عليها جزاء', leadNote: 'قادة ومديرو فريق المبيعات لا يظهرون في ترتيب هذه اللوحة.',
@@ -1433,7 +1433,7 @@ function printReport({ title, subtitle, company, rtl, landscape, tiles, sections
     'th{background:#eef6fa;color:#1a4a60;font-weight:700;text-align:start;padding:4px 6px;border:1px solid #cfdbe5;font-size:10.5px}' +
     'td{padding:3.5px 6px;border:1px solid #dfe7ee;vertical-align:top;white-space:nowrap}td:last-child{white-space:normal}tbody tr:nth-child(even) td{background:#f8fafc}' +
     '.bad{color:#be123c;font-weight:600}.good{color:#047857;font-weight:600}.muted{color:#94a3b8}.b{font-weight:700}' +
-    'tr.wk td{color:#94a3b8}tr.tot td{background:#eef2f6!important;font-weight:700;border-top:2px solid #94a3b8}' +
+    'tr.wk td{color:#94a3b8}tr.live td{background:#ecfdf5!important}tr.tot td{background:#eef2f6!important;font-weight:700;border-top:2px solid #94a3b8}' +
     'section.pb{break-before:page;page-break-before:always}section.pb:first-of-type{break-before:auto;page-break-before:auto}' +
     '.sig{display:flex;justify-content:space-between;gap:24px;margin-top:26px}.sig span{flex:1;color:#475569}.sig i{display:block;border-bottom:1px solid #64748b;height:28px}' +
     'footer{margin-top:10px;color:#94a3b8;font-size:9.5px;display:flex;justify-content:space-between}' +
@@ -3775,6 +3775,8 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   const [to, setTo] = useState(todayISO());
   const [fEmp, setFEmp] = useState('');
   const [punches, setPunches] = useState(null);
+  const [nowTick, setNowTick] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setNowTick(Date.now()), 60000); return () => clearInterval(id); }, []);
   const [dayView, setDayView] = useState(null);   // {emp, date, punches}
   const [manual, setManual] = useState(null);
   const [excuse, setExcuse] = useState(null);      // { row, kinds: {late,early_leave,break}, reason }
@@ -3849,6 +3851,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const exc = excused[empId + '|' + date];
       const breakAsIn = !!(firstIn && firstIn.note && /^Break-(start|end) pressed first/.test(firstIn.note));
       const stillIn = !!firstIn && stillAtWork(date, shift, lastOut);
+      if (stillIn) hours = Math.max(0, Math.round((nowTick - new Date(firstIn.punch_time).getTime()) / 36000) / 100);
       const mdec = !lastOut ? (missDec[empId + '|' + date] || null) : null;
       const openMiss = !lastOut && !weekend && !!firstIn && date < localDay(new Date()) && !mdec;
       const autoPen = openMiss ? missingAuto(data.settings.attendance_policy, date, localDay(new Date())) : null;
@@ -3863,7 +3866,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const earlyTier = early > 0 && !earlyExc ? earlyTierFor(data.settings.attendance_policy, early) : null;
       return { emp, date, list, firstIn, lastOut, late: weekend || exc ? 0 : late, ot, hours, weekend, missing: !lastOut && !stillIn, stillIn, missDec: mdec, needs: openMiss && !autoPen, autoPen, missLeft, flagged, excused: !!exc, tier, brkMin, brkOver, brkTier, early: earlyExc ? 0 : early, earlyTier, breakAsIn };
     }).sort((a, b) => b.date.localeCompare(a.date) || eName(a.emp).localeCompare(eName(b.emp)));
-  }, [punches, fEmp, data.employees, data.shifts, data.settings.attendance_policy, excused, breakByEmp, excusedBreak, excusedEarlyMap, missDec]);
+  }, [punches, fEmp, data.employees, data.shifts, data.settings.attendance_policy, excused, breakByEmp, excusedBreak, excusedEarlyMap, missDec, nowTick]);
   const needsN = rows.filter((r) => r.needs).length;
   const missTxt = (r) => r.stillIn ? t.stillIn : !r.missing || r.weekend ? '' : r.needs ? t.missNeeds : r.autoPen ? t.missingOut + ' · ' + t.missAuto + ': ' + missPenaltyLabel(t, r.autoPen) : r.missDec ? t.missingOut + ' · ' + (r.missDec.status === 'approved' ? t.excused : missPenaltyLabel(t, r.missDec)) : t.missingOut;
   const canDecideDay = (r) => !!(r && r.emp && (isHr || (r.emp.manager_id && data.employees.some((e) => e.user_id === me.id && e.id === r.emp.manager_id))));
@@ -3879,7 +3882,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
       const out = rows.map((r) => ({
         [t.date]: r.date, [t.selectEmployee]: eName(r.emp), [t.empCode]: r.emp ? r.emp.employee_code : '',
         [t.firstIn]: r.firstIn ? fmtTime(r.firstIn.punch_time) : '', [t.lastOut]: r.lastOut ? fmtTime(r.lastOut.punch_time) : '',
-        [t.workedH + ' (h)']: r.hours ? Math.round(r.hours * 100) / 100 : '', [t.lateMin]: r.late || 0, [t.lateMin + ' · ' + t.penaltyLbl]: lbl(r.tier),
+        [t.workedH + ' (h)']: r.hours ? Math.round(r.hours * 100) / 100 : '', [t.workedH + ' ' + t.soFar]: r.stillIn ? t.stillIn : '', [t.lateMin]: r.late || 0, [t.lateMin + ' · ' + t.penaltyLbl]: lbl(r.tier),
         [t.earlyMinLbl + ' (min)']: r.early || 0, [t.earlyMinLbl + ' · ' + t.penaltyLbl]: lbl(r.earlyTier),
         [t.breakTotal + ' (min)']: r.weekend ? '' : (r.brkMin || 0), [t.breakOverLbl + ' (min)']: r.brkOver || 0, [t.breakTotal + ' · ' + t.penaltyLbl]: lbl(r.brkTier),
         [t.otMin]: r.ot || 0,
@@ -3903,9 +3906,9 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     const hrs = (h) => h ? Math.floor(h) + 'h ' + String(Math.round((h % 1) * 60)).padStart(2, '0') + 'm' : '';
     const status = (r) => [r.weekend ? t.weekendLbl : '', r.excused ? '✓ ' + t.excused : '', missTxt(r), r.flagged ? t.outsideBranch : '', r.breakAsIn ? t.breakAsIn : ''].filter(Boolean).join(' · ');
     const pen = (n, tier) => n > 0 ? { v: n + (tier ? ' · ' + lbl(tier) : ''), c: 'bad' } : { v: '·', c: 'muted' };
-    const line = (r, withName) => ({ _cls: r.weekend ? 'wk' : '', cells: [
+    const line = (r, withName) => ({ _cls: r.weekend ? 'wk' : r.stillIn ? 'live' : '', cells: [
       r.date + ' ' + t.daysShort[new Date(r.date + 'T00:00:00').getDay()], ...(withName ? [{ v: eName(r.emp), c: 'b' }] : []),
-      r.firstIn ? fmtTime(r.firstIn.punch_time) : '—', r.lastOut ? fmtTime(r.lastOut.punch_time) : '—', hrs(r.hours),
+      r.firstIn ? fmtTime(r.firstIn.punch_time) : '—', r.lastOut ? fmtTime(r.lastOut.punch_time) : r.stillIn ? '🟢' : '—', r.stillIn ? { v: hrs(r.hours) + ' (' + t.soFar + ')', c: 'good' } : hrs(r.hours),
       pen(r.late, r.tier), pen(r.early, r.earlyTier),
       r.weekend ? '' : r.brkOver > 0 ? { v: r.brkMin + ' (+' + r.brkOver + ')' + (r.brkTier ? ' · ' + lbl(r.brkTier) : ''), c: 'bad' } : (r.brkMin || { v: '·', c: 'muted' }),
       r.ot > 0 ? { v: r.ot, c: 'good' } : { v: '·', c: 'muted' }, status(r)] });
@@ -4022,6 +4025,13 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
 
       <Card tour="rev-table" title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
         action={rows.length > 0 && <span data-tour="rev-export" className="flex gap-2"><Btn size="sm" variant="ghost" onClick={cols.reset} title={t.resetDefaults}>↔</Btn><Btn size="sm" variant="soft" onClick={() => setPrintPick(true)}>🖨️ {t.print}</Btn><Btn size="sm" variant="soft" disabled={exporting} onClick={exportReview}>⬇️ {t.exportExcel}</Btn></span>}>
+        {rows.length > 0 && (
+          <p className="mb-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+            <span><i className="inline-block h-3 w-3 rounded-sm bg-emerald-200 align-middle" /> {t.legendIn} ({rows.filter((r) => r.stillIn).length})</span>
+            <span><i className="inline-block h-3 w-3 rounded-sm bg-rose-200 align-middle" /> {t.legendMissing} ({rows.filter((r) => r.needs || r.autoPen).length})</span>
+            <span><i className="inline-block h-3 w-3 rounded-sm bg-slate-200 align-middle" /> {t.legendWeekend}</span>
+          </p>
+        )}
         {punches === null ? <Empty text={t.loading} /> : rows.length === 0 ? <Empty text={t.noData} /> : (
           <div className="overflow-x-auto">
             <table className="border-separate border-spacing-0 text-sm tabular-nums" style={{ tableLayout: 'fixed', width: cols.widths.reduce((a, b) => a + b, 0) + 'px' }}>
@@ -4040,12 +4050,12 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                   const hm = r.hours ? Math.floor(r.hours) + 'h ' + String(Math.round((r.hours % 1) * 60)).padStart(2, '0') + 'm' : '';
                   const bad = r.late > 0 || r.early > 0 || r.brkOver > 0;
                   return (
-                    <tr key={i} onClick={() => setDayView(r)} className={cx('cursor-pointer hover:bg-brand-50/40', i % 2 ? 'bg-slate-50/60' : 'bg-white', r.weekend && 'text-slate-400')}>
+                    <tr key={i} onClick={() => setDayView(r)} className={cx('cursor-pointer hover:bg-brand-50/40', r.stillIn ? 'bg-emerald-50' : r.needs || r.autoPen ? 'bg-rose-50' : r.weekend ? 'bg-slate-100/70' : i % 2 ? 'bg-slate-50/60' : 'bg-white', r.weekend && 'text-slate-400')}>
                       <td className="whitespace-nowrap overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-xs text-slate-500">{r.date.slice(5)} <span className="text-[10px] text-slate-400">{t.daysShort[new Date(r.date + 'T00:00:00').getDay()]}</span></td>
                       <td className="whitespace-nowrap overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 font-semibold text-slate-800">{eName(r.emp)}</td>
                       <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-center">{r.firstIn ? fmtTime(r.firstIn.punch_time) : <span className="text-slate-300">—</span>}</td>
-                      <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-center">{r.lastOut ? fmtTime(r.lastOut.punch_time) : <span className="text-slate-300">—</span>}</td>
-                      <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end text-slate-700">{hm}</td>
+                      <td className="overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-center">{r.lastOut ? fmtTime(r.lastOut.punch_time) : r.stillIn ? <span className="text-emerald-600">🟢</span> : <span className="text-slate-300">—</span>}</td>
+                      <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.stillIn ? 'font-semibold text-emerald-700' : 'text-slate-700')}>{hm}{r.stillIn && hm ? <span className="text-[10px] font-normal opacity-70"> {t.soFar}</span> : ''}</td>
                       <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.late > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.late > 0 ? r.late : '·'}<Pen tier={r.tier} /></td>
                       <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.early > 0 ? 'font-bold text-rose-600' : 'text-slate-300')}>{r.early > 0 ? r.early : '·'}<Pen tier={r.earlyTier} /></td>
                       <td className={cx('overflow-hidden text-ellipsis border-b border-slate-100 px-3 py-2.5 text-end whitespace-nowrap', r.brkOver > 0 ? 'font-bold text-rose-600' : r.brkMin > 0 ? 'text-slate-700' : 'text-slate-300')}>{r.weekend ? '' : (r.brkMin > 0 ? r.brkMin : '·')}{r.brkOver > 0 && <span className="text-[10px]"> (+{r.brkOver})</span>}<Pen tier={r.brkTier} /></td>
