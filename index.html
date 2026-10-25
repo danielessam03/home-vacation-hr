@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.53';
+const APP_VERSION = 'v3.54';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -137,7 +137,10 @@ const T = {
       start: 'Start', done: 'Done ✓', cancel: 'Cancel task', cancelQ: 'Cancel this task? It closes for good.', doneTitle: 'Mark as done', doneHint: 'Done is final: the task closes and the person who gave it sees it at once.',
       note: 'Note (optional)', notePh: 'e.g. sent by email at 3 pm', show: 'Show', hide: 'Hide', last: 'Latest', banner: 'You have {n} open task(s)', bannerLate: '{n} late', loadErr: 'The task list is not ready yet.',
       status: { todo: 'To do', doing: 'In progress', done: 'Done', cancelled: 'Cancelled' }, prio: { low: 'Low', normal: 'Normal', high: 'High', urgent: 'Urgent' },
-      err: { TASK_CLOSED: 'This task is already closed.', NOT_YOUR_TASK: 'This task is not yours.', BAD_STATUS: 'You cannot do that with this task.', TASK_NOT_FOUND: 'Task not found.' } },
+      general: 'General tasks', newFile: 'New file', editFile: 'Edit file', fileName: 'File name', fileNamePh: 'e.g. Solymar', fileDesc: 'What this file is about (optional)', fileHint: 'A file holds a series of tasks (e.g. everything to do for Solymar). It reaches 100% when every task is done.', fileNameReq: 'Give the file a name.', fileDeleteQ: 'Delete the file "{name}"? Its tasks move to General tasks.',
+      addTask: 'Add task', taskTitle: 'Task', taskDesc: 'Details (optional)', who: 'Who does it', priority: 'Priority', inFile: 'In file', addHint: 'The person gets a 🔔 notification and sees it in their tasks.', titleReq: 'Write the task.', whoReq: 'Choose who does it.', move: 'Move to file', remove: 'Remove',
+      boardHint: 'A task moves To do → In progress → Done: the person taps Start, then Done ✓. Done is final.', doneOf: 'done', completedOn: 'completed on', avgTime: 'Avg. time per task', totalTime: 'Total time', lateDone: 'done late', startedAt: 'started', allDone: 'all done',
+      err: { TASK_CLOSED: 'This task is already closed.', NOT_YOUR_TASK: 'This task is not yours.', BAD_STATUS: 'You cannot do that with this task.', TASK_NOT_FOUND: 'Task not found.', NOT_ALLOWED: 'You cannot do that.', FILE_NOT_FOUND: 'File not found.', EMPLOYEE_REQUIRED: 'Choose who does it.', TITLE_REQUIRED: 'Write the task.', NAME_REQUIRED: 'Give the file a name.' } },
     branches: 'Branches', holidays: 'Holidays', workWeek: 'Work week', tax: 'Income tax', insurance: 'Social insurance', company: 'Company',
     role: 'Role', roles: { ceo: 'CEO', hr: 'HR', accountant: 'Accountant', manager: 'Manager', staff: 'Staff' },
     branch: 'Branch', allBranches: 'All branches', active: 'Active', inactiveLbl: 'Inactive', status: 'Status',
@@ -392,7 +395,10 @@ const T = {
       start: 'ابدأ', done: 'تم ✓', cancel: 'إلغاء المهمة', cancelQ: 'إلغاء هذه المهمة؟ ستُغلق نهائياً.', doneTitle: 'تسجيلها كمنجزة', doneHint: '«تم» نهائية: تُغلق المهمة ويراها من أعطاها فوراً.',
       note: 'ملاحظة (اختياري)', notePh: 'مثلاً: أُرسلت بالبريد الساعة 3', show: 'عرض', hide: 'إخفاء', last: 'آخرها', banner: 'لديك {n} مهمة مفتوحة', bannerLate: '{n} متأخرة', loadErr: 'قائمة المهام غير جاهزة بعد.',
       status: { todo: 'لم تبدأ', doing: 'جارية', done: 'منجزة', cancelled: 'ملغاة' }, prio: { low: 'منخفضة', normal: 'عادية', high: 'مهمة', urgent: 'عاجلة' },
-      err: { TASK_CLOSED: 'هذه المهمة مغلقة بالفعل.', NOT_YOUR_TASK: 'هذه المهمة ليست لك.', BAD_STATUS: 'لا يمكنك فعل ذلك بهذه المهمة.', TASK_NOT_FOUND: 'المهمة غير موجودة.' } },
+      general: 'مهام عامة', newFile: 'ملف جديد', editFile: 'تعديل الملف', fileName: 'اسم الملف', fileNamePh: 'مثلاً: Solymar', fileDesc: 'عن ماذا هذا الملف (اختياري)', fileHint: 'الملف يجمع سلسلة مهام (مثلاً كل ما يخص Solymar). يصل إلى 100% عندما تُنجز كل مهامه.', fileNameReq: 'اكتب اسماً للملف.', fileDeleteQ: 'حذف الملف «{name}»؟ ستنتقل مهامه إلى المهام العامة.',
+      addTask: 'إضافة مهمة', taskTitle: 'المهمة', taskDesc: 'التفاصيل (اختياري)', who: 'من ينفذها', priority: 'الأولوية', inFile: 'في ملف', addHint: 'يصل الشخص تنبيه 🔔 ويراها في مهامه.', titleReq: 'اكتب المهمة.', whoReq: 'اختر من ينفذها.', move: 'نقل إلى ملف', remove: 'حذف',
+      boardHint: 'تنتقل المهمة: لم تبدأ ← جارية ← منجزة. يضغط الشخص «ابدأ» ثم «تم ✓». «تم» نهائية.', doneOf: 'منجزة', completedOn: 'اكتمل في', avgTime: 'متوسط الوقت للمهمة', totalTime: 'إجمالي الوقت', lateDone: 'أُنجزت متأخرة', startedAt: 'بدأت', allDone: 'كل المنجزة',
+      err: { TASK_CLOSED: 'هذه المهمة مغلقة بالفعل.', NOT_YOUR_TASK: 'هذه المهمة ليست لك.', BAD_STATUS: 'لا يمكنك فعل ذلك بهذه المهمة.', TASK_NOT_FOUND: 'المهمة غير موجودة.', NOT_ALLOWED: 'لا يمكنك فعل ذلك.', FILE_NOT_FOUND: 'الملف غير موجود.', EMPLOYEE_REQUIRED: 'اختر من ينفذها.', TITLE_REQUIRED: 'اكتب المهمة.', NAME_REQUIRED: 'اكتب اسماً للملف.' } },
     branches: 'الفروع', holidays: 'العطلات الرسمية', workWeek: 'أسبوع العمل', tax: 'ضريبة الدخل', insurance: 'التأمينات الاجتماعية', company: 'بيانات الشركة',
     role: 'الصلاحية', roles: { ceo: 'المدير التنفيذي', hr: 'الموارد البشرية', accountant: 'المحاسب', manager: 'مدير مباشر', staff: 'موظف' },
     branch: 'الفرع', allBranches: 'كل الفروع', active: 'نشط', inactiveLbl: 'موقوف', status: 'الحالة',
@@ -8669,33 +8675,53 @@ function AuditPage({ me }) {
    Everyone sees their own; CEO / HR can switch to Everyone and cancel. Start / Done go
    through hr_task_set_status (the table is read-only for the app). Done is final (Daniel).
    ===================================================================== */
+/* ---------------------------------------------------------------------
+   Tasks: General tasks + one "file" per series of tasks (e.g. Solymar).
+   Each file is a board — To do → In progress → Done — with a progress
+   bar (done ÷ all), and under it who worked on it and how fast
+   (started → done). CEO, HR and managers add files and tasks; the person
+   taps Start, then Done (final). Writes go through hr_* functions only.
+   --------------------------------------------------------------------- */
+const fmtDur = (secs, t) => { const m = Math.round((Number(secs) || 0) / 60); if (m < 60) return m + ' ' + t.minutesLbl; const h = Math.floor(m / 60); if (h < 48) return h + 'h ' + String(m % 60).padStart(2, '0') + 'm'; return Math.round(h / 24) + ' ' + t.daysUnit; };
 function TasksPage({ me, data, toast }) {
   const { lang, t } = useL();
   const X = t.tk;
   const boss = ['ceo', 'hr'].includes(me.role);
+  const canGive = boss || me.role === 'manager';
   const myEmp = data.employees.find((e) => e.user_id === me.id);
   const [rows, setRows] = useState(null);
+  const [files, setFiles] = useState([]);
   const [loadErr, setLoadErr] = useState(false);
-  const [scope, setScope] = useState('mine');
+  const [scope, setScope] = useState(boss ? 'all' : 'mine');
+  const [fileId, setFileId] = useState('');          // '' = General
   const [showClosed, setShowClosed] = useState(false);
   const [doneFor, setDoneFor] = useState(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [fileForm, setFileForm] = useState(null);    // { id, name, description }
+  const [taskForm, setTaskForm] = useState(null);    // { title, description, employee_id, due_date, priority, file_id }
+  const [moveFor, setMoveFor] = useState(null);
 
   const load = useCallback(() => {
-    sb.from('hr_tasks').select('*').order('created_at', { ascending: false }).limit(500)
+    sb.from('hr_tasks').select('*').order('created_at', { ascending: false }).limit(1000)
       .then(({ data: d, error }) => { setLoadErr(!!error); setRows(d || []); });
+    sb.rpc('hr_files_overview').then(({ data: d }) => setFiles(d || []));
   }, []);
   useEffect(() => { load(); const tm = setInterval(load, 120000); return () => clearInterval(tm); }, [load]);
 
   const today = localDay(new Date());
   const isMine = (r) => r.assigned_to === me.id || (myEmp && r.employee_id === myEmp.id);
-  const list = (rows || []).filter((r) => scope === 'all' || isMine(r));
-  const dueKey = (r) => r.due_date || '9999-12-31';
-  const open = list.filter((r) => r.status === 'todo' || r.status === 'doing').sort((a, b) => dueKey(a).localeCompare(dueKey(b)) || b.created_at.localeCompare(a.created_at));
-  const closed = list.filter((r) => r.status === 'done' || r.status === 'cancelled').sort((a, b) => (b.completed_at || b.cancelled_at || '').localeCompare(a.completed_at || a.cancelled_at || ''));
   const empName = (id) => { const e = data.employees.find((x) => x.id === id); return e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—'; };
   const errText = (error) => { const k = Object.keys(X.err).find((c) => (error.message || '').includes(c)); return k ? X.err[k] : error.message; };
+  const file = fileId ? files.find((f) => f.id === fileId) : null;
+  const inFile = (rows || []).filter((r) => (r.file_id || '') === (fileId || ''));
+  const list = inFile.filter((r) => scope === 'all' || isMine(r));
+  const dueKey = (r) => r.due_date || '9999-12-31';
+  const col = (st) => list.filter((r) => r.status === st).sort((a, b) => (a.sort || 0) - (b.sort || 0) || dueKey(a).localeCompare(dueKey(b)) || a.created_at.localeCompare(b.created_at));
+  const doneList = col('done').sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
+  const cancelled = list.filter((r) => r.status === 'cancelled');
+  const generalOpen = (rows || []).filter((r) => !r.file_id && (r.status === 'todo' || r.status === 'doing') && (boss || isMine(r))).length;
+  const myEmployees = data.employees.filter((e) => e.status === 'active' && (boss || (myEmp && (e.id === myEmp.id || e.manager_id === myEmp.id))));
 
   async function setStatus(r, status, noteText) {
     setBusy(true);
@@ -8703,67 +8729,148 @@ function TasksPage({ me, data, toast }) {
     setBusy(false);
     if (error) { toast(errText(error), 'error'); load(); return false; }
     setRows((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    sb.rpc('hr_files_overview').then(({ data: d }) => setFiles(d || []));
     toast(t.saved);
     return true;
   }
+  async function saveFile() {
+    if (!fileForm.name.trim()) return toast(X.fileNameReq, 'error');
+    setBusy(true);
+    const { data: f, error } = await sb.rpc('hr_file_save', { p_id: fileForm.id || null, p_name: fileForm.name.trim(), p_description: fileForm.description || null });
+    setBusy(false);
+    if (error) return toast(errText(error), 'error');
+    setFileForm(null); setFileId(f.id); load(); toast(t.saved);
+  }
+  async function deleteFile(f) {
+    if (!window.confirm(X.fileDeleteQ.replace('{name}', f.name))) return;
+    const { error } = await sb.rpc('hr_file_delete', { p_id: f.id });
+    if (error) return toast(errText(error), 'error');
+    setFileId(''); load(); toast(t.saved);
+  }
+  async function createTask() {
+    if (!taskForm.title.trim()) return toast(X.titleReq, 'error');
+    if (!taskForm.employee_id) return toast(X.whoReq, 'error');
+    setBusy(true);
+    const { data: row, error } = await sb.rpc('hr_task_create', { p_task: { ...taskForm, title: taskForm.title.trim(), file_id: taskForm.file_id || null, due_date: taskForm.due_date || null } });
+    setBusy(false);
+    if (error) return toast(errText(error), 'error');
+    setRows((prev) => [row, ...(prev || [])]);
+    sb.rpc('hr_files_overview').then(({ data: d }) => setFiles(d || []));
+    setTaskForm({ ...taskForm, title: '', description: '' });
+    toast(t.saved);
+  }
+  async function moveTask(r, toFile) {
+    const { data: row, error } = await sb.rpc('hr_task_move', { p_id: r.id, p_file: toFile || null });
+    if (error) return toast(errText(error), 'error');
+    setRows((prev) => prev.map((x) => (x.id === row.id ? row : x)));
+    sb.rpc('hr_files_overview').then(({ data: d }) => setFiles(d || []));
+    setMoveFor(null); toast(t.saved);
+  }
 
-  const firstOpen = open[0] && open[0].id;
-  const TaskRow = ({ r }) => {
+  const durOf = (r) => r.completed_at ? fmtDur((new Date(r.completed_at) - new Date(r.started_at || r.created_at)) / 1000, t) : '';
+  const firstOpen = (col('todo')[0] || col('doing')[0] || {}).id;
+  const TaskCard = ({ r }) => {
     const isOpen = r.status === 'todo' || r.status === 'doing';
     const mine = isOpen && isMine(r);
     const canCancel = isOpen && (boss || r.created_by === me.id);
     const late = isOpen && r.due_date && r.due_date < today;
-    const tone = r.status === 'done' ? 'green' : r.status === 'cancelled' ? 'slate' : late ? 'red' : r.status === 'doing' ? 'teal' : 'amber';
+    const wasLate = r.status === 'done' && r.due_date && r.completed_at && localDay(r.completed_at) > r.due_date;
     return (
-      <li className="py-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800">{r.title}</p>
-            {scope === 'all' && <p className="text-xs font-semibold text-brand-700">👤 {empName(r.employee_id)}</p>}
-            {r.description && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{r.description}</p>}
-            <p className={cx('mt-1 text-xs', late ? 'font-semibold text-rose-600' : 'text-slate-500')}>
-              {r.due_date ? X.dueOn + ' ' + r.due_date + (late ? ' · ' + X.late : r.due_date === today && isOpen ? ' · ' + X.dueToday : '') : X.noDue}
-              {r.created_by_name ? ' · ' + X.from + ' ' + r.created_by_name : ''}
-            </p>
-            {r.done_note && <p className="mt-1 text-xs text-slate-500">📝 {r.done_note}</p>}
-            {!isOpen && (r.completed_at || r.cancelled_at) && <p className="mt-0.5 text-[11px] text-slate-400">{fmtDateTime(r.completed_at || r.cancelled_at)}</p>}
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <Badge tone={tone}>{late && r.status === 'todo' ? X.late : X.status[r.status]}</Badge>
-            {['high', 'urgent'].includes(r.priority) && <Badge tone={r.priority === 'urgent' ? 'red' : 'amber'}>{X.prio[r.priority]}</Badge>}
-          </div>
-        </div>
+      <li className={cx('rounded-xl border p-3 text-sm shadow-sm', r.status === 'done' ? 'border-emerald-200 bg-emerald-50/60' : late ? 'border-rose-300 bg-rose-50' : r.status === 'doing' ? 'border-teal-200 bg-teal-50/60' : 'border-slate-200 bg-white')}>
+        <p className="font-semibold text-slate-800">{r.title}</p>
+        <p className="mt-0.5 text-xs font-semibold text-brand-700">👤 {empName(r.employee_id)}</p>
+        {r.description && <p className="mt-1 whitespace-pre-wrap text-xs text-slate-600">{r.description}</p>}
+        <p className={cx('mt-1 text-[11px]', late ? 'font-semibold text-rose-600' : 'text-slate-500')}>
+          {r.due_date ? X.dueOn + ' ' + r.due_date + (late ? ' · ' + X.late : r.due_date === today && isOpen ? ' · ' + X.dueToday : '') : X.noDue}
+          {['high', 'urgent'].includes(r.priority) ? ' · ' + X.prio[r.priority] : ''}
+          {r.created_by_name ? ' · ' + X.from + ' ' + r.created_by_name : ''}
+        </p>
+        {r.status === 'doing' && r.started_at && <p className="mt-0.5 text-[11px] text-teal-700">▶ {X.startedAt} {fmtDateTime(r.started_at)}</p>}
+        {r.status === 'done' && <p className="mt-0.5 text-[11px] text-emerald-700">✓ {fmtDateTime(r.completed_at)} · ⏱ {durOf(r)}{wasLate ? ' · ' + X.lateDone : ''}</p>}
+        {r.done_note && <p className="mt-1 text-[11px] text-slate-500">📝 {r.done_note}</p>}
         {(mine || canCancel) && (
-          <div data-tour={r.id === firstOpen ? 'tasks-actions' : undefined} className="mt-2 flex flex-wrap gap-2">
+          <div data-tour={r.id === firstOpen ? 'tasks-actions' : undefined} className="mt-2 flex flex-wrap gap-1.5">
             {mine && r.status === 'todo' && <Btn size="sm" variant="outline" disabled={busy} onClick={() => setStatus(r, 'doing')}>▶ {X.start}</Btn>}
             {mine && <Btn size="sm" disabled={busy} onClick={() => { setNote(''); setDoneFor(r); }}>{X.done}</Btn>}
-            {canCancel && <Btn size="sm" variant="ghost" className="text-rose-600" disabled={busy} onClick={() => { if (window.confirm(X.cancelQ)) setStatus(r, 'cancelled'); }}>{X.cancel}</Btn>}
+            {canCancel && files.length > 0 && <Btn size="sm" variant="ghost" disabled={busy} onClick={() => setMoveFor(r)}>📁 {X.move}</Btn>}
+            {canCancel && <Btn size="sm" variant="ghost" className="text-rose-600" disabled={busy} onClick={() => { if (window.confirm(X.cancelQ)) setStatus(r, 'cancelled'); }}>{X.remove}</Btn>}
           </div>
         )}
       </li>
     );
   };
+  const Column = ({ st, items, tone }) => (
+    <div className={cx('min-w-[240px] flex-1 rounded-2xl p-2', tone)}>
+      <p className="mb-2 flex items-center justify-between px-1 text-xs font-bold uppercase tracking-wide text-slate-600"><span>{X.status[st]}</span><span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px]">{items.length}</span></p>
+      {items.length === 0 ? <p className="px-1 py-4 text-center text-xs text-slate-400">—</p> : <ul className="space-y-2">{items.map((r) => <TaskCard key={r.id} r={r} />)}</ul>}
+    </div>
+  );
+  const openTaskForm = () => setTaskForm({ title: '', description: '', employee_id: myEmployees.length === 1 ? myEmployees[0].id : '', due_date: '', priority: 'normal', file_id: fileId || '' });
 
   return (
     <>
-      {boss && (
-        <div data-tour="tasks-scope" className="flex gap-1 rounded-xl bg-slate-100 p-1">
-          {[['mine', X.mine], ['all', X.everyone]].map(([k, l]) => (
-            <button key={k} onClick={() => setScope(k)} className={cx('flex-1 rounded-lg py-2 text-sm font-semibold', scope === k ? 'bg-white text-brand-800 shadow-sm' : 'text-slate-500')}>{l}</button>
-          ))}
-        </div>
-      )}
-      <Card tour="tasks-list" title={(scope === 'all' ? X.everyone : X.mine) + ' · ' + X.open + (rows ? ' (' + open.length + ')' : '')}>
-        <p className="mb-1 text-xs text-slate-500">{X.hint}</p>
-        {rows === null ? <Empty text={t.loading} /> : loadErr ? <Empty text={X.loadErr} /> : open.length === 0 ? <Empty text={scope === 'all' ? X.noneAll : X.none} /> : (
-          <ul className="divide-y divide-slate-100">{open.map((r) => <TaskRow key={r.id} r={r} />)}</ul>
-        )}
-      </Card>
-      {rows && closed.length > 0 && (
-        <Card title={X.closed + ' (' + closed.length + ')'} action={<button onClick={() => setShowClosed(!showClosed)} className="text-xs font-semibold text-brand-700">{showClosed ? X.hide : X.show}</button>}>
-          {showClosed ? <ul className="divide-y divide-slate-100">{closed.slice(0, 100).map((r) => <TaskRow key={r.id} r={r} />)}</ul> : <p className="truncate text-xs text-slate-400">{X.last}: {closed[0].title}</p>}
+      {/* files */}
+      <div data-tour="tasks-scope" className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
+        <button onClick={() => setFileId('')} className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', !fileId ? 'bg-brand-700 text-white' : 'border border-slate-300 bg-white text-slate-600')}>🗂 {X.general}{generalOpen ? ' (' + generalOpen + ')' : ''}</button>
+        {files.map((f) => (
+          <button key={f.id} onClick={() => setFileId(f.id)} className={cx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold', fileId === f.id ? 'bg-brand-700 text-white' : f.status === 'complete' ? 'border border-emerald-300 bg-emerald-50 text-emerald-800' : 'border border-slate-300 bg-white text-slate-600')}>
+            {f.status === 'complete' ? '✅' : '📁'} {f.name} <span className="opacity-70">{f.pct}%</span>
+          </button>
+        ))}
+        {canGive && <button onClick={() => setFileForm({ id: null, name: '', description: '' })} className="shrink-0 rounded-full border border-dashed border-brand-400 px-3.5 py-1.5 text-sm font-semibold text-brand-700">+ {X.newFile}</button>}
+      </div>
+
+      {file && (
+        <Card tour="tasks-file" title={(file.status === 'complete' ? '✅ ' : '📁 ') + file.name}
+          action={<span className="flex gap-2">{canGive && <Btn size="sm" variant="ghost" onClick={() => setFileForm({ id: file.id, name: file.name, description: file.description || '' })}>✎</Btn>}{boss && <Btn size="sm" variant="ghost" className="text-rose-600" onClick={() => deleteFile(file)}>{t.del}</Btn>}</span>}>
+          {file.description && <p className="mb-2 text-sm text-slate-600">{file.description}</p>}
+          <div className="flex items-center gap-3">
+            <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-200"><div className={cx('h-full rounded-full transition-all', file.pct >= 100 ? 'bg-emerald-500' : 'bg-brand-600')} style={{ width: file.pct + '%' }} /></div>
+            <span className={cx('text-lg font-bold', file.pct >= 100 ? 'text-emerald-700' : 'text-slate-800')}>{file.pct}%</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{file.done} / {file.total} {X.doneOf} · {file.todo} {X.status.todo.toLowerCase()} · {file.doing} {X.status.doing.toLowerCase()}{file.cancelled ? ' · ' + file.cancelled + ' ' + X.status.cancelled.toLowerCase() : ''}{file.status === 'complete' && file.completed_at ? ' · ' + X.completedOn + ' ' + localDay(file.completed_at) : ''}</p>
+          {file.workers && file.workers.length > 0 && (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[420px] text-sm">
+                <thead><tr>{[t.selectEmployee, X.status.done, X.open, X.avgTime, X.totalTime, X.lateDone].map((h, i) => <th key={i} className="py-1.5 text-start text-[11px] font-semibold uppercase tracking-wide text-slate-400">{h}</th>)}</tr></thead>
+                <tbody>
+                  {file.workers.map((w, i) => (
+                    <tr key={w.employee_id} className="border-t border-slate-100">
+                      <td className="py-1.5 font-semibold text-slate-800">{i === 0 && w.done > 0 ? '🥇 ' : ''}{empName(w.employee_id)}</td>
+                      <td className="font-semibold text-emerald-700">{w.done || '·'}</td><td>{w.open || '·'}</td>
+                      <td className={w.done ? 'font-semibold text-slate-800' : 'text-slate-300'}>{w.done ? fmtDur(w.avg_secs, t) : '·'}</td>
+                      <td>{w.done ? fmtDur(w.total_secs, t) : '·'}</td>
+                      <td className={w.late ? 'font-semibold text-rose-600' : 'text-slate-300'}>{w.late || '·'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       )}
+
+      <Card tour="tasks-list" title={(file ? file.name : X.general) + ' · ' + (scope === 'all' ? X.everyone : X.mine)}
+        action={<span className="flex gap-2">
+          {boss && <span className="flex rounded-lg bg-slate-100 p-0.5">{[['mine', X.mine], ['all', X.everyone]].map(([k, l]) => <button key={k} onClick={() => setScope(k)} className={cx('rounded-md px-2.5 py-1 text-xs font-semibold', scope === k ? 'bg-white text-brand-800 shadow-sm' : 'text-slate-500')}>{l}</button>)}</span>}
+          {canGive && <Btn size="sm" onClick={openTaskForm}>+ {X.addTask}</Btn>}
+        </span>}>
+        <p className="mb-2 text-xs text-slate-500">{X.boardHint}</p>
+        {rows === null ? <Empty text={t.loading} /> : loadErr ? <Empty text={X.loadErr} /> : (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <Column st="todo" items={col('todo')} tone="bg-amber-50/70" />
+            <Column st="doing" items={col('doing')} tone="bg-teal-50/70" />
+            <Column st="done" items={showClosed ? doneList : doneList.slice(0, 8)} tone="bg-emerald-50/70" />
+          </div>
+        )}
+        {rows && (doneList.length > 8 || cancelled.length > 0) && (
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            {doneList.length > 8 && <button onClick={() => setShowClosed(!showClosed)} className="font-semibold text-brand-700">{showClosed ? X.hide : X.show + ' ' + X.allDone + ' (' + doneList.length + ')'}</button>}
+            {cancelled.length > 0 && <span>{X.status.cancelled}: {cancelled.length}</span>}
+          </div>
+        )}
+      </Card>
+
       <Modal open={!!doneFor} onClose={() => setDoneFor(null)} title={X.doneTitle}
         footer={<Btn className="flex-1" disabled={busy} onClick={async () => { if (await setStatus(doneFor, 'done', note)) setDoneFor(null); }}>{X.done}</Btn>}>
         {doneFor && (
@@ -8774,10 +8881,57 @@ function TasksPage({ me, data, toast }) {
           </>
         )}
       </Modal>
+
+      <Modal open={!!fileForm} onClose={() => setFileForm(null)} title={fileForm && fileForm.id ? '✎ ' + X.editFile : '📁 ' + X.newFile}
+        footer={<><Btn className="flex-1" disabled={busy} onClick={saveFile}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setFileForm(null)}>{t.cancel}</Btn></>}>
+        {fileForm && (
+          <>
+            <Field label={X.fileName}><Input value={fileForm.name} placeholder={X.fileNamePh} onChange={(e) => setFileForm({ ...fileForm, name: e.target.value })} /></Field>
+            <Field label={X.fileDesc}><textarea rows={2} className={inputCls} value={fileForm.description} onChange={(e) => setFileForm({ ...fileForm, description: e.target.value })} /></Field>
+            <p className="text-xs text-slate-500">{X.fileHint}</p>
+          </>
+        )}
+      </Modal>
+
+      <Modal open={!!taskForm} onClose={() => setTaskForm(null)} title={'+ ' + X.addTask}
+        footer={<><Btn className="flex-1" disabled={busy} onClick={createTask}>{t.save}</Btn><Btn variant="outline" className="flex-1" onClick={() => setTaskForm(null)}>{t.cancel}</Btn></>}>
+        {taskForm && (
+          <>
+            <Field label={X.taskTitle}><Input value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} /></Field>
+            <Field label={X.taskDesc}><textarea rows={2} className={inputCls} value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} /></Field>
+            <Field label={X.who}>
+              <Select value={taskForm.employee_id} onChange={(e) => setTaskForm({ ...taskForm, employee_id: e.target.value })}>
+                <option value="">—</option>
+                {myEmployees.map((e) => <option key={e.id} value={e.id}>{empName(e.id)}</option>)}
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={X.dueOn}><Input type="date" value={taskForm.due_date} onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })} /></Field>
+              <Field label={X.priority}><Select value={taskForm.priority} onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}>{Object.keys(X.prio).map((k) => <option key={k} value={k}>{X.prio[k]}</option>)}</Select></Field>
+            </div>
+            <Field label={X.inFile}>
+              <Select value={taskForm.file_id} onChange={(e) => setTaskForm({ ...taskForm, file_id: e.target.value })}>
+                <option value="">🗂 {X.general}</option>
+                {files.filter((f) => f.status !== 'archived').map((f) => <option key={f.id} value={f.id}>📁 {f.name}</option>)}
+              </Select>
+            </Field>
+            <p className="text-xs text-slate-500">{X.addHint}</p>
+          </>
+        )}
+      </Modal>
+
+      <Modal open={!!moveFor} onClose={() => setMoveFor(null)} title={'📁 ' + X.move}>
+        {moveFor && (
+          <ul className="divide-y divide-slate-100">
+            {[{ id: '', name: '🗂 ' + X.general }, ...files.map((f) => ({ id: f.id, name: '📁 ' + f.name }))].filter((f) => (f.id || '') !== (moveFor.file_id || '')).map((f) => (
+              <li key={f.id || 'g'}><button className="w-full py-3 text-start text-sm font-semibold text-slate-800 hover:text-brand-700" onClick={() => moveTask(moveFor, f.id)}>{f.name}</button></li>
+            ))}
+          </ul>
+        )}
+      </Modal>
     </>
   );
 }
-
 function ProfilePage({ me, setMe, toast }) {
   const { lang, t, setLang } = useL();
   const [f, setF] = useState(me);
@@ -8873,14 +9027,14 @@ const HV_TOUR_STEPS = [
 
   /* ---------- tasks (given from HV Management -> Give a task -> HR) ---------- */
   { c: 'tasks', page: 'tasks', target: 'tasks-list',
-    en: ['Your tasks', 'Tasks the CEO gives you from HV Management appear here, the nearest due day first. Each one shows what to do, who gave it and the due day (red = late) — urgent and high ones are marked. The 🔔 counts your open and late tasks.'],
-    ar: ['مهامك', 'هنا تظهر المهام التي يعطيها لك المدير التنفيذي من HV Management، الأقرب موعداً أولاً. كل مهمة توضح المطلوب ومن أعطاها والموعد (الأحمر = متأخرة)، والعاجلة والمهمة عليها علامة. وزر 🔔 يعدّ مهامك المفتوحة والمتأخرة.'] },
+    en: ['Your tasks board', 'Tasks sit in General tasks or in a file (e.g. Solymar) — pick one at the top. Each card moves To do → In progress → Done; it shows what to do, who does it, who gave it and the due day (red = late). The 🔔 counts your open and late tasks.'],
+    ar: ['لوحة مهامك', 'المهام إما في «مهام عامة» أو داخل ملف (مثل Solymar) تختاره من الأعلى. كل بطاقة تنتقل: لم تبدأ ← جارية ← منجزة، وتوضح المطلوب ومن ينفذها ومن أعطاها والموعد (الأحمر = متأخرة). وزر 🔔 يعدّ مهامك المفتوحة والمتأخرة.'] },
   { c: 'tasks', page: 'tasks', target: 'tasks-actions',
     en: ['Start, then Done', 'Tap Start when you begin and Done ✓ when you finish — you can add a short note. Done is final: the task closes and the person who gave it sees it at once. Finished and cancelled tasks are kept under "Done & cancelled".'],
     ar: ['ابدأ ثم تم', 'اضغط «ابدأ» عندما تبدأ و«تم ✓» عندما تنتهي، ويمكنك كتابة ملاحظة قصيرة. «تم» نهائية: تُغلق المهمة ويراها من أعطاها فوراً. وتبقى المهام المنجزة والملغاة في «منجزة وملغاة».'] },
-  { c: 'tasks', page: 'tasks', target: 'tasks-scope', roles: ['ceo', 'hr'],
-    en: ["Everyone's tasks", "CEO and HR can switch to Everyone to follow every employee's tasks and cancel one that is no longer needed. Tasks are given from HV Management → Give a task → HR (the accountants' Finance tasks live in HV Finance)."],
-    ar: ['مهام الجميع', 'يمكن للمدير التنفيذي والموارد البشرية اختيار «الكل» لمتابعة مهام كل الموظفين وإلغاء مهمة لم تعد مطلوبة. تُعطى المهام من HV Management ← إعطاء مهمة ← الموارد البشرية (ومهام الحسابات في HV Finance).'] },
+  { c: 'tasks', page: 'tasks', target: 'tasks-scope', roles: ['ceo', 'hr', 'manager'],
+    en: ['Files of tasks', 'A file is a series of tasks for one job (e.g. Solymar): add tasks to it, remove ones no longer needed, and watch it fill up to 100%. The file card shows who worked on it, how many each did, the average time per task and who finished late. CEO, HR and managers create files and add tasks; the person gets a 🔔.'],
+    ar: ['ملفات المهام', 'الملف سلسلة مهام لعمل واحد (مثل Solymar): أضف إليه مهاماً واحذف ما لم يعد مطلوباً وتابعه حتى يصل إلى 100%. بطاقة الملف توضح من عمل عليه وكم مهمة أنجز كل شخص ومتوسط الوقت للمهمة ومن تأخر. المدير التنفيذي والموارد البشرية والمديرون ينشئون الملفات ويضيفون المهام، ويصل الشخص تنبيه 🔔.'] },
 
   /* ---------- attendance ---------- */
   { c: 'att', page: 'attendance', target: 'att-tabs',
