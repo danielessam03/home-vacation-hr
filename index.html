@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.54';
+const APP_VERSION = 'v3.55';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -232,6 +232,8 @@ const T = {
     excTab: 'Exceptions', excRequest: 'Late / break note', excKinds: { late: 'Late arrival', break: 'Longer break', early_leave: 'Leaving early' }, excMinutes: 'Expected minutes',
     excHint: 'Write the note before it happens (today or a later date). If it is accepted, that day carries no lateness deduction and no violation.', excused: 'Excused', excPending: 'Notes to approve', excMine: 'My notes', excAll: 'All notes',
     excTooLate: 'The note must be sent before the day, not after it.', excApprovedMsg: 'Accepted. The day is excused.',
+    capRules: 'Monthly excuse limit', capHint: 'Per employee per month the system accepts at most this many hours of excuses and this many excuses (late, longer break, early leave — notes and excuses given from the review). Beyond either limit only the CEO can accept; the excuse stays pending for the CEO. 0 = no limit.', capHours: 'Hours per month', capCount: 'Excuses per month',
+    capUsed: 'Used this month', capOf: 'of', capExcuses: 'excuses', capOver: 'Beyond the monthly limit — only the CEO can accept this.', capCeoQ: 'This goes beyond the monthly limit ({used}). Accept anyway as CEO?', capBadge: 'beyond the monthly limit · accepted by the CEO', capRefused: 'Refused: this employee already reached the monthly excuse limit ({used}). Only the CEO can accept more.', capWillOver: 'This would go beyond the monthly limit',
     breakFromDevice: 'started on the fingerprint machine', endBreakHere: 'End break here', breakEndedHere: 'Break ended. You are back at work.',
     startBreak: 'Start break', onBreakSince: 'On break since', breakManualHint: 'You are on break. Take a live selfie to end it and resume work.', breakBig: 'Break',
     breakAsIn: 'Break pressed first, counted as check-in', dirIn: 'In', dirOut: 'Out', dirBreakOut: 'Break start', dirBreakIn: 'Break end', dirOtIn: 'Overtime in', dirOtOut: 'Overtime out', dirUnknown: 'Unknown button', deviceBreak: 'Fingerprint device', firstIn: 'First in', lastOut: 'Last out',
@@ -490,6 +492,8 @@ const T = {
     excTab: 'الاستثناءات', excRequest: 'إذن تأخير / استراحة', excKinds: { late: 'تأخير في الحضور', break: 'استراحة أطول', early_leave: 'انصراف مبكر' }, excMinutes: 'الدقائق المتوقعة',
     excHint: 'اكتب الإذن قبل حدوثه (اليوم أو تاريخ لاحق). إذا قُبل، لا يُخصم تأخير ولا تُسجَّل مخالفة في ذلك اليوم.', excused: 'معذور', excPending: 'أذونات بانتظار الاعتماد', excMine: 'أذوناتي', excAll: 'كل الأذونات',
     excTooLate: 'يجب إرسال الإذن قبل اليوم لا بعده.', excApprovedMsg: 'تم القبول. اليوم معذور.',
+    capRules: 'الحد الشهري للأذونات', capHint: 'لكل موظف في الشهر يقبل النظام هذا العدد من الساعات وهذا العدد من الأذونات كحد أقصى (تأخير، استراحة أطول، انصراف مبكر — الأذونات والإعفاءات من المراجعة). بعد أي من الحدين لا يقبل الإذن إلا المدير التنفيذي ويبقى معلقاً له. 0 = بلا حد.', capHours: 'ساعات في الشهر', capCount: 'أذونات في الشهر',
+    capUsed: 'المستخدم هذا الشهر', capOf: 'من', capExcuses: 'أذونات', capOver: 'تجاوز الحد الشهري — لا يقبله إلا المدير التنفيذي.', capCeoQ: 'هذا يتجاوز الحد الشهري ({used}). القبول رغم ذلك بصفتك المدير التنفيذي؟', capBadge: 'تجاوز الحد الشهري · قبله المدير التنفيذي', capRefused: 'مرفوض: وصل هذا الموظف إلى الحد الشهري للأذونات ({used}). لا يقبل المزيد إلا المدير التنفيذي.', capWillOver: 'سيتجاوز هذا الحد الشهري',
     breakFromDevice: 'بدأت من جهاز البصمة', endBreakHere: 'إنهاء الاستراحة من هنا', breakEndedHere: 'انتهت الاستراحة. عدت إلى العمل.',
     startBreak: 'بدء استراحة', onBreakSince: 'في استراحة منذ', breakManualHint: 'أنت في استراحة. التقط سيلفي حية لإنهائها والعودة للعمل.', breakBig: 'استراحة',
     breakAsIn: 'ضغط استراحة أولاً، احتُسب حضوراً', dirIn: 'حضور', dirOut: 'انصراف', dirBreakOut: 'بداية استراحة', dirBreakIn: 'نهاية استراحة', dirOtIn: 'دخول إضافي', dirOtOut: 'خروج إضافي', dirUnknown: 'زر غير معروف', deviceBreak: 'جهاز البصمة', firstIn: 'أول حضور', lastOut: 'آخر انصراف',
@@ -1217,6 +1221,19 @@ function missingDaysLeft(policy, date, todayStr) {
   if (!mp.enabled || (mp.from && date < mp.from)) return null;
   return Math.round((new Date(dayPlus(date, Number(mp.days) || 0) + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / 86400000);
 }
+/* Monthly excuse limit: hours and number of excuses per employee per month (0 = no limit). */
+const excuseCapOf = (policy) => { const c = (policy && policy.excuse_cap) || {}; return { minutes: (c.hours == null ? 3 : Number(c.hours) || 0) * 60, count: c.count == null ? 3 : Number(c.count) || 0 }; };
+const EXC_CAP_KINDS = ['late', 'early_leave', 'break'];
+/** approved minutes / count of one employee in the month of `date` (from a list of exceptions already loaded) */
+function excuseUsedFrom(list, empId, date, skipId) {
+  const m = String(date).slice(0, 7); let minutes = 0, count = 0;
+  for (const x of list || []) if (x.employee_id === empId && x.status === 'approved' && EXC_CAP_KINDS.includes(x.kind) && String(x.exc_date).slice(0, 7) === m && x.id !== skipId) { minutes += Number(x.minutes) || 0; count++; }
+  return { minutes, count };
+}
+const excuseOver = (cap, used, addMinutes, addCount) => (cap.minutes > 0 && used.minutes + (addMinutes || 0) > cap.minutes) || (cap.count > 0 && used.count + (addCount == null ? 1 : addCount) > cap.count);
+const hmOf = (min) => { const n = Math.round(Number(min) || 0); return Math.floor(n / 60) + 'h ' + String(n % 60).padStart(2, '0') + 'm'; };
+const excuseUsedText = (t, cap, used) => t.capUsed + ': ' + hmOf(used.minutes) + (cap.minutes > 0 ? ' ' + t.capOf + ' ' + hmOf(cap.minutes) : '') + ' · ' + used.count + (cap.count > 0 ? ' ' + t.capOf + ' ' + cap.count : '') + ' ' + t.capExcuses;
+const excuseCapErr = (t, msg) => { const m = /EXCUSE_CAP:(\d+):(\d+):(\d+):(\d+)/.exec(msg || ''); return m ? t.capRefused.replace('{used}', hmOf(m[1]) + ' / ' + m[3] + ' ' + t.capExcuses) : null; };
 /* Missing check-out decided as "action taken": warning, fixed hours or part of a day. */
 function missingPenaltyAmount(d, hourRate, dayRate) { const v = Number(d.penalty_value) || 0; return d.penalty_kind === 'hours' ? v * hourRate : d.penalty_kind === 'day_fraction' ? v * dayRate : 0; }
 const missPenaltyLabel = (t, d) => d.penalty_kind === 'hours' ? t.missPenHours.replace('{n}', Number(d.penalty_value)) : d.penalty_kind === 'day_fraction'
@@ -3159,6 +3176,9 @@ function AttendanceRulesTab(props) {
   const setE = (i, k, v) => setETiers((prev) => prev.map((x, idx) => (idx === i ? { ...x, [k]: v } : x)));
   const [mp, setMp] = useState(missingPolicy(initial));
   useEffect(() => { setMp(missingPolicy(props.data.settings.attendance_policy)); }, [props.data.settings.attendance_policy]);
+  const capInit = (p) => { const c = (p && p.excuse_cap) || {}; return { hours: c.hours == null ? 3 : Number(c.hours), count: c.count == null ? 3 : Number(c.count) }; };
+  const [cap, setCap] = useState(capInit(initial));
+  useEffect(() => { setCap(capInit(props.data.settings.attendance_policy)); }, [props.data.settings.attendance_policy]);
   const mpPen = mp.kind === 'none' ? 'none' : mp.kind === 'hours' ? 'hours' : String(Number(mp.value));
   const eSorted = [...eTiers].sort((a, b) => Number(a.from_minutes) - Number(b.from_minutes));
   const set = (i, k, v) => setTiers((prev) => prev.map((x, idx) => (idx === i ? { ...x, [k]: v } : x)));
@@ -3233,6 +3253,14 @@ function AttendanceRulesTab(props) {
         </div>
         <Btn className="mt-4 w-full" onClick={() => save('attendance_policy', { ...initial, tiers: sorted, break_max_minutes: Number(breakMax) || 30, break_tiers: bSorted, early_tiers: eSorted }, initial)}>{t.save}</Btn>
       </Card>
+      <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.capHint}</p>
+      <Card tour="rules-cap" title={'⏳ ' + t.capRules}>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label={t.capHours}><Input type="number" inputMode="decimal" min="0" step="0.5" value={cap.hours} onChange={(e) => setCap({ ...cap, hours: e.target.value })} /></Field>
+          <Field label={t.capCount}><Input type="number" inputMode="numeric" min="0" value={cap.count} onChange={(e) => setCap({ ...cap, count: e.target.value })} /></Field>
+        </div>
+        <Btn className="mt-4 w-full" onClick={() => save('attendance_policy', { ...initial, excuse_cap: { hours: Math.max(0, Number(cap.hours) || 0), count: Math.max(0, Math.round(Number(cap.count) || 0)) } }, initial)}>{t.save}</Btn>
+      </Card>
       <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.missRulesHint}</p>
       <Card tour="rules-missing" title={'⚠ ' + t.missRules}>
         <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!mp.enabled} onChange={(e) => setMp({ ...mp, enabled: e.target.checked })} />{t.missAutoOn}</label>
@@ -3273,6 +3301,9 @@ function ExceptionsTab({ me, myEmp, data, toast, audit, eName, admin, isHr }) {
   }, []);
   const canDecide = (x) => { if (isHr) return true; const emp = data.employees.find((e) => e.id === x.employee_id); return !!(admin && myEmp && emp && emp.manager_id === myEmp.id && x.employee_id !== myEmp.id); };
   const tone = (st) => st === 'approved' ? 'green' : st === 'rejected' ? 'red' : 'amber';
+  const cap = excuseCapOf(data.settings.attendance_policy);
+  const usedOf = (x) => excuseUsedFrom(list, x.employee_id, x.exc_date, x.id);
+  const overOf = (x) => EXC_CAP_KINDS.includes(x.kind) && excuseOver(cap, usedOf(x), Number(x.minutes) || 0, 1);
   async function submit() {
     if (!form.reason.trim()) return toast(t.reasonLbl, 'error');
     if (!isHr && form.exc_date < todayISO()) return toast(t.excTooLate, 'error');
@@ -3284,8 +3315,12 @@ function ExceptionsTab({ me, myEmp, data, toast, audit, eName, admin, isHr }) {
     toast(t.saved);
   }
   async function decide(x, status) {
+    if (status === 'approved' && overOf(x)) {
+      if (me.role !== 'ceo') return toast(t.capOver, 'error');
+      const u = usedOf(x); if (!window.confirm(t.capCeoQ.replace('{used}', hmOf(u.minutes) + ' / ' + u.count + ' ' + t.capExcuses))) return;
+    }
     const { data: row, error } = await sb.from('attendance_exceptions').update({ status, decided_by: me.id, decided_at: new Date().toISOString() }).eq('id', x.id).select().single();
-    if (error) return toast(error.message, 'error');
+    if (error) return toast(excuseCapErr(t, error.message) || error.message, 'error');
     setList((prev) => prev.map((y) => (y.id === row.id ? row : y)));
     audit(status === 'approved' ? 'approve' : 'reject', 'attendance_exceptions', row.id, x, row);
     toast(status === 'approved' ? t.excApprovedMsg : t.saved);
@@ -3305,6 +3340,8 @@ function ExceptionsTab({ me, myEmp, data, toast, audit, eName, admin, isHr }) {
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-800">{showName ? eName(emp) + ' · ' : ''}{t.excKinds[x.kind] || t.missTitle} · {x.exc_date}{x.minutes ? ' · ' + x.minutes + ' ' + t.minutesLbl : ''}</p>
             <p className="text-xs text-slate-500">{x.reason}</p>
+            {x.status === 'pending' && EXC_CAP_KINDS.includes(x.kind) && (canDecide(x) || mine) && (() => { const u = usedOf(x); const over = overOf(x); return <p className={cx('mt-0.5 text-[11px]', over ? 'font-semibold text-rose-600' : 'text-slate-400')}>{excuseUsedText(t, cap, u)}{over ? ' · ' + (me.role === 'ceo' ? t.capWillOver : t.capOver) : ''}</p>; })()}
+            {x.over_cap && <p className="mt-0.5 text-[11px] font-semibold text-amber-700">⚠ {t.capBadge}</p>}
           </div>
           <Badge tone={tone(x.status)}>{x.status === 'approved' ? t.excused : x.kind === 'missing_punch' ? missPenaltyLabel(t, x) : t.kpiStatus[x.status]}</Badge>
         </div>
@@ -3319,6 +3356,7 @@ function ExceptionsTab({ me, myEmp, data, toast, audit, eName, admin, isHr }) {
   return (
     <>
       <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.excHint}</p>
+      {myEmp && !myEmp.attendance_exempt && list && (cap.minutes > 0 || cap.count > 0) && (() => { const u = excuseUsedFrom(list, myEmp.id, todayISO()); const full = excuseOver(cap, u, 0, 0); return <p className={cx('rounded-xl p-3 text-xs', full ? 'bg-rose-50 text-rose-800' : 'bg-slate-50 text-slate-600')}>⏳ {excuseUsedText(t, cap, u)}</p>; })()}
       {(myEmp && !myEmp.attendance_exempt) || isHr ? (
         <Btn data-tour="exc-new" size="lg" onClick={() => setForm({ employee_id: myEmp && !myEmp.attendance_exempt ? myEmp.id : '', exc_date: todayISO(), kind: 'late', minutes: 30, reason: '' })}>⏰ {t.excRequest}</Btn>
       ) : null}
@@ -3952,10 +3990,16 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
     const kinds = Object.keys(excuse.kinds).filter((k) => excuse.kinds[k]);
     if (!kinds.length) return toast(t.excuseWhat, 'error');
     if (!excuse.reason.trim()) return toast(t.reasonLbl, 'error');
+    const cap = excuseCapOf(data.settings.attendance_policy);
+    const addMin = kinds.reduce((a, k) => a + (k === 'late' ? excuse.row.late : k === 'early_leave' ? excuse.row.early : excuse.row.brkOver), 0);
+    if (excuse.used && excuseOver(cap, excuse.used, addMin, kinds.length)) {
+      if (me.role !== 'ceo') return toast(t.capOver, 'error');
+      if (!window.confirm(t.capCeoQ.replace('{used}', hmOf(excuse.used.minutes) + ' / ' + excuse.used.count + ' ' + t.capExcuses))) return;
+    }
     const empId = excuse.row.emp.id, date = excuse.row.date, now = new Date().toISOString();
     const rows = kinds.map((kind) => ({ employee_id: empId, exc_date: date, kind, minutes: kind === 'late' ? excuse.row.late : kind === 'early_leave' ? excuse.row.early : excuse.row.brkOver, reason: excuse.reason.trim(), status: 'approved', decided_by: me.id, decided_at: now, created_by: me.id }));
     const { data: saved, error } = await sb.from('attendance_exceptions').insert(rows).select();
-    if (error) return toast(error.message, 'error');
+    if (error) return toast(excuseCapErr(t, error.message) || error.message, 'error');
     setExcused((prev) => { const m = { ...prev }; for (const x of saved) if (x.kind !== 'break') m[empId + '|' + date] = x.kind; return m; });
     setExcusedBreak((prev) => saved.some((x) => x.kind === 'break') ? { ...prev, [empId + '|' + date]: true } : prev);
     setExcusedEarlyMap((prev) => saved.some((x) => x.kind === 'early_leave') ? { ...prev, [empId + '|' + date]: true } : prev);
@@ -4119,7 +4163,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
         {dayView && dayView.emp && <DayBreaks empId={dayView.emp.id} date={dayView.date} />}
         {dayView && dayView.emp && (dayView.late > 0 || dayView.early > 0 || dayView.brkOver > 0) && (isHr || (dayView.emp.manager_id && data.employees.some((e) => e.user_id === me.id && e.id === dayView.emp.manager_id))) && (
           <div className="mt-3 border-t border-slate-200 pt-3">
-            <Btn className="w-full" variant="soft" onClick={() => setExcuse({ row: dayView, kinds: { late: dayView.late > 0, early_leave: dayView.early > 0, break: dayView.brkOver > 0 }, reason: '' })}>✓ {t.excuseDay}</Btn>
+            <Btn className="w-full" variant="soft" onClick={() => { setExcuse({ row: dayView, kinds: { late: dayView.late > 0, early_leave: dayView.early > 0, break: dayView.brkOver > 0 }, reason: '', used: null }); sb.rpc('excuse_used', { p_emp: dayView.emp.id, p_date: dayView.date }).then(({ data: u }) => { if (u) setExcuse((prev) => (prev && prev.row === dayView ? { ...prev, used: { minutes: Number(u.minutes) || 0, count: Number(u.count) || 0 } } : prev)); }); }}>✓ {t.excuseDay}</Btn>
           </div>
         )}
         {dayView && dayView.emp && dayView.missing && !dayView.weekend && dayView.firstIn && dayView.date < localDay(new Date()) && (
@@ -4148,6 +4192,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
         {excuse && (
           <>
             <p className="text-xs text-slate-500">{t.excuseHint}</p>
+            {excuse.used && (() => { const cap = excuseCapOf(data.settings.attendance_policy); const kinds = Object.keys(excuse.kinds).filter((k) => excuse.kinds[k]); const addMin = kinds.reduce((a, k) => a + (k === 'late' ? excuse.row.late : k === 'early_leave' ? excuse.row.early : excuse.row.brkOver), 0); const over = excuseOver(cap, excuse.used, addMin, kinds.length); return <p className={cx('rounded-lg p-2 text-xs', over ? 'bg-rose-50 font-semibold text-rose-700' : 'bg-slate-50 text-slate-600')}>⏳ {excuseUsedText(t, cap, excuse.used)}{over ? ' · ' + (me.role === 'ceo' ? t.capWillOver : t.capOver) : ''}</p>; })()}
             <p className="text-xs font-semibold text-slate-600">{t.excuseWhat}</p>
             {[['late', t.excKinds.late, excuse.row.late], ['early_leave', t.excKinds.early_leave, excuse.row.early], ['break', t.excKinds.break, excuse.row.brkOver]].map(([k, l, m]) => m > 0 && (
               <label key={k} className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!excuse.kinds[k]} onChange={(e) => setExcuse({ ...excuse, kinds: { ...excuse.kinds, [k]: e.target.checked } })} />{l} · {m} {t.minutesLbl}</label>
@@ -9068,8 +9113,8 @@ const HV_TOUR_STEPS = [
     en: ['Lock the month', 'After reviewing, lock the month per branch. Nobody — not even HR — can then add or delete punches for that branch and month until it is unlocked. Payroll warns you when the month is not locked yet.'],
     ar: ['قفل الشهر', 'بعد المراجعة اقفل الشهر لكل فرع، فلا يستطيع أحد (حتى الموارد البشرية) إضافة أو حذف بصمات لهذا الفرع والشهر حتى يُفتح. وتنبهك صفحة الرواتب إذا لم يكن الشهر مقفولاً بعد.'] },
   { c: 'att', page: 'attendance', target: 'rules-late', action: 'att-tab-rules', roles: ['ceo', 'hr'],
-    en: ['Lateness, break & early-leave rules', 'Set the lateness tiers (from which minute, which penalty), the daily break allowance with its tiers, and the early-leave tiers. At the bottom, Missing check-out sets how many days a missing punch may wait for a decision and the default penalty that applies if nobody decides. The highest tier reached applies once per day; changes affect payroll runs created or recalculated afterwards.'],
-    ar: ['قواعد التأخير والاستراحة والانصراف المبكر', 'حدد شرائح التأخير (من أي دقيقة وما الجزاء)، ورصيد الاستراحة اليومي وشرائحه، وشرائح الانصراف المبكر. وفي الأسفل «بصمة الانصراف الناقصة» تحدد عدد الأيام المتاحة للقرار والجزاء الافتراضي إذا لم يُتخذ قرار. تُطبق أعلى شريحة مرة واحدة في اليوم، والتغيير يسري على مسيرات الرواتب التي تُنشأ أو يُعاد حسابها بعده.'] },
+    en: ['Lateness, break & early-leave rules', 'Set the lateness tiers (from which minute, which penalty), the daily break allowance with its tiers, and the early-leave tiers. Monthly excuse limit caps how many hours and how many excuses an employee may have accepted per month (beyond it only the CEO can accept). At the bottom, Missing check-out sets how many days a missing punch may wait for a decision and the default penalty that applies if nobody decides. The highest tier reached applies once per day; changes affect payroll runs created or recalculated afterwards.'],
+    ar: ['قواعد التأخير والاستراحة والانصراف المبكر', 'حدد شرائح التأخير (من أي دقيقة وما الجزاء)، ورصيد الاستراحة اليومي وشرائحه، وشرائح الانصراف المبكر. و«الحد الشهري للأذونات» يحدد كم ساعة وكم إذناً يمكن قبولها للموظف في الشهر (بعده لا يقبل إلا المدير التنفيذي). وفي الأسفل «بصمة الانصراف الناقصة» تحدد عدد الأيام المتاحة للقرار والجزاء الافتراضي إذا لم يُتخذ قرار. تُطبق أعلى شريحة مرة واحدة في اليوم، والتغيير يسري على مسيرات الرواتب التي تُنشأ أو يُعاد حسابها بعده.'] },
 
   /* ---------- leave ---------- */
   { c: 'leave', page: 'leave', target: 'leave-balance', action: 'leave-tab-mine',
