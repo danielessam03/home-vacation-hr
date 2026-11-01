@@ -33,6 +33,8 @@ Deno.serve(async (req) => {
     const { data: emp } = await admin.from("employees").select("id, status").eq("agent_token", agentToken).maybeSingle();
     if (!emp || emp.status !== "active") return json({ error: "unknown agent" }, 403);
     const idle = Math.max(0, Number(body.idle_seconds) || 0);
+    // HR sees which laptops have the agent running, session or not
+    await admin.from("employees").update({ agent_last_seen: new Date().toISOString() }).eq("id", emp.id);
     const { data: ses } = await admin.from("work_sessions").select("*").eq("employee_id", emp.id)
       .neq("status", "ended").order("started_at", { ascending: false }).limit(1).maybeSingle();
     if (!ses) return json({ ok: true, session: null });
@@ -63,6 +65,44 @@ Deno.serve(async (req) => {
     const avg = samples[0].map((_, i) => samples.reduce((s, d) => s + d[i], 0) / samples.length);
     const { error } = await admin.from("face_enrollments").upsert({
       employee_id: body.employee_id, descriptor: avg, samples: samples.length,
+      enrolled_by: me.id, enrolled_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    });
+    if (error) return json({ error: error.message }, 500);
+    return json({ ok: true, samples: samples.length });
+  }
+
+  /* ---------------- 4. face check for a check-in / check-out punch ----------------
+     Compares a fresh selfie with the enrolled face and answers ok / not ok. No session
+     side effects: the app then writes the punch with face_verified + face_distance.
+     409 not_enrolled -> the app offers a first-time self-enrolment (enroll_self). */
+  if (body.action === "punch_verify") {
+    const { data: emp } = await admin.from("employees").select("id").eq("user_id", me.id).maybeSingle();
+    if (!emp) return json({ error: "no employee record" }, 400);
+    const desc: number[] = body.descriptor;
+    if (!Array.isArray(desc) || desc.length !== 128) return json({ error: "descriptor required" }, 400);
+    const { data: ref } = await admin.from("face_enrollments").select("descriptor").eq("employee_id", emp.id).maybeSingle();
+    if (!ref) return json({ error: "not_enrolled" }, 409);
+    const { data: policy } = await admin.from("app_settings").select("value").eq("key", "presence_policy").maybeSingle();
+    const threshold = Number(policy?.value?.face_threshold) || 0.5;
+    const d = dist(desc, ref.descriptor as number[]);
+    return json({ ok: d <= threshold, distance: Number(d.toFixed(4)), threshold });
+  }
+
+  /* ---------------- 5. first-time self-enrolment ----------------
+     Only while the person has NO enrolled face yet (their own logged-in account, 3 selfies);
+     afterwards only ceo/hr can change it (action enroll). */
+  if (body.action === "enroll_self") {
+    const { data: emp } = await admin.from("employees").select("id, status").eq("user_id", me.id).maybeSingle();
+    if (!emp || emp.status !== "active") return json({ error: "no employee record" }, 400);
+    const { data: existing } = await admin.from("face_enrollments").select("employee_id").eq("employee_id", emp.id).maybeSingle();
+    if (existing) return json({ error: "already_enrolled" }, 409);
+    const samples: number[][] = (body.descriptors || []).filter((d: unknown) => Array.isArray(d) && d.length === 128);
+    if (samples.length < 2) return json({ error: "descriptors required" }, 400);
+    // the samples must be the same person: every one close to their average
+    const avg = samples[0].map((_, i) => samples.reduce((s, d) => s + d[i], 0) / samples.length);
+    if (samples.some((s) => dist(s, avg) > 0.45)) return json({ error: "samples_differ" }, 422);
+    const { error } = await admin.from("face_enrollments").insert({
+      employee_id: emp.id, descriptor: avg, samples: samples.length,
       enrolled_by: me.id, enrolled_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     });
     if (error) return json({ error: error.message }, 500);

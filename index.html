@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.56';
+const APP_VERSION = 'v3.57';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -379,6 +379,10 @@ const T = {
     liveBoard: 'Live board', lastActivity: 'Last activity', agentOk: 'Laptop agent', breakTotal: 'Breaks',
     workedNet: 'Worked (net)', minsAgo: 'min ago', noOpenSession: 'No live session. Start one after checking in.',
     cameraDenied: 'Camera permission is required for presence checks.',
+    faceCheckTitle: 'Face check', faceCheckHint: 'Look at the camera and tap the button. The selfie is compared with your enrolled face; only the result is kept.', faceVerifyBtn: 'Check my face', faceMismatch: 'The face did not match. Try again with good light, straight on.',
+    faceFirstTitle: 'First time: enrol your face', faceFirstHint: 'Take 3 selfies, straight on, good light. This is done once; afterwards every check-in and check-out is confirmed with a quick selfie.', faceSample: 'Take selfie {n} of 3', faceSamplesDiffer: 'The 3 selfies look different. Start again, same position and light.', faceEnrolledNow: 'Face enrolled. Checking in…',
+    faceVerified: 'face verified', faceNotVerified: 'no face check', facePunchRule: 'Face check at check-in / check-out (app)', facePunchRequired: 'Required (selfie must match the enrolled face)', facePunchOff: 'Off', facePunchHint: 'Applies to check-ins and check-outs made from the app. The fingerprint machine is unaffected. An employee with no enrolled face enrols once with 3 selfies; HR can re-enrol from the employee card.',
+    agentCard: 'Laptop agent (mouse & keyboard activity)', agentDownload: 'Download the agent (zip)', agentConfig: 'Download my agent_config.json', agentNoToken: 'Ask HR to generate your laptop agent token first.', agentSeen: 'Agent last seen', agentNever: 'never', agentHow: '1) Download the zip and extract it to a folder (e.g. Documents\\HV-Agent). 2) Download agent_config.json into that same folder. 3) Double-click install.bat. That is all — it starts by itself at every login.',
   },
   ar: {
     appName: 'هوم فاكيشن للموارد البشرية', appSub: 'الموارد البشرية والرواتب',
@@ -640,6 +644,10 @@ const T = {
     liveBoard: 'اللوحة الحية', lastActivity: 'آخر نشاط', agentOk: 'برنامج اللابتوب', breakTotal: 'الاستراحات',
     workedNet: 'صافي العمل', minsAgo: 'دقيقة مضت', noOpenSession: 'لا توجد جلسة عمل. ابدأ واحدة بعد تسجيل الحضور.',
     cameraDenied: 'إذن الكاميرا مطلوب للتحقق من الحضور.',
+    faceCheckTitle: 'التحقق بالوجه', faceCheckHint: 'انظر إلى الكاميرا واضغط الزر. تُقارن الصورة بوجهك المسجل ولا يُحفظ سوى النتيجة.', faceVerifyBtn: 'تحقّق من وجهي', faceMismatch: 'الوجه غير مطابق. حاول مرة أخرى بإضاءة جيدة ومواجهة للكاميرا.',
+    faceFirstTitle: 'أول مرة: سجّل وجهك', faceFirstHint: 'التقط 3 صور مواجهة وبإضاءة جيدة. يتم ذلك مرة واحدة؛ وبعدها يُؤكد كل حضور وانصراف بصورة سريعة.', faceSample: 'التقط الصورة {n} من 3', faceSamplesDiffer: 'الصور الثلاث مختلفة. ابدأ من جديد بنفس الوضع والإضاءة.', faceEnrolledNow: 'تم تسجيل الوجه. جارٍ تسجيل الحضور…',
+    faceVerified: 'تم التحقق بالوجه', faceNotVerified: 'بدون تحقق بالوجه', facePunchRule: 'التحقق بالوجه عند الحضور / الانصراف (من التطبيق)', facePunchRequired: 'مطلوب (يجب أن تطابق الصورة الوجه المسجل)', facePunchOff: 'متوقف', facePunchHint: 'يسري على الحضور والانصراف من التطبيق. جهاز البصمة لا يتأثر. الموظف الذي لم يسجل وجهه يسجله مرة واحدة بثلاث صور، ويمكن للموارد البشرية إعادة التسجيل من بطاقة الموظف.',
+    agentCard: 'برنامج اللابتوب (نشاط الماوس والكيبورد)', agentDownload: 'تنزيل البرنامج (zip)', agentConfig: 'تنزيل ملف agent_config.json الخاص بي', agentNoToken: 'اطلب من الموارد البشرية إنشاء رمز برنامج اللابتوب أولاً.', agentSeen: 'آخر اتصال للبرنامج', agentNever: 'لم يتصل بعد', agentHow: '1) نزّل ملف zip وفك ضغطه في مجلد (مثلاً Documents\\HV-Agent). 2) نزّل agent_config.json في نفس المجلد. 3) اضغط مرتين على install.bat. هذا كل شيء — يعمل تلقائياً عند كل تسجيل دخول.',
   },
 };
 
@@ -1222,6 +1230,25 @@ function missingDaysLeft(policy, date, todayStr) {
   const mp = missingPolicy(policy);
   if (!mp.enabled || (mp.from && date < mp.from)) return null;
   return Math.round((new Date(dayPlus(date, Number(mp.days) || 0) + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / 86400000);
+}
+/* The laptop agent lives in the public repo; the zip is the whole agent/ folder. */
+const AGENT_ZIP_URL = 'https://github.com/danielessam03/home-vacation-hr/raw/main/HV-Agent.zip';
+function downloadAgentConfig(emp) {
+  const blob = new Blob([JSON.stringify({ agent_token: emp.agent_token }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'agent_config.json'; document.body.appendChild(a); a.click(); a.remove();
+}
+/** Links + last-seen for one employee's laptop agent (employee card and the employee's own Check-in tab). */
+function AgentLinks({ emp, t }) {
+  return (
+    <div className="space-y-1 text-xs">
+      <p className="text-slate-500">{t.agentSeen}: <b className={emp.agent_last_seen && Date.now() - new Date(emp.agent_last_seen).getTime() < 5 * 60000 ? 'text-emerald-700' : 'text-slate-700'}>{emp.agent_last_seen ? fmtDateTime(emp.agent_last_seen) : t.agentNever}</b></p>
+      <div className="flex flex-wrap gap-2">
+        <a className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-semibold text-brand-700" href={AGENT_ZIP_URL} target="_blank" rel="noreferrer">⬇️ {t.agentDownload}</a>
+        {emp.agent_token ? <button className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-semibold text-brand-700" onClick={() => downloadAgentConfig(emp)}>⬇️ {t.agentConfig}</button> : <span className="text-amber-700">{t.agentNoToken}</span>}
+      </div>
+      <p className="text-slate-500">{t.agentHow}</p>
+    </div>
+  );
 }
 /* Monthly excuse limit: hours and number of excuses per employee per month (0 = no limit). */
 const excuseCapOf = (policy) => { const c = (policy && policy.excuse_cap) || {}; return { minutes: (c.hours == null ? 3 : Number(c.hours) || 0) * 60, count: c.count == null ? 3 : Number(c.count) || 0 }; };
@@ -2742,6 +2769,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                   <Btn size="sm" variant="soft" onClick={genToken}>{t.genToken}</Btn>
                 </div>
                 <p className="text-xs text-slate-400">{t.tokenHint}</p>
+                <AgentLinks emp={view} t={t} />
                 <div className="border-t border-slate-200 pt-3" id="emp-access">
                   <p className="mb-2 text-sm font-semibold text-slate-800">🔑 {t.loginAccess}</p>
                   {viewUser ? (
@@ -3265,6 +3293,13 @@ function AttendanceRulesTab(props) {
         </div>
         <Btn className="mt-4 w-full" onClick={() => save('attendance_policy', { ...initial, tiers: sorted, break_max_minutes: Number(breakMax) || 30, break_tiers: bSorted, early_tiers: eSorted }, initial)}>{t.save}</Btn>
       </Card>
+      <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.facePunchHint}</p>
+      <Card tour="rules-face" title={'🪪 ' + t.facePunchRule}>
+        <Select value={(props.data.settings.presence_policy || {}).face_punch || 'required'} onChange={(e) => save('presence_policy', { ...(props.data.settings.presence_policy || {}), face_punch: e.target.value }, props.data.settings.presence_policy || {})}>
+          <option value="required">{t.facePunchRequired}</option>
+          <option value="off">{t.facePunchOff}</option>
+        </Select>
+      </Card>
       <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.capHint}</p>
       <Card tour="rules-cap" title={'⏳ ' + t.capRules}>
         <div className="grid grid-cols-2 gap-2">
@@ -3474,6 +3509,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
   const { t } = useL();
   const [todays, setTodays] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [face, setFace] = useState(null);   // { gps, nearest, distM, within, mode: 'verify' | 'enroll', samples }
   const ses = live && live.session;
   const idleMin = ses ? Math.max(0, Math.round((Date.now() - new Date(ses.last_activity_at).getTime()) / 60000)) : 0;
 
@@ -3501,7 +3537,36 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
       if (distM === null || d < distM) { distM = d; nearest = b; }
     }
     const within = nearest ? distM <= (nearest.geofence_radius_m || 200) : null;
+    const facePolicy = (data.settings.presence_policy || {}).face_punch || 'required';
+    if (facePolicy !== 'off') { setBusy(false); setFace({ gps, nearest, distM, within, mode: 'verify', samples: [] }); return; }
+    await doPunch(gps, nearest, distM, within, null);
+  }
 
+  /* the selfie result for a check-in / check-out */
+  async function onFace(d) {
+    const f = face;
+    if (f.mode === 'enroll') {
+      const samples = [...f.samples, d];
+      if (samples.length < 3) { setFace({ ...f, samples }); return; }
+      const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'enroll_self', descriptors: samples } });
+      if (error) { let msg = error.message; try { const b = await error.context.json(); if (b.error === 'samples_differ') msg = t.faceSamplesDiffer; else if (b.error) msg = b.error; } catch (e) {} setFace({ ...f, samples: [] }); return toast(msg, 'error'); }
+      toast(t.faceEnrolledNow); setFace(null);
+      return doPunch(f.gps, f.nearest, f.distM, f.within, { ok: true, distance: 0 });
+    }
+    const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'punch_verify', descriptor: d } });
+    if (error) {
+      let code = ''; try { const b = await error.context.json(); code = b.error || ''; } catch (e) {}
+      if (code === 'not_enrolled') { setFace({ ...f, mode: 'enroll', samples: [] }); return; }
+      return toast(code || error.message, 'error');
+    }
+    if (!res.ok) return toast(t.faceMismatch + ' (' + res.distance + ')', 'error');
+    setFace(null);
+    return doPunch(f.gps, f.nearest, f.distM, f.within, res);
+  }
+
+  async function doPunch(gps, nearest, distM, within, faceRes) {
+    setBusy(true);
+    const geoBranches = data.branches.filter((b) => b.is_active && b.latitude != null && b.longitude != null);
     const { data: row, error } = await sb.from('attendance_punches').insert({
       employee_id: myEmp.id,
       employee_device_code: myEmp.device_code || myEmp.employee_code,
@@ -3509,6 +3574,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
       direction: nextDir, device_id: 'web', source: 'web',
       latitude: gps.lat, longitude: gps.lng, accuracy_m: gps.acc,
       within_geofence: within, branch_id: nearest ? nearest.id : null,
+      ...(faceRes ? { face_verified: !!faceRes.ok, face_distance: faceRes.distance } : {}),
     }).select().single();
     setBusy(false);
     if (error) return toast(error.message.includes('ATTENDANCE_LOCKED') ? t.monthLocked : error.message, 'error');
@@ -3532,6 +3598,20 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
         </div>
         {live && <div className="pt-1"><BreakButton live={live} data={data} myEmp={myEmp} toast={toast} onPunch={(row) => setTodays((prev) => [...(prev || []), row])} /></div>}
       </Card>
+      <Modal open={!!face} onClose={() => setFace(null)} title={face && face.mode === 'enroll' ? '🪪 ' + t.faceFirstTitle : '🪪 ' + t.faceCheckTitle}>
+        {face && (
+          <>
+            <p className="mb-2 text-xs text-slate-500">{face.mode === 'enroll' ? t.faceFirstHint : t.faceCheckHint}</p>
+            <SelfieCapture key={face.mode} onDescriptor={onFace} toast={toast} label={face.mode === 'enroll' ? t.faceSample.replace('{n}', face.samples.length + 1) : t.faceVerifyBtn} />
+            {face.mode === 'enroll' && face.samples.length > 0 && <p className="mt-2 text-center text-xs text-emerald-700">✓ {face.samples.length} / 3 {t.samplesTaken}</p>}
+          </>
+        )}
+      </Modal>
+      {!myEmp.attendance_exempt && (
+        <Card tour="att-agent" title={'💻 ' + t.agentCard}>
+          <AgentLinks emp={myEmp} t={t} />
+        </Card>
+      )}
       {live && (
         <Card tour="att-live" title={'🟢 ' + t.liveSession}>
           {!ses ? (
@@ -4159,7 +4239,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
             {dayView.list.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
                 <div>
-                  <p className="font-semibold text-slate-800">{isBreakPunch(p) ? '☕ ' : ''}{dirLabel(t, p.direction)} · {fmtTime(p.punch_time)}</p>
+                  <p className="font-semibold text-slate-800">{isBreakPunch(p) ? '☕ ' : ''}{dirLabel(t, p.direction)} · {fmtTime(p.punch_time)}{p.source === 'web' && p.face_verified === true && <span className="ms-1 rounded bg-emerald-100 px-1 text-[10px] font-semibold text-emerald-700" title={String(p.face_distance || '')}>🪪 {t.faceVerified}</span>}{p.source === 'web' && p.face_verified !== true && <span className="ms-1 rounded bg-slate-100 px-1 text-[10px] text-slate-500">{t.faceNotVerified}</span>}</p>
                   <p className="text-xs text-slate-500">
                     {p.source}{p.note ? <span className={/^Break-(start|end) pressed first/.test(p.note) ? 'font-semibold text-amber-700' : ''}> · {p.note}</span> : ''}
                     {p.source === 'web' && p.within_geofence === false ? ' · ' + t.outsideBranch : ''}
@@ -9097,6 +9177,9 @@ const HV_TOUR_STEPS = [
   { c: 'att', page: 'attendance', target: 'att-tabs',
     en: ['Attendance tabs', 'The tabs depend on your role: Check in, Trips and Exceptions (notes) for everyone; Live board, Review and Totals for managers; Lock and Lateness rules for HR.'],
     ar: ['تبويبات الحضور', 'تختلف التبويبات حسب دورك: تسجيل الحضور والمشاوير والاستثناءات (الأذونات) للجميع، واللوحة الحية والمراجعة والإجماليات للمديرين، والقفل وقواعد التأخير للموارد البشرية.'] },
+  { c: 'att', page: 'attendance', target: 'att-agent', action: 'att-tab-checkin',
+    en: ['Laptop agent', 'Download the small agent and your own agent_config.json, extract both into one folder on your work laptop and double-click install.bat. It reports only idle time (mouse / keyboard activity) so the "still working?" prompts are fair; it starts by itself at every login. "Agent last seen" shows it is alive.'],
+    ar: ['برنامج اللابتوب', 'نزّل البرنامج الصغير وملف agent_config.json الخاص بك، فك الضغط في مجلد واحد على لابتوب العمل واضغط مرتين على install.bat. يبلّغ فقط عن وقت عدم النشاط (الماوس / الكيبورد) حتى تكون أسئلة «ما زلت تعمل؟» عادلة، ويعمل تلقائياً عند كل تسجيل دخول. «آخر اتصال للبرنامج» يوضح أنه يعمل.'] },
   { c: 'att', page: 'attendance', target: 'att-checkin', action: 'att-tab-checkin',
     en: ['Check in / check out', 'Tap Check in when you arrive and Check out when you leave. Your phone\'s location is saved and compared with the branch zone, so allow location for this site. Punches in a locked month cannot be changed.'],
     ar: ['تسجيل الحضور والانصراف', 'اضغط «تسجيل حضور» عند وصولك و«تسجيل انصراف» عند مغادرتك. يُحفظ موقع هاتفك ويُقارن بنطاق الفرع، لذا اسمح للموقع بالوصول لموقعك. لا يمكن تعديل البصمات في شهر مقفول.'] },
