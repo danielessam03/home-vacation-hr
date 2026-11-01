@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.57';
+const APP_VERSION = 'v3.58';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -333,6 +333,8 @@ const T = {
     emailSaved: 'Email updated', noLoginYet: 'No login yet. Create one so this employee can use the systems.', noLoginShort: 'no login', openAccess: 'Systems & access', accessHint: 'One username and one password for all systems. Tick the systems this person may open. Passwords are set only here.',
     noHrAccess: 'Your login is not enabled for the HR system. Contact HR.', usernameRule: 'Letters, numbers, dot, dash or underscore (2 to 32).', minPw: 'Password must be at least 8 characters.', loginOff: 'Login disabled', loginOn: 'Login enabled', disableLogin: 'Disable login', enableLogin: 'Enable login', generatePw: 'Generate',
     attendanceExempt: 'Exempt from attendance (no check-in, lateness or overtime — CEOs automatically)', exemptBadge: 'Attendance exempt',
+    offsiteLbl: 'Where may they check in (app)?', offsiteModes: { office: 'Office only — check-in inside the branch zone; check-out anywhere with a reason when outside', anywhere: 'Anywhere — location recorded; a reason is typed when outside the branch', site: 'Site work (maintenance) — anywhere, location recorded, no reason needed' },
+    mustBeAtOffice: 'You can only check in at the office. You are {m} m from {b}. Ask HR if you need to check in from outside.', offsiteReasonTitle: 'You are outside the branch', offsiteReasonHint: 'Your location is recorded ({m} m from {b}). Type where you are and why, then continue.', offsiteReasonPh: 'e.g. client meeting in Sahl Hasheesh', offsiteReasonReq: 'Please type the reason.', offsiteReasonLbl: 'Reason for being outside',
     reports: 'Reports', rptPayroll: 'Payroll cost', rptHeadcount: 'Headcount', rptOvertime: 'Overtime & lateness',
     rptLeave: 'Leave liability', rptAttendance: 'Attendance',
     byBranch: 'By branch', byDepartment: 'By department', byGender: 'By gender', byContract: 'By contract type',
@@ -597,6 +599,8 @@ const T = {
     newPassword: 'كلمة مرور جديدة (8 أحرف على الأقل)', setPassword: 'حفظ كلمة المرور', pwSaved: 'تم تحديث كلمة المرور. تفتح الآن كل الأنظمة المحددة.', createLogin: 'إنشاء حساب دخول', loginEmail: 'بريد الدخول', loginCreated: 'تم إنشاء حساب الدخول',
     emailSaved: 'تم تحديث البريد', noLoginYet: 'لا يوجد حساب دخول بعد. أنشئ واحداً ليتمكن الموظف من استخدام الأنظمة.', noLoginShort: 'بدون حساب دخول', openAccess: 'الأنظمة والصلاحيات', accessHint: 'اسم مستخدم واحد وكلمة مرور واحدة لكل الأنظمة. حدد الأنظمة المسموح بدخولها. كلمات المرور تُضبط من هنا فقط.',
     noHrAccess: 'حسابك غير مفعّل في نظام الموارد البشرية. تواصل مع الموارد البشرية.', usernameRule: 'أحرف إنجليزية وأرقام ونقطة وشرطة فقط (2 إلى 32).', minPw: 'كلمة المرور 8 أحرف على الأقل.', loginOff: 'الدخول موقوف', loginOn: 'الدخول مفعّل', disableLogin: 'إيقاف الدخول', enableLogin: 'تفعيل الدخول', generatePw: 'توليد',
+    offsiteLbl: 'من أين يمكنه تسجيل الحضور (التطبيق)؟', offsiteModes: { office: 'المكتب فقط — الحضور داخل نطاق الفرع؛ الانصراف من أي مكان مع كتابة سبب إن كان خارج النطاق', anywhere: 'من أي مكان — يُسجل الموقع؛ يُكتب سبب إن كان خارج الفرع', site: 'عمل ميداني (صيانة) — من أي مكان، يُسجل الموقع، بدون سبب' },
+    mustBeAtOffice: 'يمكنك تسجيل الحضور من المكتب فقط. أنت على بعد {m} م من {b}. اطلب من الموارد البشرية إن كنت تحتاج التسجيل من الخارج.', offsiteReasonTitle: 'أنت خارج نطاق الفرع', offsiteReasonHint: 'تم تسجيل موقعك ({m} م من {b}). اكتب أين أنت ولماذا ثم تابع.', offsiteReasonPh: 'مثلاً: اجتماع مع عميل في سهل حشيش', offsiteReasonReq: 'اكتب السبب من فضلك.', offsiteReasonLbl: 'سبب التواجد خارج الفرع',
     attendanceExempt: 'معفى من الحضور (بدون تسجيل حضور أو تأخير أو إضافي — المدراء التنفيذيون تلقائياً)', exemptBadge: 'معفى من الحضور',
     reports: 'التقارير', rptPayroll: 'تكلفة الرواتب', rptHeadcount: 'عدد الموظفين', rptOvertime: 'الإضافي والتأخير',
     rptLeave: 'التزامات الإجازات', rptAttendance: 'الحضور',
@@ -2594,7 +2598,7 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
       insurance_base: Number(form.insurance_base) || 0, nosi_number: nn(form.nosi_number),
       bank_name: nn(form.bank_name), bank_account: nn(form.bank_account),
       status: form.status, termination_date: nn(form.termination_date), user_id: nn(form.user_id), notes: nn(form.notes),
-      shift_id: nn(form.shift_id), device_code: nn(form.device_code), attendance_exempt: !!form.attendance_exempt,
+      shift_id: nn(form.shift_id), device_code: nn(form.device_code), attendance_exempt: !!form.attendance_exempt, offsite_mode: form.offsite_mode || 'office',
       day_shifts: form.day_shifts && Object.keys(form.day_shifts).length ? form.day_shifts : null,
       annual_days_override: form.annual_days_override === '' || form.annual_days_override == null ? null : Number(form.annual_days_override),
       casual_days_override: form.casual_days_override === '' || form.casual_days_override == null ? null : Number(form.casual_days_override),
@@ -2961,6 +2965,11 @@ function EmployeesPage({ me, data, refresh, toast, audit }) {
                 <Input dir="ltr" inputMode="numeric" value={form.device_code || ''} onChange={(e) => setForm({ ...form, device_code: e.target.value })} />
               </Field>
             </div>
+            <Field label={t.offsiteLbl}>
+              <Select value={form.offsite_mode || 'office'} onChange={(e) => setForm({ ...form, offsite_mode: e.target.value })}>
+                {['office', 'anywhere', 'site'].map((k) => <option key={k} value={k}>{t.offsiteModes[k]}</option>)}
+              </Select>
+            </Field>
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" className="h-5 w-5 rounded accent-brand-700" checked={!!form.attendance_exempt}
                 onChange={(e) => setForm({ ...form, attendance_exempt: e.target.checked })} />
@@ -3509,7 +3518,8 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
   const { t } = useL();
   const [todays, setTodays] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [face, setFace] = useState(null);   // { gps, nearest, distM, within, mode: 'verify' | 'enroll', samples }
+  const [face, setFace] = useState(null);   // { gps, nearest, distM, within, reason, mode: 'verify' | 'enroll', samples }
+  const [ask, setAsk] = useState(null);     // outside the branch: { ctx, reason }
   const ses = live && live.session;
   const idleMin = ses ? Math.max(0, Math.round((Date.now() - new Date(ses.last_activity_at).getTime()) / 60000)) : 0;
 
@@ -3537,9 +3547,19 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
       if (distM === null || d < distM) { distM = d; nearest = b; }
     }
     const within = nearest ? distM <= (nearest.geofence_radius_m || 200) : null;
+    const ctx = { gps, nearest, distM, within, reason: null };
+    const mode = myEmp.offsite_mode || 'office';
+    if (within === false) {
+      // office-only people may not check IN from outside; everyone may check OUT, with a reason unless site work
+      if (nextDir === 'in' && mode === 'office') { setBusy(false); return toast(t.mustBeAtOffice.replace('{m}', Math.round(distM)).replace('{b}', nearest.name_en || ''), 'error'); }
+      if (mode !== 'site') { setBusy(false); setAsk({ ctx, reason: '' }); return; }
+    }
+    afterLocation(ctx);
+  }
+  function afterLocation(ctx) {
     const facePolicy = (data.settings.presence_policy || {}).face_punch || 'required';
-    if (facePolicy !== 'off') { setBusy(false); setFace({ gps, nearest, distM, within, mode: 'verify', samples: [] }); return; }
-    await doPunch(gps, nearest, distM, within, null);
+    if (facePolicy !== 'off') { setBusy(false); setFace({ ...ctx, mode: 'verify', samples: [] }); return; }
+    doPunch(ctx, null);
   }
 
   /* the selfie result for a check-in / check-out */
@@ -3551,7 +3571,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
       const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'enroll_self', descriptors: samples } });
       if (error) { let msg = error.message; try { const b = await error.context.json(); if (b.error === 'samples_differ') msg = t.faceSamplesDiffer; else if (b.error) msg = b.error; } catch (e) {} setFace({ ...f, samples: [] }); return toast(msg, 'error'); }
       toast(t.faceEnrolledNow); setFace(null);
-      return doPunch(f.gps, f.nearest, f.distM, f.within, { ok: true, distance: 0 });
+      return doPunch(f, { ok: true, distance: 0 });
     }
     const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'punch_verify', descriptor: d } });
     if (error) {
@@ -3561,10 +3581,11 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
     }
     if (!res.ok) return toast(t.faceMismatch + ' (' + res.distance + ')', 'error');
     setFace(null);
-    return doPunch(f.gps, f.nearest, f.distM, f.within, res);
+    return doPunch(f, res);
   }
 
-  async function doPunch(gps, nearest, distM, within, faceRes) {
+  async function doPunch(ctx, faceRes) {
+    const { gps, nearest, distM, within } = ctx;
     setBusy(true);
     const geoBranches = data.branches.filter((b) => b.is_active && b.latitude != null && b.longitude != null);
     const { data: row, error } = await sb.from('attendance_punches').insert({
@@ -3575,6 +3596,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
       latitude: gps.lat, longitude: gps.lng, accuracy_m: gps.acc,
       within_geofence: within, branch_id: nearest ? nearest.id : null,
       ...(faceRes ? { face_verified: !!faceRes.ok, face_distance: faceRes.distance } : {}),
+      ...(ctx.reason ? { offsite_reason: ctx.reason } : {}),
     }).select().single();
     setBusy(false);
     if (error) return toast(error.message.includes('ATTENDANCE_LOCKED') ? t.monthLocked : error.message, 'error');
@@ -3598,6 +3620,15 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
         </div>
         {live && <div className="pt-1"><BreakButton live={live} data={data} myEmp={myEmp} toast={toast} onPunch={(row) => setTodays((prev) => [...(prev || []), row])} /></div>}
       </Card>
+      <Modal open={!!ask} onClose={() => setAsk(null)} title={'📍 ' + t.offsiteReasonTitle}
+        footer={<><Btn className="flex-1" onClick={() => { if (!ask.reason.trim()) return toast(t.offsiteReasonReq, 'error'); const ctx = { ...ask.ctx, reason: ask.reason.trim() }; setAsk(null); afterLocation(ctx); }}>{nextDir === 'in' ? '🕐 ' + t.checkIn : '🏁 ' + t.checkOut}</Btn><Btn variant="outline" className="flex-1" onClick={() => setAsk(null)}>{t.cancel}</Btn></>}>
+        {ask && (
+          <>
+            <p className="text-xs text-slate-500">{t.offsiteReasonHint.replace('{m}', Math.round(ask.ctx.distM)).replace('{b}', (ask.ctx.nearest && ask.ctx.nearest.name_en) || '')}</p>
+            <Field label={t.offsiteReasonLbl}><textarea rows={3} className={inputCls} value={ask.reason} placeholder={t.offsiteReasonPh} onChange={(e) => setAsk({ ...ask, reason: e.target.value })} /></Field>
+          </>
+        )}
+      </Modal>
       <Modal open={!!face} onClose={() => setFace(null)} title={face && face.mode === 'enroll' ? '🪪 ' + t.faceFirstTitle : '🪪 ' + t.faceCheckTitle}>
         {face && (
           <>
@@ -4022,7 +4053,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
         [t.earlyMinLbl + ' (min)']: r.early || 0, [t.earlyMinLbl + ' · ' + t.penaltyLbl]: lbl(r.earlyTier),
         [t.breakTotal + ' (min)']: r.weekend ? '' : (r.brkMin || 0), [t.breakOverLbl + ' (min)']: r.brkOver || 0, [t.breakTotal + ' · ' + t.penaltyLbl]: lbl(r.brkTier),
         [t.otMin]: r.ot || 0,
-        [t.statusLbl]: [r.weekend ? t.weekendLbl : '', r.excused ? t.excused : '', missTxt(r), r.flagged ? t.outsideBranch : ''].filter(Boolean).join(', '),
+        [t.statusLbl]: [r.weekend ? t.weekendLbl : '', r.excused ? t.excused : '', missTxt(r), r.flagged ? t.outsideBranch + (r.list.filter((p) => p.offsite_reason).map((p) => ' (' + p.offsite_reason + ')').join('') || '') : ''].filter(Boolean).join(', '),
       }));
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(out);
@@ -4243,6 +4274,7 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
                   <p className="text-xs text-slate-500">
                     {p.source}{p.note ? <span className={/^Break-(start|end) pressed first/.test(p.note) ? 'font-semibold text-amber-700' : ''}> · {p.note}</span> : ''}
                     {p.source === 'web' && p.within_geofence === false ? ' · ' + t.outsideBranch : ''}
+                    {p.offsite_reason && <span className="font-semibold text-amber-700"> · 📝 {p.offsite_reason}</span>}
                     {p.latitude != null && <> · <a className="text-brand-700 underline" target="_blank" rel="noreferrer"
                       href={'https://maps.google.com/?q=' + p.latitude + ',' + p.longitude} onClick={(e) => e.stopPropagation()}>📍</a></>}
                   </p>
@@ -9181,8 +9213,8 @@ const HV_TOUR_STEPS = [
     en: ['Laptop agent', 'Download the small agent and your own agent_config.json, extract both into one folder on your work laptop and double-click install.bat. It reports only idle time (mouse / keyboard activity) so the "still working?" prompts are fair; it starts by itself at every login. "Agent last seen" shows it is alive.'],
     ar: ['برنامج اللابتوب', 'نزّل البرنامج الصغير وملف agent_config.json الخاص بك، فك الضغط في مجلد واحد على لابتوب العمل واضغط مرتين على install.bat. يبلّغ فقط عن وقت عدم النشاط (الماوس / الكيبورد) حتى تكون أسئلة «ما زلت تعمل؟» عادلة، ويعمل تلقائياً عند كل تسجيل دخول. «آخر اتصال للبرنامج» يوضح أنه يعمل.'] },
   { c: 'att', page: 'attendance', target: 'att-checkin', action: 'att-tab-checkin',
-    en: ['Check in / check out', 'Tap Check in when you arrive and Check out when you leave. Your phone\'s location is saved and compared with the branch zone, so allow location for this site. Punches in a locked month cannot be changed.'],
-    ar: ['تسجيل الحضور والانصراف', 'اضغط «تسجيل حضور» عند وصولك و«تسجيل انصراف» عند مغادرتك. يُحفظ موقع هاتفك ويُقارن بنطاق الفرع، لذا اسمح للموقع بالوصول لموقعك. لا يمكن تعديل البصمات في شهر مقفول.'] },
+    en: ['Check in / check out', 'Tap Check in when you arrive and Check out when you leave. Your phone\'s location is saved and compared with the branch zone, so allow location for this site. Then a quick selfie confirms it is you. Outside the branch zone: office-only staff cannot check in (ask HR), everyone can check out but types a reason; site-work staff (maintenance) check in and out anywhere with no reason — the location is always recorded. Punches in a locked month cannot be changed.'],
+    ar: ['تسجيل الحضور والانصراف', 'اضغط «تسجيل حضور» عند وصولك و«تسجيل انصراف» عند مغادرتك. يُحفظ موقع هاتفك ويُقارن بنطاق الفرع، لذا اسمح للموقع بالوصول لموقعك. ثم صورة سريعة تؤكد أنك أنت. خارج نطاق الفرع: موظفو المكتب لا يمكنهم تسجيل الحضور (اطلب من الموارد البشرية)، والجميع يمكنه تسجيل الانصراف مع كتابة سبب، وموظفو العمل الميداني (الصيانة) يسجلون الحضور والانصراف من أي مكان بدون سبب — الموقع يُسجل دائماً. لا يمكن تعديل البصمات في شهر مقفول.'] },
   { c: 'att', page: 'attendance', target: 'att-live', action: 'att-tab-checkin',
     en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break; resuming needs a selfie, and minutes over the daily break allowance are deducted.'],
     ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك، والعودة تتطلب سيلفي، وما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
