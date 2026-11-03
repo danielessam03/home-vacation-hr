@@ -12,6 +12,9 @@ echo.
 
 rem ---- 1. the config file with the device IP and the secret ----
 echo  This folder: %~dp0
+echo  Files here:
+dir /b
+echo.
 if exist bridge_config.json.txt ren bridge_config.json.txt bridge_config.json
 if exist bridge_config.txt ren bridge_config.txt bridge_config.json
 if not exist bridge_config.json (
