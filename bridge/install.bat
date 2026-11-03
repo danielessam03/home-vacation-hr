@@ -31,8 +31,11 @@ if exist HV-Bridge.exe (
   echo  HV-Bridge.exe found - no Python needed on this PC.
   goto :network
 )
+echo  HV-Bridge.exe is NOT in this folder. If it was here before, your antivirus probably
+echo  removed it: open Windows Security ^> Protection history, allow HV-Bridge.exe, copy it
+echo  back from HV-Bridge.zip, then run install.bat again. Falling back to Python ...
 set "PY="
-for /f "delims=" %%p in ('where python 2^>nul') do if not defined PY set "PY=%%p"
+python -c "print(1)" >nul 2>&1 && set "PY=python"
 if not defined PY (
   echo  HV-Bridge.exe is not in this folder and Python is not installed.
   echo  Installing Python 3.12 for this user ...
