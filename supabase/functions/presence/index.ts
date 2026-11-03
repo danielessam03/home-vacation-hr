@@ -6,6 +6,8 @@
 //      with a fresh face descriptor; compared here against the enrolled
 //      reference (which the employee can never read)
 //   3. enroll           -- ceo/hr store an employee's reference face
+//   5. enroll_self      -- the employee saves / re-takes their own face (My profile, first check-in)
+//   5b. face_status     -- is my face saved? (My profile)
 //
 // Deploy: supabase functions deploy presence --no-verify-jwt
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -88,25 +90,36 @@ Deno.serve(async (req) => {
     return json({ ok: d <= threshold, distance: Number(d.toFixed(4)), threshold });
   }
 
-  /* ---------------- 5. first-time self-enrolment ----------------
-     Only while the person has NO enrolled face yet (their own logged-in account, 3 selfies);
-     afterwards only ceo/hr can change it (action enroll). */
+  /* ---------------- 5. self-enrolment (My profile, and the first check-in) ----------------
+     The person's own logged-in account, 3 selfies. Daniel 2026-11-03: every employee saves (and can
+     re-take) their face from My profile, so a replace is allowed; who did it and when is kept
+     (enrolled_by = the employee themself, or the ceo/hr who used action enroll). The reference itself
+     is never sent back to the browser. */
   if (body.action === "enroll_self") {
     const { data: emp } = await admin.from("employees").select("id, status").eq("user_id", me.id).maybeSingle();
     if (!emp || emp.status !== "active") return json({ error: "no employee record" }, 400);
     const { data: existing } = await admin.from("face_enrollments").select("employee_id").eq("employee_id", emp.id).maybeSingle();
-    if (existing) return json({ error: "already_enrolled" }, 409);
+    if (existing && !body.replace) return json({ error: "already_enrolled" }, 409);
     const samples: number[][] = (body.descriptors || []).filter((d: unknown) => Array.isArray(d) && d.length === 128);
     if (samples.length < 2) return json({ error: "descriptors required" }, 400);
     // the samples must be the same person: every one close to their average
     const avg = samples[0].map((_, i) => samples.reduce((s, d) => s + d[i], 0) / samples.length);
     if (samples.some((s) => dist(s, avg) > 0.45)) return json({ error: "samples_differ" }, 422);
-    const { error } = await admin.from("face_enrollments").insert({
+    const { error } = await admin.from("face_enrollments").upsert({
       employee_id: emp.id, descriptor: avg, samples: samples.length,
       enrolled_by: me.id, enrolled_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     });
     if (error) return json({ error: error.message }, 500);
-    return json({ ok: true, samples: samples.length });
+    return json({ ok: true, samples: samples.length, replaced: !!existing });
+  }
+
+  /* ---------------- 5b. my own face status (My profile) ----------------
+     Only whether a face is saved, how many selfies and when — never the reference. */
+  if (body.action === "face_status") {
+    const { data: emp } = await admin.from("employees").select("id, status").eq("user_id", me.id).maybeSingle();
+    if (!emp) return json({ employee: false, enrolled: false });
+    const { data: ref } = await admin.from("face_enrollments").select("samples, enrolled_at, enrolled_by").eq("employee_id", emp.id).maybeSingle();
+    return json({ employee: true, enrolled: !!ref, samples: ref?.samples ?? 0, enrolled_at: ref?.enrolled_at ?? null, by_me: !!ref && ref.enrolled_by === me.id });
   }
 
   if (body.action === "verify") {

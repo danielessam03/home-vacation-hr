@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.58';
+const APP_VERSION = 'v3.59';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -377,6 +377,9 @@ const T = {
     faceMismatch: 'Face does not match the enrolled employee', faceOk: 'Identity confirmed', notEnrolled: 'No face enrolled yet — ask HR',
     enrollFace: 'Enroll face', enrollHint: 'Take 3 selfies of the employee, straight on, good light. Used only to verify presence prompts.',
     capture: 'Capture', samplesTaken: 'samples taken', enrolled: 'Face enrolled',
+    faceMyTitle: 'My Face ID', faceMyHint: 'Your face confirms your check-in and check-out in the app (a quick selfie). Save it once here; re-take it if it stops matching (new glasses, beard, bad light). Only your account can do this and only the result of each check is kept.',
+    faceMySaved: 'Face ID saved', faceMyNone: 'No Face ID saved yet', faceMyBy: 'by you', faceMyByHr: 'by HR', faceMyBtn: 'Save my Face ID', faceMyRedo: 'Re-take my Face ID', faceMyDone: 'Face ID saved. Your next check-in uses it.',
+    faceMyNoEmp: 'Your login is not linked to an employee record yet — ask HR.', faceMyStep: 'Selfie {n} of 3 — straight on, good light',
     agentToken: 'Laptop agent token', genToken: 'Generate token', tokenHint: 'Paste into agent_config.json on their laptop (see agent/README.md). Regenerating disconnects the old one.',
     liveBoard: 'Live board', lastActivity: 'Last activity', agentOk: 'Laptop agent', breakTotal: 'Breaks',
     workedNet: 'Worked (net)', minsAgo: 'min ago', noOpenSession: 'No live session. Start one after checking in.',
@@ -644,6 +647,9 @@ const T = {
     faceMismatch: 'الوجه لا يطابق الموظف المسجل', faceOk: 'تم تأكيد الهوية', notEnrolled: 'لم يتم تسجيل الوجه بعد — تواصل مع الموارد البشرية',
     enrollFace: 'تسجيل الوجه', enrollHint: 'التقط 3 صور للموظف مواجهة وبإضاءة جيدة. تُستخدم فقط للتحقق من الحضور.',
     capture: 'التقاط', samplesTaken: 'صور مأخوذة', enrolled: 'تم تسجيل الوجه',
+    faceMyTitle: 'بصمة وجهي (Face ID)', faceMyHint: 'وجهك يؤكد حضورك وانصرافك في التطبيق (صورة سريعة). سجّله مرة واحدة هنا، وأعد تسجيله إذا توقف عن المطابقة (نظارة جديدة، لحية، إضاءة سيئة). لا يفعل ذلك إلا حسابك أنت، ولا يُحفظ إلا نتيجة كل تحقق.',
+    faceMySaved: 'بصمة الوجه مسجَّلة', faceMyNone: 'لم تُسجَّل بصمة الوجه بعد', faceMyBy: 'بواسطتك', faceMyByHr: 'بواسطة الموارد البشرية', faceMyBtn: 'سجّل بصمة وجهي', faceMyRedo: 'إعادة تسجيل بصمة وجهي', faceMyDone: 'تم حفظ بصمة الوجه. سيستخدمها تسجيل حضورك القادم.',
+    faceMyNoEmp: 'حسابك غير مرتبط بملف موظف بعد — تواصل مع الموارد البشرية.', faceMyStep: 'الصورة {n} من 3 — مواجهة وبإضاءة جيدة',
     agentToken: 'رمز برنامج اللابتوب', genToken: 'إنشاء رمز', tokenHint: 'يوضع في agent_config.json على لابتوب الموظف (انظر agent/README.md). إنشاء رمز جديد يلغي القديم.',
     liveBoard: 'اللوحة الحية', lastActivity: 'آخر نشاط', agentOk: 'برنامج اللابتوب', breakTotal: 'الاستراحات',
     workedNet: 'صافي العمل', minsAgo: 'دقيقة مضت', noOpenSession: 'لا توجد جلسة عمل. ابدأ واحدة بعد تسجيل الحضور.',
@@ -9101,10 +9107,30 @@ function TasksPage({ me, data, toast }) {
     </>
   );
 }
-function ProfilePage({ me, setMe, toast }) {
+function ProfilePage({ me, setMe, toast, data }) {
   const { lang, t, setLang } = useL();
   const [f, setF] = useState(me);
   useEffect(() => { setF(me); }, [me]);
+  /* Face ID (Daniel 2026-11-03): every employee saves — and can re-take — their own face here.
+     Status and saving go through the presence function; the face reference itself never reaches the browser. */
+  const myEmp = (data && data.employees || []).find((e) => e.user_id === me.id);
+  const [faceSt, setFaceSt] = useState(null);           // null = loading, {employee, enrolled, samples, enrolled_at, by_me}
+  const [faceEnroll, setFaceEnroll] = useState(null);   // { samples: [] } while the camera modal is open
+  const loadFaceSt = useCallback(async () => {
+    const { data: r, error } = await sb.functions.invoke('presence', { body: { action: 'face_status' } });
+    setFaceSt(error || !r ? { employee: !!myEmp, enrolled: false, error: true } : r);
+  }, [me.id]);
+  useEffect(() => { loadFaceSt(); }, [loadFaceSt]);
+  async function onFaceSample(d) {
+    const samples = [...faceEnroll.samples, d].slice(0, 3);
+    if (samples.length < 3) { setFaceEnroll({ samples }); return; }
+    const { data: res, error } = await sb.functions.invoke('presence', { body: { action: 'enroll_self', descriptors: samples, replace: true } });
+    if (error) {
+      let msg = error.message; try { const b = await error.context.json(); if (b.error === 'samples_differ') msg = t.faceSamplesDiffer; else if (b.error) msg = b.error; } catch (e) {}
+      setFaceEnroll({ samples: [] }); return toast(msg, 'error');
+    }
+    setFaceEnroll(null); toast(t.faceMyDone); loadFaceSt();
+  }
 
   async function save() {
     const { data: row, error } = await sb.from('app_users')
@@ -9129,7 +9155,37 @@ function ProfilePage({ me, setMe, toast }) {
         </Select>
       </Field>
       <Btn className="mt-4" onClick={save}>{t.save}</Btn>
+
+      {/* ---------- my Face ID ---------- */}
+      <div data-tour="profile-face" className="mt-5 space-y-2 rounded-xl bg-slate-50 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-800">🪪 {t.faceMyTitle}</p>
+            <p className="text-xs text-slate-500">
+              {faceSt === null ? '…'
+                : !faceSt.employee && !myEmp ? t.faceMyNoEmp
+                : faceSt.enrolled ? '✅ ' + t.faceMySaved + ' · ' + faceSt.samples + ' · ' + localDay(faceSt.enrolled_at) + ' · ' + (faceSt.by_me ? t.faceMyBy : t.faceMyByHr)
+                : t.faceMyNone}
+            </p>
+          </div>
+          {(faceSt && (faceSt.employee || myEmp)) && (
+            <Btn size="sm" variant={faceSt.enrolled ? 'soft' : undefined} onClick={() => setFaceEnroll({ samples: [] })}>📸 {faceSt.enrolled ? t.faceMyRedo : t.faceMyBtn}</Btn>
+          )}
+        </div>
+        <p className="text-xs text-slate-400">{t.faceMyHint}</p>
+      </div>
       <p className="mt-4 text-center text-xs text-slate-400">{APP_VERSION}</p>
+
+      <Modal open={!!faceEnroll} onClose={() => setFaceEnroll(null)} title={'📸 ' + t.faceMyTitle}
+        footer={<Btn variant="outline" className="flex-1" onClick={() => setFaceEnroll(null)}>{t.cancel}</Btn>}>
+        {faceEnroll && (
+          <>
+            <p className="text-xs text-slate-500">{t.faceFirstHint}</p>
+            <p className="text-center text-sm font-semibold text-slate-700">{t.faceMyStep.replace('{n}', String(faceEnroll.samples.length + 1))}</p>
+            <SelfieCapture toast={toast} label={t.capture} onDescriptor={onFaceSample} />
+          </>
+        )}
+      </Modal>
     </Card>
   );
 }
@@ -9176,6 +9232,9 @@ const HV_TOUR_STEPS = [
   { c: 'start', page: 'profile', target: 'profile-card',
     en: ['My profile', 'Correct your Arabic and English name and your phone, choose your language, then press Save. Your email and role are managed by HR. The version number at the bottom helps when you report a problem.'],
     ar: ['ملفي', 'صحّح اسمك بالعربية والإنجليزية ورقم هاتفك واختر اللغة ثم اضغط حفظ. البريد الإلكتروني والدور تديرهما الموارد البشرية. رقم الإصدار في الأسفل يفيد عند الإبلاغ عن مشكلة.'] },
+  { c: 'start', page: 'profile', target: 'profile-face',
+    en: ['My Face ID', 'Your face confirms your check-in and check-out in the app with a quick selfie. Press “Save my Face ID” and take 3 selfies straight on in good light — once. If it stops matching (new glasses, a beard, bad light) press “Re-take my Face ID”. Only your own account can do this; HR sees only that a face is saved, when, and by whom.'],
+    ar: ['بصمة وجهي', 'وجهك يؤكد حضورك وانصرافك في التطبيق بصورة سريعة. اضغط «سجّل بصمة وجهي» والتقط 3 صور مواجهة وبإضاءة جيدة، مرة واحدة. وإذا توقفت عن المطابقة (نظارة جديدة، لحية، إضاءة سيئة) اضغط «إعادة تسجيل بصمة وجهي». لا يفعل ذلك إلا حسابك أنت؛ والموارد البشرية ترى فقط أن الوجه مسجَّل ومتى وبواسطة من.'] },
 
   /* ---------- my HR (self-service) — on 'dashboard' for staff ---------- */
   { c: 'self', page: 'me', target: 'my-quick',

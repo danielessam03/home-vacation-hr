@@ -15,7 +15,7 @@
  * Off-switch: open the system with ?nosw=1 (the page removes this worker
  * and its copies), or "Clear the saved copy" on the help panel.
  * ===================================================================== */
-const VERSION = 'hv-sw-v1';
+const VERSION = 'hv-sw-v2';
 const SCOPE = self.registration.scope;            // https://home-vacation-hr.pages.dev/  ·  https://danielessam03.github.io/home-vacation-hr/
 const CACHE = VERSION + '|' + SCOPE;               // one copy per system, even when systems share a website (github.io)
 const PAGE_TIMEOUT_MS = 4000;
@@ -84,9 +84,11 @@ function pageRequest(event) {
   })());
 }
 
-// hv-core.js and vendor/*: the saved copy at once, refreshed in the background
+// vendor/* (version in the file name): the saved copy at once, refreshed in the background.
+// hv-core.js / hv-tour.js (no version in the name): the network first (4 s) so a new version is used at once, else the saved copy.
 function fileRequest(event) {
   const req = event.request;
+  const versioned = /d+.d+/.test(new URL(req.url).pathname.split('/').pop());
   let saving = null;
   const network = fetch(req).then((res) => {
     if (res.ok) { const copy = res.clone(); saving = caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => null); }
@@ -95,7 +97,9 @@ function fileRequest(event) {
   event.waitUntil(network.then(() => saving, () => null));
   event.respondWith((async () => {
     const saved = await caches.match(req, { cacheName: CACHE });
-    if (saved) return saved;
-    return network;
+    if (!saved) return network;
+    if (versioned) return saved;
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), PAGE_TIMEOUT_MS));
+    try { const res = await Promise.race([network, timeout]); return usable(res) ? res : saved; } catch (e) { return saved; }
   })());
 }
