@@ -20,16 +20,21 @@ if not exist bridge_config.json (
 )
 echo  bridge_config.json found.
 
-rem ---- 2. Python (user install, no administrator needed) ----
+rem ---- 2. program: HV-Bridge.exe (nothing to install) or Python ----
+if exist HV-Bridge.exe (
+  echo  HV-Bridge.exe found - no Python needed on this PC.
+  goto :network
+)
 set "PY="
 for /f "delims=" %%p in ('where python 2^>nul') do if not defined PY set "PY=%%p"
 if not defined PY (
-  echo  Python is not installed. Installing Python 3.12 for this user ...
+  echo  HV-Bridge.exe is not in this folder and Python is not installed.
+  echo  Installing Python 3.12 for this user ...
   winget install -e --id Python.Python.3.12 --scope user --accept-package-agreements --accept-source-agreements
   if errorlevel 1 (
     echo.
-    echo  Could not install Python automatically.
-    echo  Install it from https://www.python.org/downloads/windows/
+    echo  Could not install Python automatically. Either put HV-Bridge.exe in this folder,
+    echo  or install Python from https://www.python.org/downloads/windows/
     echo  ^(tick "Add python.exe to PATH"^) and then double-click install.bat again.
     pause
     exit /b 1
@@ -47,6 +52,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
+:network
 rem ---- 3. can this PC reach the device? ----
 for /f "tokens=2 delims=:," %%a in ('findstr /i "device_ip" bridge_config.json') do set "DEVIP=%%~a"
 set "DEVIP=%DEVIP:"=%"

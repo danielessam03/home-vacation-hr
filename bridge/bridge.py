@@ -32,7 +32,9 @@ PUNCH_SECRET = "PUT_A_LONG_RANDOM_SECRET_HERE"   # must equal the PUNCH_SECRET e
 
 DEVICE_ID = "tx628-hq"               # label stored with every punch
 
-_cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge_config.json")
+# folder that holds bridge_config.json / state / log: next to the script, or next to HV-Bridge.exe when frozen
+_HERE = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__))
+_cfg_path = os.path.join(_HERE, "bridge_config.json")
 if os.path.exists(_cfg_path):
     with open(_cfg_path, "r", encoding="utf-8") as _f:
         _cfg = json.load(_f)
@@ -42,8 +44,8 @@ if os.path.exists(_cfg_path):
     FUNCTION_URL = _cfg.get("function_url", FUNCTION_URL)
     PUNCH_SECRET = _cfg.get("punch_secret", PUNCH_SECRET)
     DEVICE_ID = _cfg.get("device_id", DEVICE_ID)
-STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge_state.json")
-LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge.log")
+STATE_FILE = os.path.join(_HERE, "bridge_state.json")
+LOG_FILE = os.path.join(_HERE, "bridge.log")
 BATCH_SIZE = 500
 # ----------------------------------------------------------------------
 

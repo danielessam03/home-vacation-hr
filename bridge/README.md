@@ -72,6 +72,16 @@ The bridge can run on any Windows PC that is **on the same office network as
 the device** and stays on. Only ONE PC should run it at a time (two would
 not corrupt anything, the server skips duplicates, but one is enough).
 
+**No Python needed on the new PC:** the folder (and HV-Bridge.zip) contains
+`HV-Bridge.exe`, a single-file build of `bridge.py`. `install.bat` and
+`run_bridge.bat` use it when it is present and only fall back to Python when
+it is not. It needs Windows 10 or later and about 11 MB; while running it uses
+nothing noticeable (one short connection to the device every 5 minutes).
+Windows SmartScreen may warn the first time it runs: choose "More info" →
+"Run anyway". To rebuild the exe after changing bridge.py:
+`python -m PyInstaller --onefile --name HV-Bridge bridge.py` (PyInstaller is
+installed on Daniel's laptop) and copy `dist\HV-Bridge.exe` into this folder.
+
 1. On the old PC copy the whole folder `C:\Users\Essam\home-vacation-hr\bridge`
    to a USB stick (or the office share). It must include `bridge_config.json`
    (device IP + secret) and `bridge_state.json` (what was already sent).
@@ -95,7 +105,7 @@ Spare copy of these files (without the config): https://github.com/danielessam03
 
 ### بالعربي باختصار
 1. انسخ فولدر `bridge` كله من جهاز دانيال على فلاشة (لازم يكون فيه `bridge_config.json` و `bridge_state.json`).
-2. على الجهاز الجديد حطه في `C:\HV-Bridge` ودوس مرتين على `install.bat` (لو ثبّت بايثون، اقفل وشغّله تاني).
+2. على الجهاز الجديد حطه في `C:\HV-Bridge` ودوس مرتين على `install.bat`. الفولدر فيه `HV-Bridge.exe` فمفيش بايثون ولا أي تثبيت على الجهاز الجديد (لو ويندوز حذّرك أول مرة: More info ثم Run anyway).
 3. افتح `bridge_run.log`: آخر سطر لازم يكون `device ok` أو `sent N new punches`.
 4. على الجهاز القديم دوس مرتين على `disable_bridge_here.bat`.
 5. الجهاز الجديد ما ينامش، ويفضل المستخدم مسجّل دخوله (القفل عادي).
