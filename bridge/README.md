@@ -65,3 +65,37 @@ That's it. To check it is running: Task Scheduler → Task Scheduler Library
   the machine.
 - Safe to re-run any time: both the bridge and the server skip
   duplicates automatically.
+
+## Moving the bridge to another PC (the 24/7 computer)
+
+The bridge can run on any Windows PC that is **on the same office network as
+the device** and stays on. Only ONE PC should run it at a time (two would
+not corrupt anything, the server skips duplicates, but one is enough).
+
+1. On the old PC copy the whole folder `C:\Users\Essam\home-vacation-hr\bridge`
+   to a USB stick (or the office share). It must include `bridge_config.json`
+   (device IP + secret) and `bridge_state.json` (what was already sent).
+   Do not send `bridge_config.json` over chat: it contains the secret.
+2. On the new PC paste the folder as `C:\HV-Bridge` (any folder works, but keep
+   it out of Downloads) and double-click **install.bat**. It installs Python
+   for that user if needed, the two packages, pings the device, registers the
+   task "HV HR punch bridge" every 5 minutes, and runs it once.
+   If Python had to be installed, the window says so: close it and run
+   install.bat a second time.
+3. Check `bridge_run.log` in the new folder: the last line must say
+   `device ok` or `sent N new punches`. Punches then show in the app under
+   Attendance → Review within 5 minutes.
+4. On the old PC double-click **disable_bridge_here.bat** (or Task Scheduler →
+   "HV HR punch bridge" → Disable).
+5. On the new PC: keep that Windows user logged in (locking the screen is fine)
+   and set Power options so the PC never sleeps. After a restart someone must
+   log in once; the task then continues.
+
+Spare copy of these files (without the config): https://github.com/danielessam03/home-vacation-hr/raw/main/HV-Bridge.zip
+
+### بالعربي باختصار
+1. انسخ فولدر `bridge` كله من جهاز دانيال على فلاشة (لازم يكون فيه `bridge_config.json` و `bridge_state.json`).
+2. على الجهاز الجديد حطه في `C:\HV-Bridge` ودوس مرتين على `install.bat` (لو ثبّت بايثون، اقفل وشغّله تاني).
+3. افتح `bridge_run.log`: آخر سطر لازم يكون `device ok` أو `sent N new punches`.
+4. على الجهاز القديم دوس مرتين على `disable_bridge_here.bat`.
+5. الجهاز الجديد ما ينامش، ويفضل المستخدم مسجّل دخوله (القفل عادي).
