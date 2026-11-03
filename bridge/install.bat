@@ -11,10 +11,16 @@ echo  =====================================================
 echo.
 
 rem ---- 1. the config file with the device IP and the secret ----
+echo  This folder: %~dp0
+if exist bridge_config.json.txt ren bridge_config.json.txt bridge_config.json
+if exist bridge_config.txt ren bridge_config.txt bridge_config.json
 if not exist bridge_config.json (
-  echo  bridge_config.json is missing.
-  echo  Copy it from the old bridge PC ^(C:\Users\Essam\home-vacation-hr\bridge\bridge_config.json^)
-  echo  into this folder, then double-click install.bat again.
+  echo  bridge_config.json is missing from the folder above.
+  echo  The GitHub zip does NOT contain it ^(it holds the secret^). Copy it from Daniel's laptop:
+  echo    C:\Users\Essam\home-vacation-hr\bridge\bridge_config.json
+  echo  into the folder above ^(same folder as install.bat^), then double-click install.bat again.
+  echo  Files now in this folder:
+  dir /b
   pause
   exit /b 1
 )
