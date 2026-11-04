@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.59';
+const APP_VERSION = 'v3.60';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -206,6 +206,8 @@ const T = {
     taxiHint: 'When you end the trip you can write how much you paid and attach the receipt or a screenshot (optional).', fareTitle: 'Taxi / Uber cost', fareAsk: 'How much did you pay? (EGP)', fareEvidenceAsk: 'Evidence: receipt photo or screenshot', fareOptional: 'Both are optional. You can add or correct them later from the trip list.',
     fareChoose: 'Attach a photo or screenshot', fareReplace: 'Replace the attached evidence', farePaid: 'Paid', fareNone: 'Amount not entered', fareEvidence: 'Evidence', fareAdd: 'Add amount / receipt', fareTooBig: 'The file is larger than 10 MB.',
     tripsTab: 'Trips', startTrip: 'Start trip', endTrip: 'End trip', recordPoint: 'Record point',
+    fuelRules: 'Personal car — fuel compensation', fuelRulesHint: 'A trip by personal car is compensated from the fuel price on the day of the trip: price of benzine 92 (EGP per litre) × kilometres ÷ the divisor. Daniel set the divisor to 7 (most cars use about 7 litres per 100 km). Keep the price list current: add a line with the date whenever the government changes the price — older trips keep the price of their own day.',
+    fuelDivisor: 'Divisor', fuelPrice: 'Benzine 92 (EGP / litre)', fuelFrom: 'From date', fuelAddPrice: 'Add a price', fuelPreview: 'Example: a 10 km trip today = {x}', fuelComp: 'Fuel compensation', fuelNoPrice: 'No fuel price for this date — HR adds it in Attendance → Rules', fuelCompHint: '{p} × {km} km ÷ {d}',
     tripPurpose: 'Trip purpose (client / site)', openTripLbl: 'Trip in progress', pointsN: 'points',
     km: 'km', totalKm: 'Total km', thisMonth: 'This month',
     reviewTab: 'Review', lockTab: 'Lock',
@@ -476,6 +478,8 @@ const T = {
     taxiHint: 'عند إنهاء المشوار يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة (اختياري).', fareTitle: 'تكلفة التاكسي / أوبر', fareAsk: 'كم دفعت؟ (جنيه)', fareEvidenceAsk: 'الإثبات: صورة الإيصال أو لقطة شاشة', fareOptional: 'الاثنان اختياريان. يمكنك إضافتهما أو تعديلهما لاحقاً من قائمة المشاوير.',
     fareChoose: 'إرفاق صورة أو لقطة شاشة', fareReplace: 'استبدال الإثبات المرفق', farePaid: 'المدفوع', fareNone: 'لم يُدخل المبلغ', fareEvidence: 'الإثبات', fareAdd: 'إضافة المبلغ / الإيصال', fareTooBig: 'الملف أكبر من 10 ميجابايت.',
     tripsTab: 'المشاوير', startTrip: 'بدء مشوار', endTrip: 'إنهاء المشوار', recordPoint: 'تسجيل نقطة',
+    fuelRules: 'السيارة الشخصية — تعويض البنزين', fuelRulesHint: 'مشوار السيارة الشخصية يُعوَّض من سعر البنزين يوم المشوار: سعر بنزين 92 (جنيه لليتر) × الكيلومترات ÷ المقسوم عليه. حدده دانيال بـ 7 (معظم السيارات تستهلك نحو 7 لتر لكل 100 كم). حدّث قائمة الأسعار: أضف سطرًا بالتاريخ كلما غيّرت الحكومة السعر — المشاوير القديمة تحتفظ بسعر يومها.',
+    fuelDivisor: 'المقسوم عليه', fuelPrice: 'بنزين 92 (جنيه / لتر)', fuelFrom: 'من تاريخ', fuelAddPrice: 'إضافة سعر', fuelPreview: 'مثال: مشوار 10 كم اليوم = {x}', fuelComp: 'تعويض البنزين', fuelNoPrice: 'لا يوجد سعر بنزين لهذا التاريخ — تضيفه الموارد البشرية في الحضور ← القواعد', fuelCompHint: '{p} × {km} كم ÷ {d}',
     tripPurpose: 'سبب المشوار (عميل / موقع)', openTripLbl: 'مشوار جارٍ', pointsN: 'نقاط',
     km: 'كم', totalKm: 'إجمالي الكيلومترات', thisMonth: 'هذا الشهر',
     reviewTab: 'المراجعة', lockTab: 'القفل',
@@ -3232,6 +3236,13 @@ function AttendanceRulesTab(props) {
   const [mp, setMp] = useState(missingPolicy(initial));
   useEffect(() => { setMp(missingPolicy(props.data.settings.attendance_policy)); }, [props.data.settings.attendance_policy]);
   const capInit = (p) => { const c = (p && p.excuse_cap) || {}; return { hours: c.hours == null ? 3 : Number(c.hours), count: c.count == null ? 3 : Number(c.count) }; };
+  /* fuel compensation for personal-car trips (migration_062) */
+  const fuelOf = (st) => { const f = fuelPolicyOf(st); return { divisor: f.divisor, prices: (f.prices || []).map((x) => ({ ...x })) }; };
+  const [fuel, setFuel] = useState(fuelOf(props.data.settings));
+  useEffect(() => { setFuel(fuelOf(props.data.settings)); }, [props.data.settings.fuel_policy]);
+  const setFp = (i, k, v) => setFuel((f) => ({ ...f, prices: f.prices.map((x, idx) => (idx === i ? { ...x, [k]: v } : x)) }));
+  const fuelClean = () => ({ fuel: 'benzine_92', divisor: Number(fuel.divisor) > 0 ? Number(fuel.divisor) : 7, prices: fuel.prices.filter((x) => Number(x.price) > 0 && x.from).map((x) => ({ from: x.from, price: Number(x.price) })).sort((a, b) => (a.from < b.from ? -1 : 1)) });
+  const fuelToday = fuelPriceOn(fuelClean(), localDay(new Date()));
   const [cap, setCap] = useState(capInit(initial));
   useEffect(() => { setCap(capInit(props.data.settings.attendance_policy)); }, [props.data.settings.attendance_policy]);
   const mpPen = mp.kind === 'none' ? 'none' : mp.kind === 'hours' ? 'hours' : String(Number(mp.value));
@@ -3307,6 +3318,24 @@ function AttendanceRulesTab(props) {
           ))}
         </div>
         <Btn className="mt-4 w-full" onClick={() => save('attendance_policy', { ...initial, tiers: sorted, break_max_minutes: Number(breakMax) || 30, break_tiers: bSorted, early_tiers: eSorted }, initial)}>{t.save}</Btn>
+      </Card>
+      <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.fuelRulesHint}</p>
+      <Card tour="rules-fuel" title={'⛽ ' + t.fuelRules} action={<Btn size="sm" variant="soft" onClick={() => setFuel((f) => ({ ...f, prices: [...f.prices, { from: localDay(new Date()), price: '' }] }))}>+ {t.fuelAddPrice}</Btn>}>
+        <div className="space-y-2">
+          {[...fuel.prices].map((p, i) => ({ p, i })).sort((a, b) => ((a.p.from || '') < (b.p.from || '') ? 1 : -1)).map(({ p, i }) => (
+            <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 rounded-xl border border-slate-200 p-2">
+              <Field label={t.fuelFrom}><Input type="date" value={p.from || ''} onChange={(e) => setFp(i, 'from', e.target.value)} /></Field>
+              <Field label={t.fuelPrice}><Input type="number" inputMode="decimal" min="0" step="0.05" dir="ltr" value={p.price} onChange={(e) => setFp(i, 'price', e.target.value)} /></Field>
+              <Btn variant="ghost" size="sm" className="text-rose-600" onClick={() => setFuel((f) => ({ ...f, prices: f.prices.filter((_, idx) => idx !== i) }))}>&times;</Btn>
+            </div>
+          ))}
+          {fuel.prices.length === 0 && <Empty text={t.fuelNoPrice} />}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Field label={t.fuelDivisor}><Input type="number" inputMode="decimal" min="0.1" step="0.1" dir="ltr" value={fuel.divisor} onChange={(e) => setFuel((f) => ({ ...f, divisor: e.target.value }))} /></Field>
+          <div className="flex items-end pb-2 text-sm text-slate-600">{t.fuelPreview.replace('{x}', fuelToday > 0 ? money(r2(fuelToday * 10 / (Number(fuel.divisor) > 0 ? Number(fuel.divisor) : 7))) : '—')}</div>
+        </div>
+        <Btn className="mt-4 w-full" onClick={() => save('fuel_policy', fuelClean(), props.data.settings.fuel_policy || {})}>{t.save}</Btn>
       </Card>
       <p className="rounded-xl bg-brand-50 p-3 text-xs text-brand-900">{t.facePunchHint}</p>
       <Card tour="rules-face" title={'🪪 ' + t.facePunchRule}>
@@ -3686,6 +3715,23 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
 }
 
 const TRIP_TRANSPORT = [['personal_car', '🚗'], ['company_car', '🚙'], ['taxi', '🚕']];
+/* Personal-car compensation (Daniel 2026-11-04): fuel price on the trip day × km ÷ divisor.
+   "rate of benzine 92 × kms in one trip / 7 — 7 is the consumption of most cars, 7 L every 100 km".
+   The price list (benzine 92, EGP/L, with the date each price took effect) and the divisor are
+   app_settings.fuel_policy (migration_062), edited in Attendance → Rules. Shown, not paid by payroll. */
+const FUEL_DEFAULT = { fuel: 'benzine_92', divisor: 7, prices: [] };
+const fuelPolicyOf = (settings) => ({ ...FUEL_DEFAULT, ...((settings && settings.fuel_policy) || {}) });
+const fuelPriceOn = (policy, day) => {
+  const list = (policy.prices || []).filter((p) => Number(p.price) > 0 && (!p.from || p.from <= day)).sort((a, b) => ((a.from || '') < (b.from || '') ? 1 : -1));
+  return list.length ? Number(list[0].price) : 0;
+};
+const tripKmOf = (tr) => (tr.manual_km != null ? Number(tr.manual_km) : tr.distance_km != null ? Number(tr.distance_km) : 0);
+const tripComp = (tr, policy) => {
+  if (tr.transport !== 'personal_car' || tr.status !== 'closed') return 0;
+  const price = fuelPriceOn(policy, localDay(tr.started_at));
+  return r2(price * tripKmOf(tr) / (Number(policy.divisor) || 7));
+};
+const compSumOf = (list, policy) => r2(list.reduce((s, x) => s + tripComp(x, policy), 0));
 function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
   const { t } = useL();
   const [open, setOpen] = useState(undefined);   // undefined = loading
@@ -3713,6 +3759,9 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
   const trIcon = (tr) => (TRIP_TRANSPORT.find((x) => x[0] === tr.transport) || ['', ''])[1];
   const trLabel = (tr) => tr.transport ? t.transportKinds[tr.transport] : '';
   const fareSum = (list) => list.reduce((s, x) => s + (Number(x.fare_egp) || 0), 0);
+  const fuel = fuelPolicyOf(data.settings);
+  const compSum = (list) => compSumOf(list, fuel);
+  const sumLbl = (list) => (fareSum(list) ? ' · 🚕 ' + money(fareSum(list)) : '') + (compSum(list) ? ' · 🚗 ' + money(compSum(list)) : '');
   const patch = (row) => setTrips((prev) => prev.map((x) => (x.id === row.id ? row : x)));
 
   async function withGps(fn) {
@@ -3801,6 +3850,10 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
       <div className="min-w-0">
         <p className="truncate font-semibold text-slate-800">{trIcon(tr)} {tr.purpose || '—'}</p>
         <p className="text-xs text-slate-500">{localDay(tr.started_at)} · {fmtTime(tr.started_at)}{tr.ended_at ? '–' + fmtTime(tr.ended_at) : ''}{trLabel(tr) ? ' · ' + trLabel(tr) : ''}</p>
+        {tr.transport === 'personal_car' && tr.status === 'closed' && (() => { const price = fuelPriceOn(fuel, localDay(tr.started_at)); return (
+          <p className="mt-1 text-xs">
+            {price > 0 ? <><span className="font-semibold text-slate-700">⛽ {t.fuelComp}: {money(tripComp(tr, fuel))}</span> <span className="text-slate-400">({t.fuelCompHint.replace('{p}', String(price)).replace('{km}', tripKm(tr).toFixed(1)).replace('{d}', String(Number(fuel.divisor) || 7))})</span></> : <span className="text-amber-700">⛽ {t.fuelNoPrice}</span>}
+          </p>); })()}
         {tr.transport === 'taxi' && (
           <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
             {tr.fare_egp != null ? <span className="font-semibold text-slate-700">{t.farePaid}: {money(tr.fare_egp)}</span> : <span className="text-slate-400">{t.fareNone}</span>}
@@ -3846,20 +3899,20 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
         )}
       </Card>
 
-      <Card title={t.tripsTab + ' — ' + t.thisMonth + ' (' + t.totalKm + ': ' + mine.reduce((s, x) => s + tripKm(x), 0).toFixed(1) + ' ' + t.km + (fareSum(mine) ? ' · 🚕 ' + money(fareSum(mine)) : '') + ')'}>
+      <Card title={t.tripsTab + ' — ' + t.thisMonth + ' (' + t.totalKm + ': ' + mine.reduce((s, x) => s + tripKm(x), 0).toFixed(1) + ' ' + t.km + sumLbl(mine) + ')'}>
         {mine.length === 0 ? <Empty text={t.noData} /> : (
           <ul className="divide-y divide-slate-100">{mine.map((tr) => <TripRow key={tr.id} tr={tr} own />)}</ul>
         )}
       </Card>
 
       {admin && others.length > 0 && (
-        <Card title={t.tripsTab + ' — ' + t.employees + (fareSum(others) ? ' (🚕 ' + money(fareSum(others)) + ')' : '')}>
+        <Card title={t.tripsTab + ' — ' + t.employees + (sumLbl(others) ? ' (' + sumLbl(others).slice(3) + ')' : '')}>
           <ul className="divide-y divide-slate-100">
             {Object.entries(byEmp).map(([empId, list]) => (
               <li key={empId} className="py-2.5 text-sm">
                 <button className="flex w-full items-center justify-between gap-2 text-start" onClick={() => setShowEmp(showEmp === empId ? '' : empId)}>
                   <span className="font-semibold text-slate-800">{showEmp === empId ? '▾' : '▸'} {eName(data.employees.find((e) => e.id === empId))}</span>
-                  <span className="text-slate-500">{list.length} · {list.reduce((s, x) => s + tripKm(x), 0).toFixed(1)} {t.km}{fareSum(list) ? ' · 🚕 ' + money(fareSum(list)) : ''}</span>
+                  <span className="text-slate-500">{list.length} · {list.reduce((s, x) => s + tripKm(x), 0).toFixed(1)} {t.km}{sumLbl(list)}</span>
                 </button>
                 {showEmp === empId && <ul className="mt-1 divide-y divide-slate-100 rounded-xl bg-slate-50 px-3">{list.map((tr) => <TripRow key={tr.id} tr={tr} />)}</ul>}
               </li>
@@ -6640,6 +6693,7 @@ function MyPage({ me, data, toast, setPage, live }) {
   const lateTotal = d && shift ? Object.values(d.punches.reduce((acc, p) => { (acc[localDay(p.punch_time)] = acc[localDay(p.punch_time)] || []).push(p); return acc; }, {}))
     .reduce((s, list) => { const first = list[list.length - 1]; const sh = shiftForDay(myEmp, localDay(first.punch_time), data.shifts) || shift; return s + Math.max(0, minutesOf(first.punch_time) - (timeToMin(sh.start_time) + sh.grace_minutes)); }, 0) : 0;
   const km = d ? d.trips.reduce((s, x) => s + (x.manual_km != null ? Number(x.manual_km) : Number(x.distance_km) || 0), 0) : 0;
+  const myComp = d ? compSumOf(d.trips, fuelPolicyOf(data.settings)) : 0;
 
   async function openDoc(doc) {
     const { data: s, error } = await sb.storage.from('employee-docs').createSignedUrl(doc.file_path, 300);
@@ -6732,7 +6786,7 @@ function MyPage({ me, data, toast, setPage, live }) {
 
           {(d.trips.length > 0 || d.loans.length > 0) && (
             <div className="grid grid-cols-2 gap-3">
-              <Card title={t.myTrips}><p className="text-center text-2xl font-bold text-slate-800">{km.toFixed(1)} <span className="text-sm text-slate-500">{t.km}</span></p><p className="text-center text-xs text-slate-500">{d.trips.length} · {t.thisMonth}</p></Card>
+              <Card title={t.myTrips}><p className="text-center text-2xl font-bold text-slate-800">{km.toFixed(1)} <span className="text-sm text-slate-500">{t.km}</span></p><p className="text-center text-xs text-slate-500">{d.trips.length} · {t.thisMonth}{myComp > 0 ? ' · ⛽ ' + money(myComp) : ''}</p></Card>
               <Card title={t.myLoans}>
                 {d.loans.length === 0 ? <Empty text={t.noData} /> : d.loans.map((l) => (
                   <p key={l.id} className="text-sm"><b>{money(r2(Number(l.principal) - Number(l.paid_total)))}</b> <span className="text-xs text-slate-500">{t.remaining} · {money(l.installment_amount)}/{t.monthLbl}</span></p>
@@ -9278,8 +9332,8 @@ const HV_TOUR_STEPS = [
     en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break; resuming needs a selfie, and minutes over the daily break allowance are deducted.'],
     ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك، والعودة تتطلب سيلفي، وما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
   { c: 'att', page: 'attendance', target: 'trip-start', action: 'att-tab-trips',
-    en: ['Trips outside the office', 'Write the purpose (client / site), choose how you are going (personal car, company car or taxi / Uber) and press Start trip. Record points on the way and End trip when you are back. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
-    ar: ['المشاوير خارج المكتب', 'اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة أو تاكسي / أوبر) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
+    en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car or taxi / Uber) and press Start trip. Record points on the way and End trip when you are back. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
+    ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة أو تاكسي / أوبر) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
   { c: 'att', page: 'attendance', target: 'exc-new', action: 'att-tab-exceptions',
     en: ['Late / break / early-leave notes', 'Will you be late, need a longer break or must leave early? Send the note before it happens (today or a later date). If your direct manager or HR accepts it, that day carries no deduction. Managers approve their team\'s notes on this tab; HR sees all.'],
     ar: ['أذونات التأخير والاستراحة والانصراف المبكر', 'ستتأخر أو تحتاج استراحة أطول أو ستنصرف مبكراً؟ أرسل الإذن قبل حدوثه (اليوم أو يوم لاحق). إذا وافق مديرك المباشر أو الموارد البشرية فلا خصم على ذلك اليوم. المديرون يعتمدون أذونات فريقهم من هذا التبويب، والموارد البشرية ترى الجميع.'] },
@@ -9298,6 +9352,9 @@ const HV_TOUR_STEPS = [
   { c: 'att', page: 'attendance', target: 'lock-form', action: 'att-tab-lock', roles: ['ceo', 'hr'],
     en: ['Lock the month', 'After reviewing, lock the month per branch. Nobody — not even HR — can then add or delete punches for that branch and month until it is unlocked. Payroll warns you when the month is not locked yet.'],
     ar: ['قفل الشهر', 'بعد المراجعة اقفل الشهر لكل فرع، فلا يستطيع أحد (حتى الموارد البشرية) إضافة أو حذف بصمات لهذا الفرع والشهر حتى يُفتح. وتنبهك صفحة الرواتب إذا لم يكن الشهر مقفولاً بعد.'] },
+  { c: 'att', page: 'attendance', target: 'rules-fuel', action: 'att-tab-rules', roles: ['ceo', 'hr'],
+    en: ['Fuel compensation for personal cars', 'Benzine 92 price (EGP per litre) × kilometres of the trip ÷ 7 — Daniel\'s rule; 7 stands for the usual 7 litres per 100 km. Keep the price list current: whenever the government changes the price, add a line with the new price and the date it starts. Every trip uses the price of its own day, so old trips never change. The amount shows on each personal-car trip and in the month totals of My HR and Attendance → Trips; it is information for HR, payroll does not add it by itself.'],
+    ar: ['تعويض البنزين للسيارات الشخصية', 'سعر بنزين 92 (جنيه لليتر) × كيلومترات المشوار ÷ 7 — قاعدة دانيال؛ و7 تمثل الاستهلاك المعتاد 7 لتر لكل 100 كم. حدّث قائمة الأسعار: كلما غيّرت الحكومة السعر أضف سطرًا بالسعر الجديد وتاريخ بدايته. كل مشوار يستخدم سعر يومه، فالمشاوير القديمة لا تتغير. المبلغ يظهر على كل مشوار بالسيارة الشخصية وفي إجمالي الشهر في «خدمتي» و«الحضور ← المشاوير»؛ وهو معلومة للموارد البشرية ولا تضيفه الرواتب تلقائيًا.'] },
   { c: 'att', page: 'attendance', target: 'rules-late', action: 'att-tab-rules', roles: ['ceo', 'hr'],
     en: ['Lateness, break & early-leave rules', 'Set the lateness tiers (from which minute, which penalty), the daily break allowance with its tiers, and the early-leave tiers. Monthly excuse limit caps how many hours and how many excuses an employee may have accepted per month (beyond it only the CEO can accept). At the bottom, Missing check-out sets how many days a missing punch may wait for a decision and the default penalty that applies if nobody decides. The highest tier reached applies once per day; changes affect payroll runs created or recalculated afterwards.'],
     ar: ['قواعد التأخير والاستراحة والانصراف المبكر', 'حدد شرائح التأخير (من أي دقيقة وما الجزاء)، ورصيد الاستراحة اليومي وشرائحه، وشرائح الانصراف المبكر. و«الحد الشهري للأذونات» يحدد كم ساعة وكم إذناً يمكن قبولها للموظف في الشهر (بعده لا يقبل إلا المدير التنفيذي). وفي الأسفل «بصمة الانصراف الناقصة» تحدد عدد الأيام المتاحة للقرار والجزاء الافتراضي إذا لم يُتخذ قرار. تُطبق أعلى شريحة مرة واحدة في اليوم، والتغيير يسري على مسيرات الرواتب التي تُنشأ أو يُعاد حسابها بعده.'] },
