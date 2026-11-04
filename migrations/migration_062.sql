@@ -16,7 +16,8 @@ insert into public.app_settings (key, value) values
   ('fuel_policy', jsonb_build_object(
      'fuel', 'benzine_92',
      'divisor', 7,
-     'prices', jsonb_build_array(jsonb_build_object('from', '2025-10-17', 'price', 19.25))   -- the official price since 17 Oct 2025; HR checks it
+     'prices', jsonb_build_array(jsonb_build_object('from', '2025-10-17', 'price', 19.25),    -- official prices: 19.25 from 17 Oct 2025,
+                                 jsonb_build_object('from', '2026-03-10', 'price', 22.25))    -- 22.25 from 10 Mar 2026; HR adds the next change
    ))
 on conflict (key) do nothing;
 notify pgrst, 'reload schema';
