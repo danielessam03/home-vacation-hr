@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.61';
+const APP_VERSION = 'v3.62';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -204,7 +204,7 @@ const T = {
     onTripLbl: 'On a trip', onTripHint: 'No idle prompts while a trip is open. The trip counts as working time.',
     transportLbl: 'How are you going?', transportKinds: { personal_car: 'Personal car', company_car: 'Company car', taxi: 'Taxi / Uber', with_someone: 'With someone' }, chooseTransport: 'Choose how you are going: personal car, company car, taxi / Uber or with someone.',
     withSomeoneHint: 'No fuel compensation — you are riding with a colleague or in the client\'s car. The route and the kilometres are still recorded.',
-    tripMap: 'Map', tripStartPt: 'Start', tripEndPt: 'End', tripPointN: 'Point {n}', tripPoints: 'Recorded points', tripOpenGmaps: 'Open the route in Google Maps', tripPlaceLoading: 'Finding the place name…', tripNoGps: 'No locations recorded for this trip', tripAtBranch: 'at {b} ({m} m from the centre)', tripNearBranch: '{m} m from {b}', tripDayPunches: 'Attendance that day — app check-in / out with a location', tripNoPunches: 'No app check-in / out with a location that day', mapFail: 'The map could not load — use the 📍 links.', tripLegKm: '+{km} km from the previous point',
+    tripMap: 'Map', tripStartPt: 'Start', tripEndPt: 'End', tripPointN: 'Point {n}', tripPoints: 'Recorded points', tripOpenGmaps: 'Open the route in Google Maps', tripPlaceLoading: 'Finding the place name…', tripNoGps: 'No locations recorded for this trip', tripAtBranch: 'at {b} ({m} m from the centre)', tripNearBranch: '{m} m from {b}', tripDayPunches: 'Attendance that day — app check-in / out with a location', tripNoPunches: 'No app check-in / out with a location that day', mapFail: 'The map could not load — use the 📍 links.', tripLegKm: '+{km} km from the previous point', tripRoadRoute: 'Road route · {km} km', tripRoadRouting: 'Finding the road route…', tripLineRoute: 'Straight lines — the road route could not be loaded; kilometres are approximate', tripRoadNote: 'Kilometres follow the roads between the recorded points, in order, as a car drives (OpenStreetMap routing).',
     taxiHint: 'When you end the trip you can write how much you paid and attach the receipt or a screenshot (optional).', fareTitle: 'Taxi / Uber cost', fareAsk: 'How much did you pay? (EGP)', fareEvidenceAsk: 'Evidence: receipt photo or screenshot', fareOptional: 'Both are optional. You can add or correct them later from the trip list.',
     fareChoose: 'Attach a photo or screenshot', fareReplace: 'Replace the attached evidence', farePaid: 'Paid', fareNone: 'Amount not entered', fareEvidence: 'Evidence', fareAdd: 'Add amount / receipt', fareTooBig: 'The file is larger than 10 MB.',
     tripsTab: 'Trips', startTrip: 'Start trip', endTrip: 'End trip', recordPoint: 'Record point',
@@ -478,7 +478,7 @@ const T = {
     onTripLbl: 'في مشوار', onTripHint: 'لا تنبيهات خمول أثناء المشوار. المشوار يُحتسب وقت عمل.',
     transportLbl: 'كيف ستذهب؟', transportKinds: { personal_car: 'سيارة شخصية', company_car: 'سيارة الشركة', taxi: 'تاكسي / أوبر', with_someone: 'مع شخص آخر' }, chooseTransport: 'اختر وسيلة المشوار: سيارة شخصية أو سيارة الشركة أو تاكسي / أوبر أو مع شخص آخر.',
     withSomeoneHint: 'لا يوجد تعويض بنزين — أنت مع زميل أو في سيارة العميل. يُسجَّل المسار والكيلومترات كالمعتاد.',
-    tripMap: 'الخريطة', tripStartPt: 'البداية', tripEndPt: 'النهاية', tripPointN: 'نقطة {n}', tripPoints: 'النقاط المسجلة', tripOpenGmaps: 'افتح المسار في خرائط جوجل', tripPlaceLoading: 'جارٍ تحديد اسم المكان…', tripNoGps: 'لا توجد مواقع مسجلة لهذا المشوار', tripAtBranch: 'في {b} ({m} م من المركز)', tripNearBranch: '{m} م من {b}', tripDayPunches: 'الحضور في ذلك اليوم — تسجيل دخول / خروج من التطبيق بالموقع', tripNoPunches: 'لا يوجد تسجيل دخول / خروج بالموقع من التطبيق في ذلك اليوم', mapFail: 'لم تُحمَّل الخريطة — استخدم روابط 📍.', tripLegKm: '+{km} كم من النقطة السابقة',
+    tripMap: 'الخريطة', tripStartPt: 'البداية', tripEndPt: 'النهاية', tripPointN: 'نقطة {n}', tripPoints: 'النقاط المسجلة', tripOpenGmaps: 'افتح المسار في خرائط جوجل', tripPlaceLoading: 'جارٍ تحديد اسم المكان…', tripNoGps: 'لا توجد مواقع مسجلة لهذا المشوار', tripAtBranch: 'في {b} ({m} م من المركز)', tripNearBranch: '{m} م من {b}', tripDayPunches: 'الحضور في ذلك اليوم — تسجيل دخول / خروج من التطبيق بالموقع', tripNoPunches: 'لا يوجد تسجيل دخول / خروج بالموقع من التطبيق في ذلك اليوم', mapFail: 'لم تُحمَّل الخريطة — استخدم روابط 📍.', tripLegKm: '+{km} كم من النقطة السابقة', tripRoadRoute: 'مسار الطريق · {km} كم', tripRoadRouting: 'جارٍ تحديد مسار الطريق…', tripLineRoute: 'خطوط مستقيمة — تعذّر تحميل مسار الطريق؛ الكيلومترات تقريبية', tripRoadNote: 'تُحسب الكيلومترات على الطرق بين النقاط المسجلة بالترتيب كما تسير السيارة (توجيه OpenStreetMap).',
     taxiHint: 'عند إنهاء المشوار يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة (اختياري).', fareTitle: 'تكلفة التاكسي / أوبر', fareAsk: 'كم دفعت؟ (جنيه)', fareEvidenceAsk: 'الإثبات: صورة الإيصال أو لقطة شاشة', fareOptional: 'الاثنان اختياريان. يمكنك إضافتهما أو تعديلهما لاحقاً من قائمة المشاوير.',
     fareChoose: 'إرفاق صورة أو لقطة شاشة', fareReplace: 'استبدال الإثبات المرفق', farePaid: 'المدفوع', fareNone: 'لم يُدخل المبلغ', fareEvidence: 'الإثبات', fareAdd: 'إضافة المبلغ / الإيصال', fareTooBig: 'الملف أكبر من 10 ميجابايت.',
     tripsTab: 'المشاوير', startTrip: 'بدء مشوار', endTrip: 'إنهاء المشوار', recordPoint: 'تسجيل نقطة',
@@ -3785,6 +3785,24 @@ const gmapsRoute = (pts) => {
   const picked = [pts[0], ...mid.filter((_, i) => i % step === 0), pts[pts.length - 1]];
   return 'https://www.google.com/maps/dir/' + picked.map((p) => p.lat + ',' + p.lng).join('/');
 };
+/* Road route through the recorded points, in order, from the OpenStreetMap routing service (OSRM, driving).
+   Daniel 2026-11-07: "people do not fly" — the road kilometres are the trip's distance and the compensation
+   basis; the road path is drawn on the map. Stored once in trips.route (migration_064). */
+async function roadRoute(pts) {
+  const list = pts.filter((p, i) => i === 0 || Math.abs(p.lat - pts[i - 1].lat) > 1e-6 || Math.abs(p.lng - pts[i - 1].lng) > 1e-6);
+  if (list.length < 2) return { via: 'osrm', at: new Date().toISOString(), km: 0, legs: pts.slice(1).map(() => 0), geom: pts.map((p) => [p.lat, p.lng]) };
+  const res = await fetch('https://router.project-osrm.org/route/v1/driving/' + list.map((p) => p.lng + ',' + p.lat).join(';') + '?overview=simplified&geometries=geojson&steps=false');
+  if (!res.ok) throw new Error('route ' + res.status);
+  const j = await res.json();
+  if (j.code !== 'Ok' || !j.routes || !j.routes[0]) throw new Error('route ' + (j.code || '?'));
+  const r = j.routes[0];
+  const legsRaw = r.legs.map((l) => r2(l.distance / 1000));
+  /* legs are per kept point; a repeated point contributes a 0 km leg so legs[i-1] always belongs to pts[i] */
+  const legs = []; let k = 0;
+  for (let i = 1; i < pts.length; i++) { const same = Math.abs(pts[i].lat - pts[i - 1].lat) <= 1e-6 && Math.abs(pts[i].lng - pts[i - 1].lng) <= 1e-6; legs.push(same ? 0 : (legsRaw[k++] || 0)); }
+  return { via: 'osrm', at: new Date().toISOString(), km: r2(r.distance / 1000), legs,
+    geom: r.geometry.coordinates.map((c) => [Math.round(c[1] * 1e5) / 1e5, Math.round(c[0] * 1e5) / 1e5]) };
+}
 const pinHtml = (bg, text, square) => '<div style="width:26px;height:26px;border-radius:' + (square ? '6px' : '50%') + ';background:' + bg + ';color:#fff;font:700 11px/26px Inter,Cairo,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);white-space:nowrap">' + text + '</div>';
 const PIN_COLORS = { start: '#16a34a', end: '#dc2626', mid: '#2563eb', punch: '#d97706' };
 
@@ -3795,7 +3813,9 @@ function TripMapModal({ trip, title, data, onClose, onLabels }) {
   const [mapState, setMapState] = useState('loading');   // loading | ok | fail
   const [names, setNames] = useState({});                 // index -> place name found in this session ('' = not found)
   const [punches, setPunches] = useState(null);
+  const [route, setRoute] = useState(trip.route && trip.route.geom ? trip.route : null);   // { km, legs, geom } | { fail: true } | null (loading)
   const pts = (trip.waypoints || []).filter((p) => p && p.lat != null && p.lng != null).map((p) => ({ ...p, lat: Number(p.lat), lng: Number(p.lng) }));
+  const legKm = (i) => (route && route.legs && route.legs[i - 1] != null ? Number(route.legs[i - 1]) : i > 0 ? haversineKm(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng) : 0);
   const branches = (data && data.branches) || [];
   const bName = (b) => (lang === 'ar' ? b.name_ar || b.name_en : b.name_en || b.name_ar) || b.code || '';
   const kindOf = (i) => (i === 0 ? t.tripStartPt : i === pts.length - 1 && trip.status === 'closed' ? t.tripEndPt : t.tripPointN.replace('{n}', String(i)));
@@ -3817,6 +3837,19 @@ function TripMapModal({ trip, title, data, onClose, onLabels }) {
     sb.from('attendance_punches').select('id, direction, punch_time, latitude, longitude, within_geofence, branch_id, source')
       .eq('employee_id', trip.employee_id).gte('punch_time', from.toISOString()).lt('punch_time', to.toISOString()).not('latitude', 'is', null).order('punch_time')
       .then(({ data: d }) => setPunches((d || []).map((p) => ({ ...p, lat: Number(p.latitude), lng: Number(p.longitude) }))));
+  }, [trip.id]);
+
+  /* the road route — computed once for trips that have none yet (older trips), then saved on the trip */
+  useEffect(() => {
+    let alive = true;
+    if (trip.route && trip.route.geom) { setRoute(trip.route); return; }
+    if (pts.length < 2) { setRoute({ fail: true }); return; }
+    roadRoute(pts).then((r) => {
+      if (!alive) return;
+      setRoute(r);
+      sb.rpc('trip_set_route', { p_id: trip.id, p_route: r }).then(({ data: row, error }) => { if (error) console.warn('trip_set_route', error.message); if (alive && row && onLabels) onLabels(row); }).catch((e) => console.warn('trip_set_route', e));
+    }).catch((e) => { console.warn('road route', e); if (alive) setRoute({ fail: true }); });
+    return () => { alive = false; };
   }, [trip.id]);
 
   /* names for points that have none yet — one request at a time, then saved on the trip once */
@@ -3849,7 +3882,8 @@ function TripMapModal({ trip, title, data, onClose, onLabels }) {
       mapObj.current = map;
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>' }).addTo(map);
       const all = [];
-      if (pts.length > 1) L.polyline(pts.map((p) => [p.lat, p.lng]), { color: PIN_COLORS.mid, weight: 4, opacity: 0.8 }).addTo(map);
+      if (route && route.geom && route.geom.length > 1) L.polyline(route.geom, { color: PIN_COLORS.mid, weight: 4, opacity: 0.85 }).addTo(map);
+      else if (pts.length > 1) L.polyline(pts.map((p) => [p.lat, p.lng]), { color: '#94a3b8', weight: 3, opacity: 0.8, dashArray: '6 6' }).addTo(map);
       pts.forEach((p, i) => {
         all.push([p.lat, p.lng]);
         L.marker([p.lat, p.lng], { icon: L.divIcon({ html: pinHtml(colorOf(i), i === 0 ? '▶' : i === pts.length - 1 && trip.status === 'closed' ? '🏁' : String(i), false), className: '', iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: i === 0 || i === pts.length - 1 ? 1000 : 0 })
@@ -3860,6 +3894,7 @@ function TripMapModal({ trip, title, data, onClose, onLabels }) {
         L.marker([p.lat, p.lng], { icon: L.divIcon({ html: pinHtml(PIN_COLORS.punch, p.direction === 'in' ? 'IN' : p.direction === 'out' ? 'OUT' : '☕', true), className: '', iconSize: [26, 26], iconAnchor: [13, 13] }) })
           .bindTooltip(dirLabel(t, p.direction) + ' · ' + fmtTime(p.punch_time), { direction: 'top', offset: [0, -14] }).addTo(map);
       });
+      if (route && route.geom) route.geom.forEach((c) => all.push(c));
       if (all.length > 1) map.fitBounds(all, { padding: [30, 30], maxZoom: 17 });
       else if (all.length === 1) map.setView(all[0], 16);
       else map.setView([27.2579, 33.8116], 12);   // Hurghada
@@ -3867,26 +3902,32 @@ function TripMapModal({ trip, title, data, onClose, onLabels }) {
       setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 150);
     }).catch(() => { if (alive) setMapState('fail'); });
     return () => { alive = false; if (mapObj.current) { try { mapObj.current.remove(); } catch (e) {} mapObj.current = null; } };
-  }, [trip.id, punches === null ? 0 : punches.length]);
+  }, [trip.id, punches === null ? 0 : punches.length, route && route.geom ? route.geom.length : route && route.fail ? -1 : 0]);
 
   return (
     <Modal open onClose={onClose} title={'🗺️ ' + title}>
       <div ref={mapEl} className="h-64 w-full overflow-hidden rounded-xl bg-slate-100" style={{ direction: 'ltr' }}>
         {mapState !== 'ok' && <p className="p-4 text-center text-xs text-slate-500">{mapState === 'fail' ? t.mapFail : t.loading}</p>}
       </div>
+      {pts.length > 1 && (
+        <p className={cx('text-xs', route && route.fail ? 'text-amber-700' : 'font-semibold text-slate-700')}>
+          {route === null ? '🛣️ ' + t.tripRoadRouting : route.fail ? '⚠️ ' + t.tripLineRoute : '🛣️ ' + t.tripRoadRoute.replace('{km}', Number(route.km).toFixed(1))}
+          {route && !route.fail && <span className="block font-normal text-slate-400">{t.tripRoadNote}</span>}
+        </p>
+      )}
       {pts.length === 0 ? <Empty text={t.tripNoGps} /> : (
         <>
           <p className="text-xs font-semibold text-slate-600">{t.tripPoints} · {pts.length}</p>
           <ul className="divide-y divide-slate-100">
             {pts.map((p, i) => {
-              const leg = i > 0 ? haversineKm(pts[i - 1].lat, pts[i - 1].lng, p.lat, p.lng) : 0;
+              const leg = legKm(i);
               return (
                 <li key={i} className="flex items-start gap-2 py-2 text-sm">
                   <span className="mt-0.5 inline-block h-6 w-6 shrink-0 rounded-full text-center text-[11px] font-bold leading-6 text-white" style={{ background: colorOf(i) }}>{i === 0 ? '▶' : i === pts.length - 1 && trip.status === 'closed' ? '🏁' : i}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-slate-800">{kindOf(i)} · {fmtTime(p.t || trip.started_at)}</p>
                     <p className="text-xs text-slate-500">{placeOf(p, i)}</p>
-                    {leg > 0 && <p className="text-[11px] text-slate-400">{t.tripLegKm.replace('{km}', leg.toFixed(1))}</p>}
+                    {i > 0 && <p className="text-[11px] text-slate-400">{(route && !route.fail ? '' : '~') + t.tripLegKm.replace('{km}', leg.toFixed(1))}</p>}
                   </div>
                   <a className="shrink-0 text-lg" target="_blank" rel="noreferrer" href={gmapsPoint(p)} title="Google Maps">📍</a>
                 </li>
@@ -3997,15 +4038,17 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
     const pts = [...(open.waypoints || []), { t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }];
     let receipt = null;
     if (extra && extra.file) receipt = await uploadReceipt(open, extra.file);
+    let route = null;   // road kilometres (OSRM); straight-line chain only if the routing service is unreachable
+    try { route = await roadRoute(pts.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))); } catch (e) { route = null; }
     const { data: row, error } = await sb.from('trips').update({
-      waypoints: pts, ended_at: new Date().toISOString(), status: 'closed', distance_km: chainKm(pts),
+      waypoints: pts, ended_at: new Date().toISOString(), status: 'closed', distance_km: route ? route.km : chainKm(pts), route,
       ...(extra ? { fare_egp: amountOf(extra.amount), ...(receipt ? { receipt_path: receipt } : {}) } : {}),
     }).eq('id', open.id).select().single();
     if (error) return toast(error.message, 'error');
     setOpen(null); setFare(null);
     patch(row);
     if (live && live.refresh) live.refresh();
-    toast(t.saved + ' — ' + chainKm(pts) + ' ' + t.km);
+    toast(t.saved + ' — ' + (route ? route.km : chainKm(pts)) + ' ' + t.km);
   });
 
   /* amount / evidence added or corrected after the trip has ended */
@@ -9530,8 +9573,8 @@ const HV_TOUR_STEPS = [
     en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break; resuming needs a selfie, and minutes over the daily break allowance are deducted.'],
     ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك، والعودة تتطلب سيلفي، وما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
   { c: 'att', page: 'attendance', target: 'trip-start', action: 'att-tab-trips',
-    en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car, taxi / Uber, or with someone — a colleague\'s or the client\'s car, recorded but without compensation) and press Start trip. Record points on the way and End trip when you are back. Every trip has a 🗺️ Map: the start, every recorded point and the end as named pins (the branch, or the street / area), the route line, the kilometres between points, that day\'s app check-in / out with their locations, and a link that opens the whole route in Google Maps. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
-    ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة، تاكسي / أوبر، أو مع شخص آخر — سيارة زميل أو العميل، يُسجَّل المشوار بلا تعويض) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. لكل مشوار 🗺️ خريطة: البداية وكل نقطة مسجلة والنهاية كدبابيس مسماة (الفرع أو الشارع / المنطقة)، وخط المسار، والكيلومترات بين النقاط، وتسجيل الدخول / الخروج من التطبيق في ذلك اليوم بمواقعه، ورابط يفتح المسار كله في خرائط جوجل. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
+    en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car, taxi / Uber, or with someone — a colleague\'s or the client\'s car, recorded but without compensation) and press Start trip. Record points on the way and End trip when you are back. Every trip has a 🗺️ Map: the start, every recorded point and the end as named pins (the branch, or the street / area), the road route between them as a car drives (OpenStreetMap routing) with the kilometres of each leg — these road kilometres are the trip\'s distance and the basis of the compensation — that day\'s app check-in / out with their locations, and a link that opens the whole route in Google Maps. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
+    ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة، تاكسي / أوبر، أو مع شخص آخر — سيارة زميل أو العميل، يُسجَّل المشوار بلا تعويض) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. لكل مشوار 🗺️ خريطة: البداية وكل نقطة مسجلة والنهاية كدبابيس مسماة (الفرع أو الشارع / المنطقة)، ومسار الطريق بينها كما تسير السيارة (توجيه OpenStreetMap) مع كيلومترات كل جزء — كيلومترات الطريق هذه هي مسافة المشوار وأساس التعويض — وتسجيل الدخول / الخروج من التطبيق في ذلك اليوم بمواقعه، ورابط يفتح المسار كله في خرائط جوجل. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
   { c: 'att', page: 'attendance', target: 'exc-new', action: 'att-tab-exceptions',
     en: ['Late / break / early-leave notes', 'Will you be late, need a longer break or must leave early? Send the note before it happens (today or a later date). If your direct manager or HR accepts it, that day carries no deduction. Managers approve their team\'s notes on this tab; HR sees all.'],
     ar: ['أذونات التأخير والاستراحة والانصراف المبكر', 'ستتأخر أو تحتاج استراحة أطول أو ستنصرف مبكراً؟ أرسل الإذن قبل حدوثه (اليوم أو يوم لاحق). إذا وافق مديرك المباشر أو الموارد البشرية فلا خصم على ذلك اليوم. المديرون يعتمدون أذونات فريقهم من هذا التبويب، والموارد البشرية ترى الجميع.'] },
