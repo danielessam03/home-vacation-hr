@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.60';
+const APP_VERSION = 'v3.61';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -202,7 +202,9 @@ const T = {
     noBranchGeo: 'No branch location set yet (Settings → Branches → use my current location).',
     nearest: 'Nearest branch', mAway: 'm away', monthLocked: 'This month is locked.',
     onTripLbl: 'On a trip', onTripHint: 'No idle prompts while a trip is open. The trip counts as working time.',
-    transportLbl: 'How are you going?', transportKinds: { personal_car: 'Personal car', company_car: 'Company car', taxi: 'Taxi / Uber' }, chooseTransport: 'Choose how you are going: personal car, company car or taxi / Uber.',
+    transportLbl: 'How are you going?', transportKinds: { personal_car: 'Personal car', company_car: 'Company car', taxi: 'Taxi / Uber', with_someone: 'With someone' }, chooseTransport: 'Choose how you are going: personal car, company car, taxi / Uber or with someone.',
+    withSomeoneHint: 'No fuel compensation — you are riding with a colleague or in the client\'s car. The route and the kilometres are still recorded.',
+    tripMap: 'Map', tripStartPt: 'Start', tripEndPt: 'End', tripPointN: 'Point {n}', tripPoints: 'Recorded points', tripOpenGmaps: 'Open the route in Google Maps', tripPlaceLoading: 'Finding the place name…', tripNoGps: 'No locations recorded for this trip', tripAtBranch: 'at {b} ({m} m from the centre)', tripNearBranch: '{m} m from {b}', tripDayPunches: 'Attendance that day — app check-in / out with a location', tripNoPunches: 'No app check-in / out with a location that day', mapFail: 'The map could not load — use the 📍 links.', tripLegKm: '+{km} km from the previous point',
     taxiHint: 'When you end the trip you can write how much you paid and attach the receipt or a screenshot (optional).', fareTitle: 'Taxi / Uber cost', fareAsk: 'How much did you pay? (EGP)', fareEvidenceAsk: 'Evidence: receipt photo or screenshot', fareOptional: 'Both are optional. You can add or correct them later from the trip list.',
     fareChoose: 'Attach a photo or screenshot', fareReplace: 'Replace the attached evidence', farePaid: 'Paid', fareNone: 'Amount not entered', fareEvidence: 'Evidence', fareAdd: 'Add amount / receipt', fareTooBig: 'The file is larger than 10 MB.',
     tripsTab: 'Trips', startTrip: 'Start trip', endTrip: 'End trip', recordPoint: 'Record point',
@@ -474,7 +476,9 @@ const T = {
     noBranchGeo: 'لم يتم تحديد موقع الفرع بعد (الإعدادات ← الفروع ← استخدم موقعي الحالي).',
     nearest: 'أقرب فرع', mAway: 'متر', monthLocked: 'هذا الشهر مقفل.',
     onTripLbl: 'في مشوار', onTripHint: 'لا تنبيهات خمول أثناء المشوار. المشوار يُحتسب وقت عمل.',
-    transportLbl: 'كيف ستذهب؟', transportKinds: { personal_car: 'سيارة شخصية', company_car: 'سيارة الشركة', taxi: 'تاكسي / أوبر' }, chooseTransport: 'اختر وسيلة المشوار: سيارة شخصية أو سيارة الشركة أو تاكسي / أوبر.',
+    transportLbl: 'كيف ستذهب؟', transportKinds: { personal_car: 'سيارة شخصية', company_car: 'سيارة الشركة', taxi: 'تاكسي / أوبر', with_someone: 'مع شخص آخر' }, chooseTransport: 'اختر وسيلة المشوار: سيارة شخصية أو سيارة الشركة أو تاكسي / أوبر أو مع شخص آخر.',
+    withSomeoneHint: 'لا يوجد تعويض بنزين — أنت مع زميل أو في سيارة العميل. يُسجَّل المسار والكيلومترات كالمعتاد.',
+    tripMap: 'الخريطة', tripStartPt: 'البداية', tripEndPt: 'النهاية', tripPointN: 'نقطة {n}', tripPoints: 'النقاط المسجلة', tripOpenGmaps: 'افتح المسار في خرائط جوجل', tripPlaceLoading: 'جارٍ تحديد اسم المكان…', tripNoGps: 'لا توجد مواقع مسجلة لهذا المشوار', tripAtBranch: 'في {b} ({m} م من المركز)', tripNearBranch: '{m} م من {b}', tripDayPunches: 'الحضور في ذلك اليوم — تسجيل دخول / خروج من التطبيق بالموقع', tripNoPunches: 'لا يوجد تسجيل دخول / خروج بالموقع من التطبيق في ذلك اليوم', mapFail: 'لم تُحمَّل الخريطة — استخدم روابط 📍.', tripLegKm: '+{km} كم من النقطة السابقة',
     taxiHint: 'عند إنهاء المشوار يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة (اختياري).', fareTitle: 'تكلفة التاكسي / أوبر', fareAsk: 'كم دفعت؟ (جنيه)', fareEvidenceAsk: 'الإثبات: صورة الإيصال أو لقطة شاشة', fareOptional: 'الاثنان اختياريان. يمكنك إضافتهما أو تعديلهما لاحقاً من قائمة المشاوير.',
     fareChoose: 'إرفاق صورة أو لقطة شاشة', fareReplace: 'استبدال الإثبات المرفق', farePaid: 'المدفوع', fareNone: 'لم يُدخل المبلغ', fareEvidence: 'الإثبات', fareAdd: 'إضافة المبلغ / الإيصال', fareTooBig: 'الملف أكبر من 10 ميجابايت.',
     tripsTab: 'المشاوير', startTrip: 'بدء مشوار', endTrip: 'إنهاء المشوار', recordPoint: 'تسجيل نقطة',
@@ -3714,7 +3718,7 @@ function CheckInTab({ me, myEmp, data, toast, live }) {
   );
 }
 
-const TRIP_TRANSPORT = [['personal_car', '🚗'], ['company_car', '🚙'], ['taxi', '🚕']];
+const TRIP_TRANSPORT = [['personal_car', '🚗'], ['company_car', '🚙'], ['taxi', '🚕'], ['with_someone', '👥']];   // with_someone (Daniel 2026-11-07): colleague's / client's car — route + km recorded, no compensation, no fare
 /* Personal-car compensation (Daniel 2026-11-04): fuel price on the trip day × km ÷ divisor.
    "rate of benzine 92 × kms in one trip / 7 — 7 is the consumption of most cars, 7 L every 100 km".
    The price list (benzine 92, EGP/L, with the date each price took effect) and the divisor are
@@ -3732,6 +3736,187 @@ const tripComp = (tr, policy) => {
   return r2(price * tripKmOf(tr) / (Number(policy.divisor) || 7));
 };
 const compSumOf = (list, policy) => r2(list.reduce((s, x) => s + tripComp(x, policy), 0));
+
+/* Where the trip went (Daniel 2026-11-07): every recorded point on a map, with a name, plus the day's app
+   check-in / out. Leaflet 1.9.4 (kit vendor file, cdnjs fallback) + OpenStreetMap tiles, loaded only when a
+   map is opened. Names: the branch when the point is inside its geofence, and the street / area from
+   OpenStreetMap (Nominatim reverse geocoding, one request per point, > 1 s apart). A name is looked up once
+   and stored in trips.waypoints[i].label through trip_set_labels (migration_063). */
+let leafletLoading = null;
+function loadLeaflet() {
+  if (window.L && window.L.map) return Promise.resolve();
+  if (leafletLoading) return leafletLoading;
+  if (!document.getElementById('leaflet-css')) {
+    const link = document.createElement('link'); link.id = 'leaflet-css'; link.rel = 'stylesheet'; link.href = 'vendor/leaflet-1.9.4.css';
+    link.onerror = () => { link.onerror = null; link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; };
+    document.head.appendChild(link);
+  }
+  const cdn = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  leafletLoading = (window.HVCore && window.HVCore.loadScript ? window.HVCore.loadScript('vendor/leaflet-1.9.4.min.js', cdn)
+    : new Promise((res, rej) => { const el = document.createElement('script'); el.src = cdn; el.onload = res; el.onerror = rej; document.head.appendChild(el); }))
+    .catch((e) => { leafletLoading = null; throw e; });
+  return leafletLoading;
+}
+const placeCache = {};
+async function reversePlace(lat, lng, lang) {
+  const k = lang + ':' + Number(lat).toFixed(4) + ',' + Number(lng).toFixed(4);
+  if (placeCache[k]) return placeCache[k];
+  const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=' + (lang === 'ar' ? 'ar,en' : 'en') + '&lat=' + lat + '&lon=' + lng, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error('geocode ' + res.status);
+  const j = await res.json(); const a = j.address || {};
+  const parts = [a.road || a.pedestrian || a.footway || a.residential || a.neighbourhood || a.hamlet, a.suburb || a.quarter || a.city_district || a.neighbourhood || a.village || a.town, a.city || a.town || a.municipality || a.county || a.state].filter(Boolean);
+  const label = [...new Set(parts)].slice(0, 3).join(lang === 'ar' ? '، ' : ', ') || (j.display_name || '').split(',').slice(0, 3).join(',').trim();
+  if (label) placeCache[k] = label;
+  return label || '';
+}
+const nearBranch = (branches, lat, lng) => {
+  let best = null;
+  for (const b of branches || []) {
+    if (!b.is_active || b.latitude == null || b.longitude == null) continue;
+    const m = Math.round(haversineKm(Number(lat), Number(lng), Number(b.latitude), Number(b.longitude)) * 1000);
+    if (!best || m < best.m) best = { b, m, within: m <= (Number(b.geofence_radius_m) || 200) };
+  }
+  return best;
+};
+const gmapsPoint = (p) => 'https://maps.google.com/?q=' + p.lat + ',' + p.lng;
+const gmapsRoute = (pts) => {
+  if (pts.length < 2) return pts.length ? gmapsPoint(pts[0]) : '';
+  const mid = pts.slice(1, -1); const step = Math.max(1, Math.ceil(mid.length / 8));
+  const picked = [pts[0], ...mid.filter((_, i) => i % step === 0), pts[pts.length - 1]];
+  return 'https://www.google.com/maps/dir/' + picked.map((p) => p.lat + ',' + p.lng).join('/');
+};
+const pinHtml = (bg, text, square) => '<div style="width:26px;height:26px;border-radius:' + (square ? '6px' : '50%') + ';background:' + bg + ';color:#fff;font:700 11px/26px Inter,Cairo,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);white-space:nowrap">' + text + '</div>';
+const PIN_COLORS = { start: '#16a34a', end: '#dc2626', mid: '#2563eb', punch: '#d97706' };
+
+function TripMapModal({ trip, title, data, onClose, onLabels }) {
+  const { t, lang } = useL();
+  const mapEl = useRef(null);
+  const mapObj = useRef(null);
+  const [mapState, setMapState] = useState('loading');   // loading | ok | fail
+  const [names, setNames] = useState({});                 // index -> place name found in this session ('' = not found)
+  const [punches, setPunches] = useState(null);
+  const pts = (trip.waypoints || []).filter((p) => p && p.lat != null && p.lng != null).map((p) => ({ ...p, lat: Number(p.lat), lng: Number(p.lng) }));
+  const branches = (data && data.branches) || [];
+  const bName = (b) => (lang === 'ar' ? b.name_ar || b.name_en : b.name_en || b.name_ar) || b.code || '';
+  const kindOf = (i) => (i === 0 ? t.tripStartPt : i === pts.length - 1 && trip.status === 'closed' ? t.tripEndPt : t.tripPointN.replace('{n}', String(i)));
+  const colorOf = (i) => (i === 0 ? PIN_COLORS.start : i === pts.length - 1 && trip.status === 'closed' ? PIN_COLORS.end : PIN_COLORS.mid);
+  const placeOf = (p, i) => {
+    const nb = nearBranch(branches, p.lat, p.lng);
+    const branchTxt = nb && nb.within ? t.tripAtBranch.replace('{b}', bName(nb.b)).replace('{m}', String(nb.m)) : '';
+    const name = p.label || names[i];
+    if (branchTxt && name) return branchTxt + ' · ' + name;
+    if (branchTxt) return branchTxt;
+    if (name) return name;
+    if (names[i] === undefined) return t.tripPlaceLoading;
+    return (nb ? t.tripNearBranch.replace('{b}', bName(nb.b)).replace('{m}', String(nb.m)) + ' · ' : '') + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5);
+  };
+
+  /* the day's app check-in / out that carry a location */
+  useEffect(() => {
+    const from = new Date(localDay(trip.started_at) + 'T00:00:00'), to = new Date(from); to.setDate(to.getDate() + 1);
+    sb.from('attendance_punches').select('id, direction, punch_time, latitude, longitude, within_geofence, branch_id, source')
+      .eq('employee_id', trip.employee_id).gte('punch_time', from.toISOString()).lt('punch_time', to.toISOString()).not('latitude', 'is', null).order('punch_time')
+      .then(({ data: d }) => setPunches((d || []).map((p) => ({ ...p, lat: Number(p.latitude), lng: Number(p.longitude) }))));
+  }, [trip.id]);
+
+  /* names for points that have none yet — one request at a time, then saved on the trip once */
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const found = {};
+      for (let i = 0; i < pts.length; i++) {
+        if (pts[i].label) continue;
+        try { const name = await reversePlace(pts[i].lat, pts[i].lng, lang); if (!alive) return; found[i] = name; setNames((n) => ({ ...n, [i]: name })); }
+        catch (e) { if (!alive) return; setNames((n) => ({ ...n, [i]: '' })); }
+        if (i < pts.length - 1) await new Promise((r) => setTimeout(r, 1100));
+      }
+      const labels = Object.fromEntries(Object.entries(found).filter(([, v]) => v));
+      if (alive && Object.keys(labels).length) {
+        const { data: row } = await sb.rpc('trip_set_labels', { p_id: trip.id, p_labels: labels });
+        if (alive && row && onLabels) onLabels(row);
+      }
+    })();
+    return () => { alive = false; };
+  }, [trip.id, lang]);
+
+  /* the map */
+  useEffect(() => {
+    let alive = true;
+    loadLeaflet().then(() => {
+      if (!alive || !mapEl.current) return;
+      const L = window.L;
+      const map = L.map(mapEl.current, { scrollWheelZoom: false, attributionControl: true });
+      mapObj.current = map;
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>' }).addTo(map);
+      const all = [];
+      if (pts.length > 1) L.polyline(pts.map((p) => [p.lat, p.lng]), { color: PIN_COLORS.mid, weight: 4, opacity: 0.8 }).addTo(map);
+      pts.forEach((p, i) => {
+        all.push([p.lat, p.lng]);
+        L.marker([p.lat, p.lng], { icon: L.divIcon({ html: pinHtml(colorOf(i), i === 0 ? '▶' : i === pts.length - 1 && trip.status === 'closed' ? '🏁' : String(i), false), className: '', iconSize: [26, 26], iconAnchor: [13, 13] }), zIndexOffset: i === 0 || i === pts.length - 1 ? 1000 : 0 })
+          .bindTooltip(kindOf(i) + ' · ' + fmtTime(p.t || trip.started_at), { direction: 'top', offset: [0, -14] }).addTo(map);
+      });
+      (punches || []).forEach((p) => {
+        all.push([p.lat, p.lng]);
+        L.marker([p.lat, p.lng], { icon: L.divIcon({ html: pinHtml(PIN_COLORS.punch, p.direction === 'in' ? 'IN' : p.direction === 'out' ? 'OUT' : '☕', true), className: '', iconSize: [26, 26], iconAnchor: [13, 13] }) })
+          .bindTooltip(dirLabel(t, p.direction) + ' · ' + fmtTime(p.punch_time), { direction: 'top', offset: [0, -14] }).addTo(map);
+      });
+      if (all.length > 1) map.fitBounds(all, { padding: [30, 30], maxZoom: 17 });
+      else if (all.length === 1) map.setView(all[0], 16);
+      else map.setView([27.2579, 33.8116], 12);   // Hurghada
+      setMapState('ok');
+      setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 150);
+    }).catch(() => { if (alive) setMapState('fail'); });
+    return () => { alive = false; if (mapObj.current) { try { mapObj.current.remove(); } catch (e) {} mapObj.current = null; } };
+  }, [trip.id, punches === null ? 0 : punches.length]);
+
+  return (
+    <Modal open onClose={onClose} title={'🗺️ ' + title}>
+      <div ref={mapEl} className="h-64 w-full overflow-hidden rounded-xl bg-slate-100" style={{ direction: 'ltr' }}>
+        {mapState !== 'ok' && <p className="p-4 text-center text-xs text-slate-500">{mapState === 'fail' ? t.mapFail : t.loading}</p>}
+      </div>
+      {pts.length === 0 ? <Empty text={t.tripNoGps} /> : (
+        <>
+          <p className="text-xs font-semibold text-slate-600">{t.tripPoints} · {pts.length}</p>
+          <ul className="divide-y divide-slate-100">
+            {pts.map((p, i) => {
+              const leg = i > 0 ? haversineKm(pts[i - 1].lat, pts[i - 1].lng, p.lat, p.lng) : 0;
+              return (
+                <li key={i} className="flex items-start gap-2 py-2 text-sm">
+                  <span className="mt-0.5 inline-block h-6 w-6 shrink-0 rounded-full text-center text-[11px] font-bold leading-6 text-white" style={{ background: colorOf(i) }}>{i === 0 ? '▶' : i === pts.length - 1 && trip.status === 'closed' ? '🏁' : i}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-800">{kindOf(i)} · {fmtTime(p.t || trip.started_at)}</p>
+                    <p className="text-xs text-slate-500">{placeOf(p, i)}</p>
+                    {leg > 0 && <p className="text-[11px] text-slate-400">{t.tripLegKm.replace('{km}', leg.toFixed(1))}</p>}
+                  </div>
+                  <a className="shrink-0 text-lg" target="_blank" rel="noreferrer" href={gmapsPoint(p)} title="Google Maps">📍</a>
+                </li>
+              );
+            })}
+          </ul>
+          <a className="block rounded-xl border border-slate-200 px-3 py-2 text-center text-sm font-semibold text-brand-700 hover:bg-slate-50" target="_blank" rel="noreferrer" href={gmapsRoute(pts)}>🧭 {t.tripOpenGmaps}</a>
+        </>
+      )}
+      <p className="pt-1 text-xs font-semibold text-slate-600">{t.tripDayPunches}</p>
+      {punches === null ? <p className="text-xs text-slate-400">{t.loading}</p> : punches.length === 0 ? <p className="text-xs text-slate-400">{t.tripNoPunches}</p> : (
+        <ul className="divide-y divide-slate-100">
+          {punches.map((p) => {
+            const nb = nearBranch(branches, p.lat, p.lng);
+            return (
+              <li key={p.id} className="flex items-center gap-2 py-2 text-sm">
+                <span className="inline-block h-6 w-6 shrink-0 rounded-md text-center text-[10px] font-bold leading-6 text-white" style={{ background: PIN_COLORS.punch }}>{p.direction === 'in' ? 'IN' : p.direction === 'out' ? 'OUT' : '☕'}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-800">{dirLabel(t, p.direction)} · {fmtTime(p.punch_time)}</p>
+                  <p className="text-xs text-slate-500">{nb && nb.within ? t.tripAtBranch.replace('{b}', bName(nb.b)).replace('{m}', String(nb.m)) : nb ? t.tripNearBranch.replace('{b}', bName(nb.b)).replace('{m}', String(nb.m)) : p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)}{p.within_geofence === false ? ' · ' + t.outsideBranch : ''}</p>
+                </div>
+                <a className="shrink-0 text-lg" target="_blank" rel="noreferrer" href={gmapsPoint(p)} title="Google Maps">📍</a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Modal>
+  );
+}
 function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
   const { t } = useL();
   const [open, setOpen] = useState(undefined);   // undefined = loading
@@ -3741,6 +3926,7 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
   const [busy, setBusy] = useState(false);
   const [fare, setFare] = useState(null);         // { trip, ending, amount, file } taxi amount + evidence (both optional)
   const [showEmp, setShowEmp] = useState('');
+  const [mapTrip, setMapTrip] = useState(null);     // trip whose map is open
   const fileRef = useRef(null);
 
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
@@ -3850,6 +4036,11 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
       <div className="min-w-0">
         <p className="truncate font-semibold text-slate-800">{trIcon(tr)} {tr.purpose || '—'}</p>
         <p className="text-xs text-slate-500">{localDay(tr.started_at)} · {fmtTime(tr.started_at)}{tr.ended_at ? '–' + fmtTime(tr.ended_at) : ''}{trLabel(tr) ? ' · ' + trLabel(tr) : ''}</p>
+        {(tr.waypoints || []).length > 0 && (() => { const w = tr.waypoints, a = w[0], b = w[w.length - 1]; return (
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+            <button className="font-semibold text-brand-700 underline" onClick={() => setMapTrip(tr)}>🗺️ {t.tripMap} · {w.length} {t.pointsN}</button>
+            {a.label && <span className="truncate">{a.label}{w.length > 1 && b.label && b.label !== a.label ? ' → ' + b.label : ''}</span>}
+          </p>); })()}
         {tr.transport === 'personal_car' && tr.status === 'closed' && (() => { const price = fuelPriceOn(fuel, localDay(tr.started_at)); return (
           <p className="mt-1 text-xs">
             {price > 0 ? <><span className="font-semibold text-slate-700">⛽ {t.fuelComp}: {money(tripComp(tr, fuel))}</span> <span className="text-slate-400">({t.fuelCompHint.replace('{p}', String(price)).replace('{km}', tripKm(tr).toFixed(1)).replace('{d}', String(Number(fuel.divisor) || 7))})</span></> : <span className="text-amber-700">⛽ {t.fuelNoPrice}</span>}
@@ -3878,13 +4069,14 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
               <Btn variant="soft" className="flex-1" disabled={busy} onClick={addPoint}>📍 {t.recordPoint}</Btn>
               <Btn className="flex-1 !bg-amber-600 hover:!bg-amber-700" disabled={busy} onClick={() => (open.transport === 'taxi' ? setFare({ trip: open, ending: true, amount: '', file: null }) : end())}>🏁 {t.endTrip}</Btn>
             </div>
+            <button className="text-xs font-semibold text-brand-700 underline" onClick={() => setMapTrip(open)}>🗺️ {t.tripMap}</button>
           </div>
         ) : (
           <div className="space-y-3">
             <Input placeholder={t.tripPurpose} value={purpose} onChange={(e) => setPurpose(e.target.value)} />
             <div>
               <p className="mb-1.5 text-xs font-semibold text-slate-600">{t.transportLbl}</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {TRIP_TRANSPORT.map(([k, icon]) => (
                   <button key={k} type="button" onClick={() => setTransport(k)}
                     className={cx('rounded-xl border-2 px-1 py-3 text-center text-xs font-semibold transition sm:text-sm', transport === k ? 'border-brand-600 bg-brand-50 text-brand-800' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300')}>
@@ -3893,6 +4085,7 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
                 ))}
               </div>
               {transport === 'taxi' && <p className="mt-1.5 text-xs text-slate-500">{t.taxiHint}</p>}
+              {transport === 'with_someone' && <p className="mt-1.5 text-xs text-slate-500">{t.withSomeoneHint}</p>}
             </div>
             <Btn size="lg" disabled={busy} onClick={start}>🚗 {busy ? t.gettingLoc : t.startTrip}</Btn>
           </div>
@@ -3920,6 +4113,11 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
           </ul>
         </Card>
       )}
+
+      {mapTrip && <TripMapModal trip={mapTrip} data={data}
+        title={(mapTrip.employee_id === myEmp.id ? '' : eName(data.employees.find((e) => e.id === mapTrip.employee_id)) + ' · ') + localDay(mapTrip.started_at) + (mapTrip.purpose ? ' · ' + mapTrip.purpose : '')}
+        onClose={() => setMapTrip(null)}
+        onLabels={(row) => { patch(row); if (open && open.id === row.id) setOpen(row); setMapTrip(row); }} />}
 
       <Modal open={!!fare} onClose={() => !busy && setFare(null)} title={'🚕 ' + t.fareTitle}>
         {fare && (
@@ -9332,8 +9530,8 @@ const HV_TOUR_STEPS = [
     en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break; resuming needs a selfie, and minutes over the daily break allowance are deducted.'],
     ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك، والعودة تتطلب سيلفي، وما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
   { c: 'att', page: 'attendance', target: 'trip-start', action: 'att-tab-trips',
-    en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car or taxi / Uber) and press Start trip. Record points on the way and End trip when you are back. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
-    ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة أو تاكسي / أوبر) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
+    en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car, taxi / Uber, or with someone — a colleague\'s or the client\'s car, recorded but without compensation) and press Start trip. Record points on the way and End trip when you are back. Every trip has a 🗺️ Map: the start, every recorded point and the end as named pins (the branch, or the street / area), the route line, the kilometres between points, that day\'s app check-in / out with their locations, and a link that opens the whole route in Google Maps. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
+    ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة، تاكسي / أوبر، أو مع شخص آخر — سيارة زميل أو العميل، يُسجَّل المشوار بلا تعويض) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. لكل مشوار 🗺️ خريطة: البداية وكل نقطة مسجلة والنهاية كدبابيس مسماة (الفرع أو الشارع / المنطقة)، وخط المسار، والكيلومترات بين النقاط، وتسجيل الدخول / الخروج من التطبيق في ذلك اليوم بمواقعه، ورابط يفتح المسار كله في خرائط جوجل. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
   { c: 'att', page: 'attendance', target: 'exc-new', action: 'att-tab-exceptions',
     en: ['Late / break / early-leave notes', 'Will you be late, need a longer break or must leave early? Send the note before it happens (today or a later date). If your direct manager or HR accepts it, that day carries no deduction. Managers approve their team\'s notes on this tab; HR sees all.'],
     ar: ['أذونات التأخير والاستراحة والانصراف المبكر', 'ستتأخر أو تحتاج استراحة أطول أو ستنصرف مبكراً؟ أرسل الإذن قبل حدوثه (اليوم أو يوم لاحق). إذا وافق مديرك المباشر أو الموارد البشرية فلا خصم على ذلك اليوم. المديرون يعتمدون أذونات فريقهم من هذا التبويب، والموارد البشرية ترى الجميع.'] },

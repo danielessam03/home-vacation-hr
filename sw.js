@@ -27,7 +27,7 @@ const usable = (res) => !!res && (res.ok || res.type === 'opaqueredirect');
 // everything index.html loads from this folder: hv-core.js, vendor/…
 function localFiles(html) {
   const out = new Set();
-  const re = /(?:src|href)\s*=\s*["']([^"'#?]+\.js)["']/g; let m;
+  const re = /(?:src|href)\s*=\s*["']([^"'#?]+\.(?:js|css))["']/g; let m;
   while ((m = re.exec(html))) { if (!/^(https?:)?\/\//.test(m[1]) && !/^data:/.test(m[1])) out.add(new URL(m[1], SCOPE).href); }
   return [...out];
 }
@@ -88,7 +88,7 @@ function pageRequest(event) {
 // hv-core.js / hv-tour.js (no version in the name): the network first (4 s) so a new version is used at once, else the saved copy.
 function fileRequest(event) {
   const req = event.request;
-  const versioned = /d+.d+/.test(new URL(req.url).pathname.split('/').pop());
+  const versioned = /\d+\.\d+/.test(new URL(req.url).pathname.split('/').pop());
   let saving = null;
   const network = fetch(req).then((res) => {
     if (res.ok) { const copy = res.clone(); saving = caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => null); }
