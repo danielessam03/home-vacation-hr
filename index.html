@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.62';
+const APP_VERSION = 'v3.63';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -240,7 +240,7 @@ const T = {
     capRules: 'Monthly excuse limit', capHint: 'Per employee per month the system accepts at most this many hours of excuses and this many excuses (late, longer break, early leave — notes and excuses given from the review). Beyond either limit only the CEO can accept; the excuse stays pending for the CEO. 0 = no limit.', capHours: 'Hours per month', capCount: 'Excuses per month',
     capUsed: 'Used this month', capOf: 'of', capExcuses: 'excuses', capOver: 'Beyond the monthly limit — only the CEO can accept this.', capCeoQ: 'This goes beyond the monthly limit ({used}). Accept anyway as CEO?', capBadge: 'beyond the monthly limit · accepted by the CEO', capRefused: 'Refused: this employee already reached the monthly excuse limit ({used}). Only the CEO can accept more.', capWillOver: 'This would go beyond the monthly limit',
     breakFromDevice: 'started on the fingerprint machine', endBreakHere: 'End break here', breakEndedHere: 'Break ended. You are back at work.',
-    startBreak: 'Start break', onBreakSince: 'On break since', breakManualHint: 'You are on break. Take a live selfie to end it and resume work.', breakBig: 'Break',
+    startBreak: 'Start break', onBreakSince: 'On break since', breakManualHint: 'You are on break. Press Resume work when you are back.', breakBig: 'Break', resumeNow: 'Resume work', resumeNoSelfie: 'Cannot take a selfie? Resume without it', breakResumed: 'Welcome back — you are working again.', noSelfie: 'resumed without selfie',
     breakAsIn: 'Break pressed first, counted as check-in', dirIn: 'In', dirOut: 'Out', dirBreakOut: 'Break start', dirBreakIn: 'Break end', dirOtIn: 'Overtime in', dirOtOut: 'Overtime out', dirUnknown: 'Unknown button', deviceBreak: 'Fingerprint device', firstIn: 'First in', lastOut: 'Last out',
     manualPunch: 'Manual punch', punchNote: 'Reason (required)', punchTime: 'Time',
     lockMonth: 'Lock month', lockedMonths: 'Locked months', unlock: 'Unlock', monthLbl: 'Month', yearLbl: 'Year',
@@ -376,7 +376,7 @@ const T = {
     working: 'Working', onBreak: 'On break', idleFor: 'Idle for', sessionSince: 'since',
     stillWorking: 'Are you still working?', stillWorkingHint: 'Confirm with a live selfie within',
     confirmSelfie: 'I\'m here — take selfie', resumeWork: 'Resume work (selfie)',
-    breakAuto: 'You were put on break automatically (no answer). Take a selfie to resume.',
+    breakAuto: 'You were put on break automatically (no answer). Take a selfie to resume — or resume without one (HR will see it).',
     cameraStart: 'Starting camera…', faceLoading: 'Loading face recognition…', noFace: 'No face detected — look at the camera',
     faceMismatch: 'Face does not match the enrolled employee', faceOk: 'Identity confirmed', notEnrolled: 'No face enrolled yet — ask HR',
     enrollFace: 'Enroll face', enrollHint: 'Take 3 selfies of the employee, straight on, good light. Used only to verify presence prompts.',
@@ -514,7 +514,7 @@ const T = {
     capRules: 'الحد الشهري للأذونات', capHint: 'لكل موظف في الشهر يقبل النظام هذا العدد من الساعات وهذا العدد من الأذونات كحد أقصى (تأخير، استراحة أطول، انصراف مبكر — الأذونات والإعفاءات من المراجعة). بعد أي من الحدين لا يقبل الإذن إلا المدير التنفيذي ويبقى معلقاً له. 0 = بلا حد.', capHours: 'ساعات في الشهر', capCount: 'أذونات في الشهر',
     capUsed: 'المستخدم هذا الشهر', capOf: 'من', capExcuses: 'أذونات', capOver: 'تجاوز الحد الشهري — لا يقبله إلا المدير التنفيذي.', capCeoQ: 'هذا يتجاوز الحد الشهري ({used}). القبول رغم ذلك بصفتك المدير التنفيذي؟', capBadge: 'تجاوز الحد الشهري · قبله المدير التنفيذي', capRefused: 'مرفوض: وصل هذا الموظف إلى الحد الشهري للأذونات ({used}). لا يقبل المزيد إلا المدير التنفيذي.', capWillOver: 'سيتجاوز هذا الحد الشهري',
     breakFromDevice: 'بدأت من جهاز البصمة', endBreakHere: 'إنهاء الاستراحة من هنا', breakEndedHere: 'انتهت الاستراحة. عدت إلى العمل.',
-    startBreak: 'بدء استراحة', onBreakSince: 'في استراحة منذ', breakManualHint: 'أنت في استراحة. التقط سيلفي حية لإنهائها والعودة للعمل.', breakBig: 'استراحة',
+    startBreak: 'بدء استراحة', onBreakSince: 'في استراحة منذ', breakManualHint: 'أنت في استراحة. اضغط «استئناف العمل» عند عودتك.', resumeNow: 'استئناف العمل', resumeNoSelfie: 'لا تستطيع التقاط سيلفي؟ استأنف بدونها', breakResumed: 'أهلاً بعودتك — أنت تعمل الآن.', noSelfie: 'استأنف بدون سيلفي', breakBig: 'استراحة',
     breakAsIn: 'ضغط استراحة أولاً، احتُسب حضوراً', dirIn: 'حضور', dirOut: 'انصراف', dirBreakOut: 'بداية استراحة', dirBreakIn: 'نهاية استراحة', dirOtIn: 'دخول إضافي', dirOtOut: 'خروج إضافي', dirUnknown: 'زر غير معروف', deviceBreak: 'جهاز البصمة', firstIn: 'أول حضور', lastOut: 'آخر انصراف',
     manualPunch: 'بصمة يدوية', punchNote: 'السبب (إلزامي)', punchTime: 'الوقت',
     lockMonth: 'قفل الشهر', lockedMonths: 'الشهور المقفلة', unlock: 'فتح', monthLbl: 'الشهر', yearLbl: 'السنة',
@@ -650,7 +650,7 @@ const T = {
     working: 'يعمل', onBreak: 'في استراحة', idleFor: 'بدون نشاط منذ', sessionSince: 'منذ',
     stillWorking: 'هل ما زلت تعمل؟', stillWorkingHint: 'أكّد بصورة سيلفي حية خلال',
     confirmSelfie: 'أنا هنا — التقاط سيلفي', resumeWork: 'استئناف العمل (سيلفي)',
-    breakAuto: 'تم وضعك في استراحة تلقائياً (لم يتم الرد). التقط سيلفي للاستئناف.',
+    breakAuto: 'تم وضعك في استراحة تلقائياً (لم يتم الرد). التقط سيلفي للاستئناف — أو استأنف بدونها (ستظهر للموارد البشرية).',
     cameraStart: 'جاري تشغيل الكاميرا…', faceLoading: 'جاري تحميل التعرف على الوجه…', noFace: 'لم يتم رصد وجه — انظر إلى الكاميرا',
     faceMismatch: 'الوجه لا يطابق الموظف المسجل', faceOk: 'تم تأكيد الهوية', notEnrolled: 'لم يتم تسجيل الوجه بعد — تواصل مع الموارد البشرية',
     enrollFace: 'تسجيل الوجه', enrollHint: 'التقط 3 صور للموظف مواجهة وبإضاءة جيدة. تُستخدم فقط للتحقق من الحضور.',
@@ -3543,7 +3543,7 @@ function BreakButton({ live, data, myEmp, toast, onPunch }) {
   if (ses.status === 'break') return (
     <div className={cx('rounded-2xl border-2 p-4 text-center', left < 0 ? 'border-rose-400 bg-rose-100' : 'border-amber-300 bg-amber-50')}>
       <p className={cx('text-lg font-bold', left < 0 ? 'text-rose-700' : 'text-amber-800')}>⏸️ {t.onBreak} · {left < 0 ? t.breakExceeded + ' ' + (-left) + ' ' + t.minutesLbl : left + ' ' + t.minutesLbl + ' ' + t.breakLeft}</p>
-      <p className="text-xs text-slate-600">{t.onBreakSince} {fmtTime(ses.break_started_at)} · {t.resumeWork}</p>
+      <p className="text-xs text-slate-600">{t.onBreakSince} {fmtTime(ses.break_started_at)} · {t.breakManualHint}</p>
     </div>
   );
   return (
@@ -4192,7 +4192,7 @@ function DayBreaks({ empId, date }) {
         const out = []; let open = null;
         for (const ev of d || []) {
           if (ev.kind === 'break_start') { if (open) out.push(open); open = { start: ev.at, reason: (ev.meta || {}).reason || 'manual', end: null }; }
-          else if (open) { open.end = ev.at; out.push(open); open = null; }
+          else if (open) { open.end = ev.at; open.noSelfie = ev.kind === 'break_end' && (ev.meta || {}).face_verified === false && open.reason !== 'manual'; out.push(open); open = null; }
         }
         if (open) out.push(open);
         const { data: pp } = await sb.from('attendance_punches').select('punch_time, direction').eq('employee_id', empId).in('direction', ['break_out', 'break_in']).gte('punch_time', from.toISOString()).lt('punch_time', to.toISOString()).order('punch_time');
@@ -4212,7 +4212,7 @@ function DayBreaks({ empId, date }) {
       <p className="mb-1 text-xs font-semibold text-slate-600">☕ {t.breaksOfDay}{list && list.length ? ' · ' + list.reduce((s, b) => s + mins(b), 0) + ' ' + t.minutesLbl : ''}</p>
       {list === null ? <p className="text-xs text-slate-400">…</p> : list.length === 0 ? <p className="text-xs text-slate-400">{t.noBreaks}</p> : (
         <ul className="space-y-1 text-sm">
-          {list.map((b, i) => <li key={i} className="flex items-center justify-between"><span>{fmtTime(b.start)} → {b.end ? fmtTime(b.end) : t.stillOnBreak} · <b>{mins(b)} {t.minutesLbl}</b></span><span className="text-xs text-slate-500">{t.breakReasons[b.reason] || b.reason}</span></li>)}
+          {list.map((b, i) => <li key={i} className="flex items-center justify-between"><span>{fmtTime(b.start)} → {b.end ? fmtTime(b.end) : t.stillOnBreak} · <b>{mins(b)} {t.minutesLbl}</b></span><span className="text-xs text-slate-500">{t.breakReasons[b.reason] || b.reason}{b.noSelfie ? <span className="ms-1 font-semibold text-amber-700">· ⚠ {t.noSelfie}</span> : null}</span></li>)}
         </ul>
       )}
     </div>
@@ -8260,7 +8260,7 @@ async function descriptorFrom(video) {
 const isPhone = () => /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
 /** Front-camera capture that yields a 128-d face descriptor. */
-function SelfieCapture({ onDescriptor, label, toast }) {
+function SelfieCapture({ onDescriptor, label, toast, onFail }) {
   const { t } = useL();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -8274,7 +8274,7 @@ function SelfieCapture({ onDescriptor, label, toast }) {
         if (videoRef.current) videoRef.current.srcObject = s;
         setState('ready');
       })
-      .catch(() => toast(t.cameraDenied, 'error'));
+      .catch(() => { toast(t.cameraDenied, 'error'); setState('failed'); if (onFail) onFail('camera'); });
     return () => { alive = false; if (streamRef.current) streamRef.current.getTracks().forEach((x) => x.stop()); };
   }, []);
   async function capture() {
@@ -8284,7 +8284,7 @@ function SelfieCapture({ onDescriptor, label, toast }) {
       const d = await descriptorFrom(videoRef.current);
       if (!d) { toast(t.noFace, 'error'); setState('ready'); return; }
       await onDescriptor(d);
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (e) { toast(e.message, 'error'); if (onFail) onFail('capture'); }
     setState('ready');
   }
   return (
@@ -8394,6 +8394,20 @@ function useLiveSession({ me, myEmp, settings, toast, ready }) {
     await sb.from('session_events').insert({ session_id: session.id, employee_id: empId, kind: 'break_start', meta: { reason: 'manual' } });
     setSession(b);
   }
+  /** Resume from a break without a selfie (Daniel 2026-11-10: ending a break must be one tap). A manual break ends this
+      way by default; after an automatic break the selfie is offered first and this is the way out when it cannot be
+      taken — logged as break_end with face_verified:false so HR sees "resumed without selfie" on the day. */
+  async function resumeBreak(extra) {
+    if (!session || session.status !== 'break') return;
+    const now = Date.now();
+    const secs = (session.break_seconds || 0) + (session.break_started_at ? Math.round((now - new Date(session.break_started_at).getTime()) / 1000) : 0);
+    const { data: b, error } = await sb.from('work_sessions').update({ status: 'working', break_started_at: null, break_seconds: secs, last_activity_at: new Date(now).toISOString() }).eq('id', session.id).select().single();
+    if (error) return toast(error.message, 'error');
+    await sb.from('session_events').insert({ session_id: session.id, employee_id: empId, kind: 'break_end', meta: { via: isPhone() ? 'phone' : 'laptop', face_verified: false, ...(extra || {}) } });
+    lastActRef.current = now;
+    setSession(b); setChallenge(null);
+    toast(t.breakResumed);
+  }
   async function endSession() {
     if (!session) return;
     const now = Date.now();
@@ -8416,7 +8430,7 @@ function useLiveSession({ me, myEmp, settings, toast, ready }) {
     await refresh();
     return res;
   }
-  return { session, challenge, onTrip, startSession, startBreak, endSession, verify, refresh };
+  return { session, challenge, onTrip, startSession, startBreak, resumeBreak, endSession, verify, refresh };
 }
 
 /** Global prompt: shown for an open challenge or while on break. */
@@ -8429,17 +8443,36 @@ function PresenceModal({ live, toast }) {
     const id = setInterval(() => setLeft(Math.max(0, Math.round((new Date(live.challenge.expires_at).getTime() - Date.now()) / 1000))), 1000);
     return () => clearInterval(id);
   }, [live.challenge && live.challenge.id]);
+  const onBreak = open && !live.challenge;
+  const sesId = live.session && live.session.id, brkAt = live.session && live.session.break_started_at;
+  const [reason, setReason] = useState(null);     // how this break started: manual | prompt_timeout | agent_idle (null = loading)
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!onBreak || !sesId) { setReason(null); return; }
+    let alive = true;
+    sb.from('session_events').select('meta').eq('session_id', sesId).eq('kind', 'break_start').order('at', { ascending: false }).limit(1).maybeSingle()
+      .then(({ data: d }) => { if (alive) setReason((d && d.meta && d.meta.reason) || 'manual'); });
+    return () => { alive = false; };
+  }, [onBreak, sesId, brkAt]);
   if (!open) return null;
-  const onBreak = !live.challenge;
   async function onDescriptor(d) {
     try { await live.verify(d); toast(t.faceOk); }
     catch (e) { toast(e.message === 'not_enrolled' ? t.notEnrolled : e.message.startsWith('mismatch') ? t.faceMismatch : e.message, 'error'); }
   }
+  async function resume() { setBusy(true); try { await live.resumeBreak({ reason: reason || 'manual' }); } finally { setBusy(false); } }
+  const manual = onBreak && (reason === 'manual' || reason === null);
   return (
     <Modal open={true} onClose={() => {}} title={onBreak ? '⏸️ ' + t.onBreak : '👋 ' + t.stillWorking}>
-      {onBreak ? <p className="text-sm text-slate-600">{live.session && live.session.break_started_at ? t.breakManualHint + ' · ' + t.onBreakSince + ' ' + fmtTime(live.session.break_started_at) : t.breakAuto}</p>
+      {onBreak ? <p className="text-sm text-slate-600">{manual ? t.breakManualHint : t.breakAuto}{brkAt ? ' · ' + t.onBreakSince + ' ' + fmtTime(brkAt) : ''}</p>
         : <p className="text-center text-sm text-slate-600">{t.stillWorkingHint} <b className="text-lg text-rose-600">{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}</b></p>}
-      <SelfieCapture toast={toast} label={onBreak ? t.resumeWork : t.confirmSelfie} onDescriptor={onDescriptor} />
+      {manual ? (
+        <Btn size="lg" className="w-full" disabled={busy || reason === null} onClick={resume}>▶ {busy || reason === null ? t.loading : t.resumeNow}</Btn>
+      ) : (
+        <>
+          <SelfieCapture toast={toast} label={onBreak ? t.resumeWork : t.confirmSelfie} onDescriptor={onDescriptor} />
+          {onBreak && <button type="button" disabled={busy} onClick={resume} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">▶ {busy ? t.loading : t.resumeNoSelfie}</button>}
+        </>
+      )}
     </Modal>
   );
 }
@@ -9570,8 +9603,8 @@ const HV_TOUR_STEPS = [
     en: ['Check in / check out', 'Tap Check in when you arrive and Check out when you leave. Your phone\'s location is saved and compared with the branch zone, so allow location for this site. Then a quick selfie confirms it is you. Outside the branch zone: office-only staff cannot check in (ask HR), everyone can check out but types a reason; site-work staff (maintenance) check in and out anywhere with no reason — the location is always recorded. Punches in a locked month cannot be changed.'],
     ar: ['تسجيل الحضور والانصراف', 'اضغط «تسجيل حضور» عند وصولك و«تسجيل انصراف» عند مغادرتك. يُحفظ موقع هاتفك ويُقارن بنطاق الفرع، لذا اسمح للموقع بالوصول لموقعك. ثم صورة سريعة تؤكد أنك أنت. خارج نطاق الفرع: موظفو المكتب لا يمكنهم تسجيل الحضور (اطلب من الموارد البشرية)، والجميع يمكنه تسجيل الانصراف مع كتابة سبب، وموظفو العمل الميداني (الصيانة) يسجلون الحضور والانصراف من أي مكان بدون سبب — الموقع يُسجل دائماً. لا يمكن تعديل البصمات في شهر مقفول.'] },
   { c: 'att', page: 'attendance', target: 'att-live', action: 'att-tab-checkin',
-    en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break; resuming needs a selfie, and minutes over the daily break allowance are deducted.'],
-    ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك، والعودة تتطلب سيلفي، وما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
+    en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break and press Resume work when you are back — one tap, no selfie. After an automatic break (no answer) a selfie is asked first; if you cannot take one, "Resume without it" works and HR sees that on the day. Minutes over the daily break allowance are deducted.'],
+    ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك واضغط «استئناف العمل» عند عودتك — ضغطة واحدة بلا سيلفي. بعد الاستراحة التلقائية (عدم الرد) يُطلب سيلفي أولاً، وإن تعذّر فزر «استأنف بدونها» يعمل وتراه الموارد البشرية في اليوم. ما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
   { c: 'att', page: 'attendance', target: 'trip-start', action: 'att-tab-trips',
     en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car, taxi / Uber, or with someone — a colleague\'s or the client\'s car, recorded but without compensation) and press Start trip. Record points on the way and End trip when you are back. Every trip has a 🗺️ Map: the start, every recorded point and the end as named pins (the branch, or the street / area), the road route between them as a car drives (OpenStreetMap routing) with the kilometres of each leg — these road kilometres are the trip\'s distance and the basis of the compensation — that day\'s app check-in / out with their locations, and a link that opens the whole route in Google Maps. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
     ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة، تاكسي / أوبر، أو مع شخص آخر — سيارة زميل أو العميل، يُسجَّل المشوار بلا تعويض) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. لكل مشوار 🗺️ خريطة: البداية وكل نقطة مسجلة والنهاية كدبابيس مسماة (الفرع أو الشارع / المنطقة)، ومسار الطريق بينها كما تسير السيارة (توجيه OpenStreetMap) مع كيلومترات كل جزء — كيلومترات الطريق هذه هي مسافة المشوار وأساس التعويض — وتسجيل الدخول / الخروج من التطبيق في ذلك اليوم بمواقعه، ورابط يفتح المسار كله في خرائط جوجل. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
