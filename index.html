@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.63';
+const APP_VERSION = 'v3.64';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -218,7 +218,7 @@ const T = {
     missLeft: '{n} days left', missLeftLast: 'last day', missAuto: 'automatic', missAutoHint: 'Nobody decided within {n} days, so the default penalty applies. You can still excuse it or choose another action.',
     missRules: 'Missing check-out', missRulesHint: 'A day that ended without a check-out waits for a decision (excuse / take action). If nobody decides in time, this default penalty applies by itself. A later decision always replaces it.', missAutoOn: 'Apply a default penalty when nobody decides', missAutoDays: 'Days to decide', missAutoFrom: 'Applies to days from', missAutoPen: 'Default penalty',
     ezDueTitle: 'Weekly Engaz update', ezDueNever: 'The Engaz export has never been uploaded.', ezDueLate: 'The last Engaz upload was {n} days ago ({d}). This week\'s file is overdue.', ezDueSoon: 'The last Engaz upload was {n} days ago ({d}). This week\'s file is due.', ezDueBtn: 'Upload now', ezDueLater: 'Remind me later', ezDueWho: 'Sales manager', ezDueHow: 'Export the clients file from Engaz and upload it in KPIs → Engaz import. It takes about a minute.',
-    stillIn: 'Still at work', soFar: 'so far', legendIn: 'currently in', legendMissing: 'missing check-out', legendWeekend: 'rest day', missNeeds: 'Missing punch · needs a decision', missBanner: 'days ended without a check-out. Each one must be excused or have action taken.', missOnly: 'Show only these', missAll: 'Show all days',
+    stillIn: 'Still at work', soFar: 'so far', legendIn: 'currently in', legendMissing: 'missing check-out', legendWeekend: 'rest day', missNeeds: 'Missing punch · needs a decision', missBanner: 'days ended without a check-out. Each one must be excused or have action taken.', missOnly: 'Show only these', missAll: 'Show all days', missNone: 'No missing check-outs waiting for a decision in this range.', missView: 'Missing check-outs — last 31 days, everyone',
     missTitle: 'Missing check-out', missHint: 'The employee checked in but never checked out, and the day is over. Decide what happens.', missExcuse: 'Excuse it', missExcuseHint: 'Forgot to punch out. No deduction.', missAction: 'Take action', missActionHint: 'Something went wrong. Choose the penalty.',
     missAddOut: 'Enter the real check-out time', missAddOutHint: 'The day is then judged normally (hours, early leave, overtime).', missPenalty: 'Penalty', missPenWarn: 'Warning only', missPenHours: 'Deduct {n} h', missPenQuarter: 'Deduct quarter day', missPenHalf: 'Deduct half day', missPenFull: 'Deduct full day', missPenDay: 'Deduct {n} day',
     missHoursLbl: 'Hours to deduct', missSavedExc: 'Excused. No deduction for the missing punch.', missSavedAct: 'Action recorded. It will show in payroll.', missChange: 'Change the decision', missDedLbl: 'Missing punch', missPendingPay: 'missing punches in this month are still undecided. Decide them in Attendance → Review, then recalculate.', missUndecided: 'undecided', missPenalised: 'penalised', leadNote: 'Sales team leaders and managers are not ranked on this board.',
@@ -492,7 +492,7 @@ const T = {
     missLeft: 'باقي {n} يوم', missLeftLast: 'آخر يوم', missAuto: 'تلقائي', missAutoHint: 'لم يُتخذ قرار خلال {n} أيام، فطُبّق الجزاء الافتراضي. ما زال بإمكانك الإعفاء أو اختيار إجراء آخر.',
     missRules: 'بصمة الانصراف الناقصة', missRulesHint: 'اليوم الذي ينتهي بدون بصمة انصراف ينتظر قراراً (إعفاء / إجراء). إذا لم يُتخذ قرار في الوقت المحدد يُطبق هذا الجزاء الافتراضي تلقائياً، وأي قرار لاحق يلغيه.', missAutoOn: 'تطبيق جزاء افتراضي إذا لم يُتخذ قرار', missAutoDays: 'عدد الأيام المتاحة للقرار', missAutoFrom: 'يسري على الأيام من تاريخ', missAutoPen: 'الجزاء الافتراضي',
     ezDueTitle: 'تحديث إنجاز الأسبوعي', ezDueNever: 'لم يُرفع ملف إنجاز من قبل.', ezDueLate: 'آخر رفع لملف إنجاز كان منذ {n} يوم ({d}). ملف هذا الأسبوع متأخر.', ezDueSoon: 'آخر رفع لملف إنجاز كان منذ {n} يوم ({d}). حان موعد ملف هذا الأسبوع.', ezDueBtn: 'ارفع الآن', ezDueLater: 'ذكّرني لاحقاً', ezDueWho: 'مدير المبيعات', ezDueHow: 'صدّر ملف العملاء من إنجاز وارفعه من مؤشرات الأداء ← استيراد من إنجاز. يستغرق حوالي دقيقة.',
-    stillIn: 'ما زال في العمل', soFar: 'حتى الآن', legendIn: 'في العمل الآن', legendMissing: 'بصمة انصراف ناقصة', legendWeekend: 'يوم راحة', missNeeds: 'بصمة ناقصة · تحتاج قراراً', missBanner: 'يوم انتهى بدون بصمة انصراف. كل يوم يجب إعفاؤه أو اتخاذ إجراء بشأنه.', missOnly: 'عرض هذه الأيام فقط', missAll: 'عرض كل الأيام',
+    stillIn: 'ما زال في العمل', soFar: 'حتى الآن', legendIn: 'في العمل الآن', legendMissing: 'بصمة انصراف ناقصة', legendWeekend: 'يوم راحة', missNeeds: 'بصمة ناقصة · تحتاج قراراً', missBanner: 'يوم انتهى بدون بصمة انصراف. كل يوم يجب إعفاؤه أو اتخاذ إجراء بشأنه.', missOnly: 'عرض هذه الأيام فقط', missAll: 'عرض كل الأيام', missNone: 'لا توجد بصمات انصراف ناقصة بانتظار قرار في هذه الفترة.', missView: 'بصمات الانصراف الناقصة — آخر 31 يوماً، الجميع',
     missTitle: 'بصمة انصراف ناقصة', missHint: 'الموظف سجّل الحضور ولم يسجّل الانصراف وانتهى اليوم. حدّد ما يتم.', missExcuse: 'إعفاء', missExcuseHint: 'نسي تسجيل الانصراف. بدون خصم.', missAction: 'اتخاذ إجراء', missActionHint: 'حدث خطأ ما. اختر الجزاء.',
     missAddOut: 'إدخال وقت الانصراف الحقيقي', missAddOutHint: 'يُحسب اليوم بعدها بشكل عادي (الساعات، الانصراف المبكر، الإضافي).', missPenalty: 'الجزاء', missPenWarn: 'إنذار فقط', missPenHours: 'خصم {n} ساعة', missPenQuarter: 'خصم ربع يوم', missPenHalf: 'خصم نصف يوم', missPenFull: 'خصم يوم كامل', missPenDay: 'خصم {n} يوم',
     missHoursLbl: 'عدد الساعات المخصومة', missSavedExc: 'تم الإعفاء. لا خصم عن البصمة الناقصة.', missSavedAct: 'تم تسجيل الإجراء وسيظهر في الرواتب.', missChange: 'تغيير القرار', missDedLbl: 'بصمة ناقصة', missPendingPay: 'بصمة ناقصة في هذا الشهر لم يُتخذ فيها قرار. احسمها من الحضور ← المراجعة ثم أعد الحساب.', missUndecided: 'بدون قرار', missPenalised: 'عليها جزاء', leadNote: 'قادة ومديرو فريق المبيعات لا يظهرون في ترتيب هذه اللوحة.',
@@ -3065,11 +3065,16 @@ function AttendancePage({ me, data, refresh, toast, audit, live, initialTab }) {
     ...(isHr ? [{ k: 'lock', label: t.lockTab }, { k: 'rules', label: '⚙️ ' + t.attRules }] : []),
   ];
   const [tab, setTab] = useState(initialTab && tabs.some((x) => x.k === initialTab) ? initialTab : (tabs.length ? tabs[0].k : 'none'));
+  const [missingSignal, setMissingSignal] = useState(0);   // 🔔 "Missing check-outs to decide" → Review tab in its missing view
   const eName = (e) => e ? ((lang === 'ar' ? e.full_name_ar : e.full_name_en) || e.full_name_en) : '—';
 
   /* guide tour (hv-tour.js): 'att-tab-<key>' switches to that tab when this person has it */
   useEffect(() => {
-    const on = (e) => { const a = (e.detail && e.detail.action) || ''; if (a.startsWith('att-tab-') && tabs.some((x) => x.k === a.slice(8))) setTab(a.slice(8)); };
+    const on = (e) => {
+      const a = (e.detail && e.detail.action) || '';
+      if (a === 'att-tab-review-missing' && tabs.some((x) => x.k === 'review')) { setTab('review'); setMissingSignal((n) => n + 1); return; }
+      if (a.startsWith('att-tab-') && tabs.some((x) => x.k === a.slice(8))) setTab(a.slice(8));
+    };
     window.addEventListener('hv-tour', on);
     return () => window.removeEventListener('hv-tour', on);
   });
@@ -3089,7 +3094,7 @@ function AttendancePage({ me, data, refresh, toast, audit, live, initialTab }) {
       {tab === 'checkin' && <CheckInTab me={me} myEmp={myEmp} data={data} toast={toast} live={live} />}
       {tab === 'live' && <LiveBoardTab data={data} />}
       {tab === 'trips' && <TripsTab me={me} myEmp={myEmp} data={data} toast={toast} eName={eName} admin={admin} live={live} />}
-      {tab === 'review' && <ReviewTab me={me} data={data} toast={toast} audit={audit} eName={eName} isHr={isHr} />}
+      {tab === 'review' && <ReviewTab me={me} data={data} toast={toast} audit={audit} eName={eName} isHr={isHr} missingSignal={missingSignal} />}
       {tab === 'lock' && <LockTab me={me} data={data} toast={toast} audit={audit} />}
       {tab === 'exceptions' && <ExceptionsTab me={me} myEmp={myEmp} data={data} toast={toast} audit={audit} eName={eName} admin={admin} isHr={isHr} />}
       {tab === 'totals' && <AttendanceTotalsTab me={me} data={data} eName={eName} />}
@@ -4235,7 +4240,7 @@ function useColumnWidths(key, defaults) {
 }
 const ResizeGrip = ({ onStart }) => <span onMouseDown={onStart} onTouchStart={onStart} className="absolute inset-y-0 -end-1 z-10 w-2 cursor-col-resize select-none hover:bg-brand-300/60 active:bg-brand-500/60" title="↔" />;
 
-function ReviewTab({ me, data, toast, audit, eName, isHr }) {
+function ReviewTab({ me, data, toast, audit, eName, isHr, missingSignal }) {
   const { lang, t } = useL();
   const first = todayISO().slice(0, 8) + '01';
   const [from, setFrom] = useState(first);
@@ -4254,6 +4259,12 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
   const [missDec, setMissDec] = useState({});      // 'empId|date' -> decision on a missing check-out
   const [miss, setMiss] = useState(null);          // { row, mode: 'excuse' | 'action', pen, hours, reason }
   const [onlyNeeds, setOnlyNeeds] = useState(false);
+  const [missView, setMissView] = useState(false);   // opened from the 🔔 line: the whole alert window (31 days) is shown, nothing else
+  useEffect(() => {
+    if (!missingSignal) return;
+    const d = new Date(); d.setDate(d.getDate() - 31);
+    setFrom(localDay(d)); setTo(todayISO()); setFEmp(''); setOnlyNeeds(true); setMissView(true);
+  }, [missingSignal]);
   useEffect(() => {
     sb.from('attendance_exceptions').select('*').eq('kind', 'missing_punch').gte('exc_date', from).lte('exc_date', to)
       .then(({ data: d }) => { const m = {}; for (const x of d || []) m[x.employee_id + '|' + x.exc_date] = x; setMissDec(m); });
@@ -4491,9 +4502,12 @@ function ReviewTab({ me, data, toast, audit, eName, isHr }) {
 
       {needsN > 0 && (
         <div data-tour="rev-missing" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-          <span>⚠ <b>{needsN}</b> {t.missBanner}</span>
+          <span>⚠ <b>{needsN}</b> {t.missBanner}{missView ? <span className="block text-xs font-semibold text-rose-700">{t.missView}</span> : null}</span>
           <Btn size="sm" variant="soft" onClick={() => setOnlyNeeds(!onlyNeeds)}>{onlyNeeds ? t.missAll : t.missOnly}</Btn>
         </div>
+      )}
+      {missView && needsN === 0 && punches !== null && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">✅ {t.missNone} <span className="text-xs text-emerald-700">({t.missView})</span></div>
       )}
 
       <Card tour="rev-table" title={t.reviewTab + ' · ' + rows.length + ' ' + t.rowsLbl}
@@ -9615,8 +9629,8 @@ const HV_TOUR_STEPS = [
     en: ['Live board', 'Who is working, on break or finished today, their last activity, total breaks (⚠ = over the allowance) and net worked time. 💻 means the laptop agent is connected. It refreshes every 30 seconds.'],
     ar: ['اللوحة الحية', 'من يعمل الآن ومن في استراحة ومن أنهى يومه، وآخر نشاط، وإجمالي الاستراحات (⚠ تعني تجاوز الرصيد)، وصافي وقت العمل. علامة 💻 تعني أن برنامج اللابتوب متصل. تتحدث كل 30 ثانية.'] },
   { c: 'att', page: 'attendance', target: 'rev-table', action: 'att-tab-review', roles: HV_TOUR_ADMIN,
-    en: ['Review attendance', 'Pick the dates and, if you like, one employee. Each employee-day is one row: first in, last out, hours, late, left early, breaks and overtime with the penalty tier; badges flag weekends, missing check-outs and punches outside the branch. Tap a row for every punch and the day\'s breaks — HR or the direct manager can Excuse this day there. A day that ended without a check-out is marked "needs a decision" in red and counted in the banner at the top: open it and either Excuse it or Take action (warning, hours, quarter / half / full day); HR can instead enter the real check-out time. The tag shows how many days are left: after that the default penalty from the Rules tab applies by itself, and a later decision still replaces it.'],
-    ar: ['مراجعة الحضور', 'اختر الفترة وموظفاً محدداً إن أردت. كل يوم لكل موظف في سطر: أول دخول وآخر خروج والساعات والتأخير والانصراف المبكر والاستراحات والإضافي مع شريحة الجزاء، وتوضح الشارات أيام الراحة ونسيان الانصراف والبصمة خارج الفرع. اضغط على السطر لرؤية كل البصمات واستراحات اليوم، ومن هناك يمكن للموارد البشرية أو المدير المباشر «إعفاء هذا اليوم». اليوم الذي انتهى بدون بصمة انصراف يظهر بالأحمر «تحتاج قراراً» ويُحسب في التنبيه أعلى الصفحة: افتحه ثم اختر «إعفاء» أو «اتخاذ إجراء» (إنذار، ساعات، ربع / نصف / يوم كامل)، ويمكن للموارد البشرية بدلاً من ذلك إدخال وقت الانصراف الحقيقي. تُظهر الشارة عدد الأيام المتبقية، وبعدها يُطبق الجزاء الافتراضي من تبويب القواعد تلقائياً، وأي قرار لاحق يلغيه.'] },
+    en: ['Review attendance', 'Pick the dates and, if you like, one employee. Each employee-day is one row: first in, last out, hours, late, left early, breaks and overtime with the penalty tier; badges flag weekends, missing check-outs and punches outside the branch. Tap a row for every punch and the day\'s breaks — HR or the direct manager can Excuse this day there. A day that ended without a check-out is marked "needs a decision" in red and counted in the banner at the top: open it and either Excuse it or Take action (warning, hours, quarter / half / full day); HR can instead enter the real check-out time. The tag shows how many days are left: after that the default penalty from the Rules tab applies by itself, and a later decision still replaces it. The 🔔 line "Missing check-outs to decide" opens this tab already filtered to those days — the last 31 days, every employee, nothing else — so you decide them one after another.'],
+    ar: ['مراجعة الحضور', 'اختر الفترة وموظفاً محدداً إن أردت. كل يوم لكل موظف في سطر: أول دخول وآخر خروج والساعات والتأخير والانصراف المبكر والاستراحات والإضافي مع شريحة الجزاء، وتوضح الشارات أيام الراحة ونسيان الانصراف والبصمة خارج الفرع. اضغط على السطر لرؤية كل البصمات واستراحات اليوم، ومن هناك يمكن للموارد البشرية أو المدير المباشر «إعفاء هذا اليوم». اليوم الذي انتهى بدون بصمة انصراف يظهر بالأحمر «تحتاج قراراً» ويُحسب في التنبيه أعلى الصفحة: افتحه ثم اختر «إعفاء» أو «اتخاذ إجراء» (إنذار، ساعات، ربع / نصف / يوم كامل)، ويمكن للموارد البشرية بدلاً من ذلك إدخال وقت الانصراف الحقيقي. تُظهر الشارة عدد الأيام المتبقية، وبعدها يُطبق الجزاء الافتراضي من تبويب القواعد تلقائياً، وأي قرار لاحق يلغيه. سطر 🔔 «بصمات انصراف ناقصة تحتاج قراراً» يفتح هذا التبويب مصفّى على تلك الأيام فقط — آخر 31 يوماً، كل الموظفين — لتقرر فيها واحداً تلو الآخر.'] },
   { c: 'att', page: 'attendance', target: 'rev-manual', action: 'att-tab-review', roles: ['ceo', 'hr'],
     en: ['Manual punch, print & Excel', 'A forgotten punch is added here by HR with the time, direction and a required reason; a wrong punch is deleted from the day view. Print the review as one list or one sheet per employee with signature lines, or download it to Excel. Every change goes to the audit log.'],
     ar: ['البصمة اليدوية والطباعة وExcel', 'البصمة المنسية تضيفها الموارد البشرية من هنا مع الوقت والاتجاه وسبب إلزامي، والبصمة الخاطئة تُحذف من تفاصيل اليوم. اطبع المراجعة كقائمة واحدة أو ورقة لكل موظف بخانات التوقيع، أو نزّلها Excel. كل تعديل يُسجَّل في سجل التدقيق.'] },
