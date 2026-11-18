@@ -74,7 +74,7 @@ tailwind.config = {
                income tax brackets, social insurance, audit log.
    ===================================================================== */
 
-const APP_VERSION = 'v3.65';
+const APP_VERSION = 'v3.66';
 
 /* ---------------------------------------------------------------------
    CONFIG -- Supabase project.
@@ -205,8 +205,8 @@ const T = {
     transportLbl: 'How are you going?', transportKinds: { personal_car: 'Personal car', company_car: 'Company car', taxi: 'Taxi / Uber', with_someone: 'With someone' }, chooseTransport: 'Choose how you are going: personal car, company car, taxi / Uber or with someone.',
     withSomeoneHint: 'No fuel compensation — you are riding with a colleague or in the client\'s car. The route and the kilometres are still recorded.',
     tripMap: 'Map', tripStartPt: 'Start', tripEndPt: 'End', tripPointN: 'Point {n}', tripPoints: 'Recorded points', tripOpenGmaps: 'Open the route in Google Maps', tripPlaceLoading: 'Finding the place name…', tripNoGps: 'No locations recorded for this trip', tripAtBranch: 'at {b} ({m} m from the centre)', tripNearBranch: '{m} m from {b}', tripDayPunches: 'Attendance that day — app check-in / out with a location', tripNoPunches: 'No app check-in / out with a location that day', mapFail: 'The map could not load — use the 📍 links.', tripLegKm: '+{km} km from the previous point', tripRoadRoute: 'Road route · {km} km', tripRoadRouting: 'Finding the road route…', tripLineRoute: 'Straight lines — the road route could not be loaded; kilometres are approximate', tripRoadNote: 'Kilometres follow the roads between the recorded points, in order, as a car drives (OpenStreetMap routing).',
-    taxiHint: 'When you end the trip you can write how much you paid and attach the receipt or a screenshot (optional).', fareTitle: 'Taxi / Uber cost', fareAsk: 'How much did you pay? (EGP)', fareEvidenceAsk: 'Evidence: receipt photo or screenshot', fareOptional: 'Both are optional. You can add or correct them later from the trip list.',
-    fareChoose: 'Attach a photo or screenshot', fareReplace: 'Replace the attached evidence', farePaid: 'Paid', fareNone: 'Amount not entered', fareEvidence: 'Evidence', fareAdd: 'Add amount / receipt', fareTooBig: 'The file is larger than 10 MB.',
+    taxiHint: 'When you end the trip you can add every Uber ride with its amount and receipt — and add more later from the trip list.', fareTitle: 'Taxi / Uber cost', fareAsk: 'How much did you pay? (EGP)', fareEvidenceAsk: 'Evidence: receipt photo or screenshot', fareOptional: 'Both are optional. You can add or correct them later from the trip list.',
+    fareChoose: 'Attach a photo or screenshot', fareReplace: 'Replace the attached evidence', farePaid: 'Paid', fareNone: 'Amount not entered', fareEvidence: 'Evidence', fareAdd: 'Add amount / receipt', fareTooBig: 'The file is larger than 10 MB.', fareRides: 'rides', fareRide: 'Ride', fareAddRide: 'Add a ride', fareAddPhotos: 'Add photo(s) / screenshots', fareRideAmount: 'Amount (EGP)', fareAnytime: 'A trip with a client can have several Uber rides. Add each ride with its amount and receipt — now, or any time after the trip has ended.', fareRemoveQ: 'Remove this ride?', fareNoRides: 'No rides added yet', fareNoPhoto: 'amount only',
     tripsTab: 'Trips', startTrip: 'Start trip', endTrip: 'End trip', recordPoint: 'Record point',
     fuelRules: 'Personal car — fuel compensation', fuelRulesHint: 'A trip by personal car is compensated from the fuel price on the day of the trip: price of benzine 92 (EGP per litre) × kilometres ÷ the divisor. Daniel set the divisor to 7 (most cars use about 7 litres per 100 km). Keep the price list current: add a line with the date whenever the government changes the price — older trips keep the price of their own day.',
     fuelDivisor: 'Divisor', fuelPrice: 'Benzine 92 (EGP / litre)', fuelFrom: 'From date', fuelAddPrice: 'Add a price', fuelPreview: 'Example: a 10 km trip today = {x}', fuelComp: 'Fuel compensation', fuelNoPrice: 'No fuel price for this date — HR adds it in Attendance → Rules', fuelCompHint: '{p} × {km} km ÷ {d}',
@@ -479,8 +479,8 @@ const T = {
     transportLbl: 'كيف ستذهب؟', transportKinds: { personal_car: 'سيارة شخصية', company_car: 'سيارة الشركة', taxi: 'تاكسي / أوبر', with_someone: 'مع شخص آخر' }, chooseTransport: 'اختر وسيلة المشوار: سيارة شخصية أو سيارة الشركة أو تاكسي / أوبر أو مع شخص آخر.',
     withSomeoneHint: 'لا يوجد تعويض بنزين — أنت مع زميل أو في سيارة العميل. يُسجَّل المسار والكيلومترات كالمعتاد.',
     tripMap: 'الخريطة', tripStartPt: 'البداية', tripEndPt: 'النهاية', tripPointN: 'نقطة {n}', tripPoints: 'النقاط المسجلة', tripOpenGmaps: 'افتح المسار في خرائط جوجل', tripPlaceLoading: 'جارٍ تحديد اسم المكان…', tripNoGps: 'لا توجد مواقع مسجلة لهذا المشوار', tripAtBranch: 'في {b} ({m} م من المركز)', tripNearBranch: '{m} م من {b}', tripDayPunches: 'الحضور في ذلك اليوم — تسجيل دخول / خروج من التطبيق بالموقع', tripNoPunches: 'لا يوجد تسجيل دخول / خروج بالموقع من التطبيق في ذلك اليوم', mapFail: 'لم تُحمَّل الخريطة — استخدم روابط 📍.', tripLegKm: '+{km} كم من النقطة السابقة', tripRoadRoute: 'مسار الطريق · {km} كم', tripRoadRouting: 'جارٍ تحديد مسار الطريق…', tripLineRoute: 'خطوط مستقيمة — تعذّر تحميل مسار الطريق؛ الكيلومترات تقريبية', tripRoadNote: 'تُحسب الكيلومترات على الطرق بين النقاط المسجلة بالترتيب كما تسير السيارة (توجيه OpenStreetMap).',
-    taxiHint: 'عند إنهاء المشوار يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة (اختياري).', fareTitle: 'تكلفة التاكسي / أوبر', fareAsk: 'كم دفعت؟ (جنيه)', fareEvidenceAsk: 'الإثبات: صورة الإيصال أو لقطة شاشة', fareOptional: 'الاثنان اختياريان. يمكنك إضافتهما أو تعديلهما لاحقاً من قائمة المشاوير.',
-    fareChoose: 'إرفاق صورة أو لقطة شاشة', fareReplace: 'استبدال الإثبات المرفق', farePaid: 'المدفوع', fareNone: 'لم يُدخل المبلغ', fareEvidence: 'الإثبات', fareAdd: 'إضافة المبلغ / الإيصال', fareTooBig: 'الملف أكبر من 10 ميجابايت.',
+    taxiHint: 'عند إنهاء المشوار يمكنك إضافة كل رحلة أوبر بمبلغها وإيصالها — وإضافة المزيد لاحقاً من قائمة المشاوير.', fareTitle: 'تكلفة التاكسي / أوبر', fareAsk: 'كم دفعت؟ (جنيه)', fareEvidenceAsk: 'الإثبات: صورة الإيصال أو لقطة شاشة', fareOptional: 'الاثنان اختياريان. يمكنك إضافتهما أو تعديلهما لاحقاً من قائمة المشاوير.',
+    fareChoose: 'إرفاق صورة أو لقطة شاشة', fareReplace: 'استبدال الإثبات المرفق', farePaid: 'المدفوع', fareNone: 'لم يُدخل المبلغ', fareEvidence: 'الإثبات', fareAdd: 'إضافة المبلغ / الإيصال', fareTooBig: 'الملف أكبر من 10 ميجابايت.', fareRides: 'مشاوير', fareRide: 'مشوار', fareAddRide: 'إضافة مشوار', fareAddPhotos: 'إضافة صور / لقطات شاشة', fareRideAmount: 'المبلغ (جنيه)', fareAnytime: 'المشوار مع العميل قد يضم عدة رحلات أوبر. أضف كل رحلة بمبلغها وإيصالها — الآن أو في أي وقت بعد انتهاء المشوار.', fareRemoveQ: 'حذف هذه الرحلة؟', fareNoRides: 'لم تُضف رحلات بعد', fareNoPhoto: 'مبلغ فقط',
     tripsTab: 'المشاوير', startTrip: 'بدء مشوار', endTrip: 'إنهاء المشوار', recordPoint: 'تسجيل نقطة',
     fuelRules: 'السيارة الشخصية — تعويض البنزين', fuelRulesHint: 'مشوار السيارة الشخصية يُعوَّض من سعر البنزين يوم المشوار: سعر بنزين 92 (جنيه لليتر) × الكيلومترات ÷ المقسوم عليه. حدده دانيال بـ 7 (معظم السيارات تستهلك نحو 7 لتر لكل 100 كم). حدّث قائمة الأسعار: أضف سطرًا بالتاريخ كلما غيّرت الحكومة السعر — المشاوير القديمة تحتفظ بسعر يومها.',
     fuelDivisor: 'المقسوم عليه', fuelPrice: 'بنزين 92 (جنيه / لتر)', fuelFrom: 'من تاريخ', fuelAddPrice: 'إضافة سعر', fuelPreview: 'مثال: مشوار 10 كم اليوم = {x}', fuelComp: 'تعويض البنزين', fuelNoPrice: 'لا يوجد سعر بنزين لهذا التاريخ — تضيفه الموارد البشرية في الحضور ← القواعد', fuelCompHint: '{p} × {km} كم ÷ {d}',
@@ -4041,38 +4041,69 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
 
   const end = (extra) => withGps(async (gps) => {
     const pts = [...(open.waypoints || []), { t: new Date().toISOString(), lat: gps.lat, lng: gps.lng }];
-    let receipt = null;
-    if (extra && extra.file) receipt = await uploadReceipt(open, extra.file);
     let route = null;   // road kilometres (OSRM); straight-line chain only if the routing service is unreachable
     try { route = await roadRoute(pts.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))); } catch (e) { route = null; }
     const { data: row, error } = await sb.from('trips').update({
       waypoints: pts, ended_at: new Date().toISOString(), status: 'closed', distance_km: route ? route.km : chainKm(pts), route,
-      ...(extra ? { fare_egp: amountOf(extra.amount), ...(receipt ? { receipt_path: receipt } : {}) } : {}),
     }).eq('id', open.id).select().single();
     if (error) return toast(error.message, 'error');
+    let final = row;
+    if (extra && extra.rides) { try { final = (await addRides(row, extra.rides)) || row; } catch (e) { toast(e.message, 'error'); } }
     setOpen(null); setFare(null);
-    patch(row);
+    patch(final);
     if (live && live.refresh) live.refresh();
     toast(t.saved + ' — ' + (route ? route.km : chainKm(pts)) + ' ' + t.km);
   });
 
-  /* amount / evidence added or corrected after the trip has ended */
-  async function saveFare() {
+  /* Rides of a taxi trip (Daniel 2026-11-18): several Uber rides per trip, each with its own amount and receipt,
+     added while ending the trip or any time afterwards (trip_add_receipt / trip_remove_receipt, migration_066).
+     fare_egp is kept equal to the sum of the ride amounts by the database. */
+  const ridesOf = (tr) => (Array.isArray(tr.receipts) && tr.receipts.length ? tr.receipts : (tr.receipt_path || tr.fare_egp != null ? [{ id: 'legacy', path: tr.receipt_path, amount: tr.fare_egp, legacy: true }] : []));
+  async function addRides(trip, rides) {
+    let row = null;
+    for (const r of rides) {
+      const amount = amountOf(r.amount);
+      if (!r.file && amount == null) continue;
+      const path = r.file ? await uploadReceipt(trip, r.file) : null;
+      const { data, error } = await sb.rpc('trip_add_receipt', { p_id: trip.id, p_path: path, p_amount: amount, p_note: null });
+      if (error) throw error;
+      row = data;
+    }
+    return row;
+  }
+  async function saveRides() {
     setBusy(true);
     try {
-      const receipt = await uploadReceipt(fare.trip, fare.file);
-      const { data: row, error } = await sb.rpc('trip_set_fare', { p_id: fare.trip.id, p_fare: amountOf(fare.amount), p_receipt: receipt });
-      if (error) throw error;
-      patch(row); setFare(null); toast(t.saved);
+      const row = await addRides(fare.trip, fare.rides);
+      if (row) patch(row);
+      setFare(null); toast(t.saved);
     } catch (e) { toast(e.message, 'error'); }
     setBusy(false);
   }
-
-  async function openReceipt(tr) {
-    const { data: s, error } = await sb.storage.from('trip-receipts').createSignedUrl(tr.receipt_path, 300);
+  async function removeRide(tr, r) {
+    if (!window.confirm(t.fareRemoveQ)) return;
+    if (r.legacy) { const { data: row, error } = await sb.rpc('trip_set_fare', { p_id: tr.id, p_fare: null, p_receipt: null }); if (error) return toast(error.message, 'error'); if (r.path) await sb.storage.from('trip-receipts').remove([r.path]); patch({ ...row, receipt_path: null, fare_egp: null }); return; }
+    const { data: row, error } = await sb.rpc('trip_remove_receipt', { p_id: tr.id, p_rid: r.id });
+    if (error) return toast(error.message, 'error');
+    if (r.path) await sb.storage.from('trip-receipts').remove([r.path]);
+    patch(row); toast(t.saved);
+  }
+  async function openReceipt(path) {
+    const { data: s, error } = await sb.storage.from('trip-receipts').createSignedUrl(path, 300);
     if (error) return toast(error.message, 'error');
     window.open(s.signedUrl, '_blank');
   }
+  const newRides = (trip, ending) => setFare({ trip, ending, rides: [{ file: null, amount: '' }] });
+  const addFiles = (files) => {
+    const ok = [...files].filter((f) => { if (f.size > 10 * 1024 * 1024) { toast(t.fareTooBig, 'error'); return false; } return true; });
+    if (!ok.length) return;
+    setFare((f) => {
+      const rides = [...f.rides];
+      const firstEmpty = rides.findIndex((r) => !r.file);
+      ok.forEach((file, i) => { if (i === 0 && firstEmpty >= 0) rides[firstEmpty] = { ...rides[firstEmpty], file }; else rides.push({ file, amount: '' }); });
+      return { ...f, rides };
+    });
+  };
 
   const mine = trips.filter((x) => x.employee_id === myEmp.id);
   const others = trips.filter((x) => x.employee_id !== myEmp.id);
@@ -4093,13 +4124,26 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
           <p className="mt-1 text-xs">
             {price > 0 ? <><span className="font-semibold text-slate-700">⛽ {t.fuelComp}: {money(tripComp(tr, fuel))}</span> <span className="text-slate-400">({t.fuelCompHint.replace('{p}', String(price)).replace('{km}', tripKm(tr).toFixed(1)).replace('{d}', String(Number(fuel.divisor) || 7))})</span></> : <span className="text-amber-700">⛽ {t.fuelNoPrice}</span>}
           </p>); })()}
-        {tr.transport === 'taxi' && (
-          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-            {tr.fare_egp != null ? <span className="font-semibold text-slate-700">{t.farePaid}: {money(tr.fare_egp)}</span> : <span className="text-slate-400">{t.fareNone}</span>}
-            {tr.receipt_path && <button className="font-semibold text-brand-700 underline" onClick={() => openReceipt(tr)}>📎 {t.fareEvidence}</button>}
-            {own && tr.status === 'closed' && <button className="text-brand-700 underline" onClick={() => setFare({ trip: tr, ending: false, amount: tr.fare_egp != null ? String(tr.fare_egp) : '', file: null })}>{tr.fare_egp != null || tr.receipt_path ? t.edit : '+ ' + t.fareAdd}</button>}
-          </p>
-        )}
+        {tr.transport === 'taxi' && (() => { const rides = ridesOf(tr); const canEdit = (own || admin) && tr.status === 'closed'; return (
+          <div className="mt-1 text-xs">
+            <p className="flex flex-wrap items-center gap-2">
+              {tr.fare_egp != null ? <span className="font-semibold text-slate-700">{t.farePaid}: {money(tr.fare_egp)}</span> : <span className="text-slate-400">{t.fareNone}</span>}
+              {rides.length > 0 && <span className="text-slate-500">· {rides.length} {t.fareRides}</span>}
+              {canEdit && <button className="font-semibold text-brand-700 underline" onClick={() => newRides(tr, false)}>+ {t.fareAddRide}</button>}
+            </p>
+            {rides.length > 0 && (
+              <ul className="mt-1 space-y-0.5">
+                {rides.map((r, i) => (
+                  <li key={r.id || i} className="flex flex-wrap items-center gap-2 text-slate-600">
+                    <span>🚕 {t.fareRide} {i + 1}:</span>
+                    <span className="font-semibold text-slate-700">{r.amount != null ? money(r.amount) : '—'}</span>
+                    {r.path ? <button className="font-semibold text-brand-700 underline" onClick={() => openReceipt(r.path)}>📎 {t.fareEvidence}</button> : <span className="text-slate-400">({t.fareNoPhoto})</span>}
+                    {canEdit && <button className="text-rose-600" title={t.fareRemoveQ} onClick={() => removeRide(tr, r)}>×</button>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>); })()}
       </div>
       {tr.status === 'open' ? <Badge tone="amber">{t.openTripLbl}</Badge> : <Badge tone="teal">{tripKm(tr).toFixed(1)} {t.km}</Badge>}
     </li>
@@ -4115,7 +4159,7 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
             </p>
             <div className="flex gap-2">
               <Btn variant="soft" className="flex-1" disabled={busy} onClick={addPoint}>📍 {t.recordPoint}</Btn>
-              <Btn className="flex-1 !bg-amber-600 hover:!bg-amber-700" disabled={busy} onClick={() => (open.transport === 'taxi' ? setFare({ trip: open, ending: true, amount: '', file: null }) : end())}>🏁 {t.endTrip}</Btn>
+              <Btn className="flex-1 !bg-amber-600 hover:!bg-amber-700" disabled={busy} onClick={() => (open.transport === 'taxi' ? newRides(open, true) : end())}>🏁 {t.endTrip}</Btn>
             </div>
             <button className="text-xs font-semibold text-brand-700 underline" onClick={() => setMapTrip(open)}>🗺️ {t.tripMap}</button>
           </div>
@@ -4170,15 +4214,27 @@ function TripsTab({ me, myEmp, data, toast, eName, admin, live }) {
       <Modal open={!!fare} onClose={() => !busy && setFare(null)} title={'🚕 ' + t.fareTitle}>
         {fare && (
           <div className="space-y-3">
-            <p className="text-xs text-slate-500">{t.fareOptional}</p>
-            <Field label={t.fareAsk}>
-              <Input type="number" inputMode="decimal" min="0" step="0.5" placeholder="0" value={fare.amount} onChange={(e) => setFare({ ...fare, amount: e.target.value })} />
-            </Field>
-            <Field label={t.fareEvidenceAsk}>
-              <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f && f.size > 10 * 1024 * 1024) { toast(t.fareTooBig, 'error'); } else if (f) setFare({ ...fare, file: f }); e.target.value = ''; }} />
-              <Btn variant="soft" className="w-full" onClick={() => fileRef.current && fileRef.current.click()}>📎 {fare.file ? fare.file.name : fare.trip.receipt_path ? t.fareReplace : t.fareChoose}</Btn>
-            </Field>
-            <Btn className="w-full" size="lg" disabled={busy} onClick={() => (fare.ending ? end({ amount: fare.amount, file: fare.file }) : saveFare())}>{busy ? t.loading : fare.ending ? '🏁 ' + t.endTrip : t.save}</Btn>
+            <p className="text-xs text-slate-500">{t.fareAnytime} {t.fareOptional}</p>
+            <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={(e) => { if (e.target.files && e.target.files.length) addFiles(e.target.files); e.target.value = ''; }} />
+            <ul className="space-y-2">
+              {fare.rides.map((r, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="font-semibold text-slate-700">🚕 {t.fareRide} {i + 1}</span>
+                    {fare.rides.length > 1 && <button className="text-rose-600" onClick={() => setFare({ ...fare, rides: fare.rides.filter((_, j) => j !== i) })}>×</button>}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Input type="number" inputMode="decimal" min="0" step="0.5" placeholder={t.fareRideAmount} value={r.amount} onChange={(e) => setFare({ ...fare, rides: fare.rides.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)) })} />
+                    <span className="truncate self-center text-xs text-slate-500">{r.file ? '📎 ' + r.file.name : t.fareNoPhoto}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
+              <Btn variant="soft" className="flex-1" onClick={() => fileRef.current && fileRef.current.click()}>📎 {t.fareAddPhotos}</Btn>
+              <Btn variant="soft" className="flex-1" onClick={() => setFare({ ...fare, rides: [...fare.rides, { file: null, amount: '' }] })}>+ {t.fareAddRide}</Btn>
+            </div>
+            <Btn className="w-full" size="lg" disabled={busy} onClick={() => (fare.ending ? end({ rides: fare.rides }) : saveRides())}>{busy ? t.loading : fare.ending ? '🏁 ' + t.endTrip : t.save}</Btn>
           </div>
         )}
       </Modal>
@@ -9622,8 +9678,8 @@ const HV_TOUR_STEPS = [
     en: ['Live session & breaks', 'Checking in opens a live work session. If you are idle for a while you are asked "Are you still working?" — confirm with a live selfie; no answer puts you on break automatically. Use Start break for your break and press Resume work when you are back — one tap, no selfie. After an automatic break (no answer) a selfie is asked first; if you cannot take one, "Resume without it" works and HR sees that on the day. Minutes over the daily break allowance are deducted.'],
     ar: ['جلسة العمل والاستراحات', 'تسجيل الحضور يفتح جلسة عمل. إذا لم يكن هناك نشاط لفترة يظهر سؤال «هل ما زلت تعمل؟» فأكّد بصورة سيلفي، وإن لم ترد تُسجَّل استراحة تلقائياً. استخدم «بدء استراحة» لاستراحتك واضغط «استئناف العمل» عند عودتك — ضغطة واحدة بلا سيلفي. بعد الاستراحة التلقائية (عدم الرد) يُطلب سيلفي أولاً، وإن تعذّر فزر «استأنف بدونها» يعمل وتراه الموارد البشرية في اليوم. ما يزيد عن رصيد الاستراحة اليومي يُخصم.'] },
   { c: 'att', page: 'attendance', target: 'trip-start', action: 'att-tab-trips',
-    en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car, taxi / Uber, or with someone — a colleague\'s or the client\'s car, recorded but without compensation) and press Start trip. Record points on the way and End trip when you are back. Every trip has a 🗺️ Map: the start, every recorded point and the end as named pins (the branch, or the street / area), the road route between them as a car drives (OpenStreetMap routing) with the kilometres of each leg — these road kilometres are the trip\'s distance and the basis of the compensation — that day\'s app check-in / out with their locations, and a link that opens the whole route in Google Maps. For a taxi you can write how much you paid and attach the receipt or a screenshot — optional, and you can add it later from the list. Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
-    ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة، تاكسي / أوبر، أو مع شخص آخر — سيارة زميل أو العميل، يُسجَّل المشوار بلا تعويض) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. لكل مشوار 🗺️ خريطة: البداية وكل نقطة مسجلة والنهاية كدبابيس مسماة (الفرع أو الشارع / المنطقة)، ومسار الطريق بينها كما تسير السيارة (توجيه OpenStreetMap) مع كيلومترات كل جزء — كيلومترات الطريق هذه هي مسافة المشوار وأساس التعويض — وتسجيل الدخول / الخروج من التطبيق في ذلك اليوم بمواقعه، ورابط يفتح المسار كله في خرائط جوجل. في التاكسي يمكنك كتابة المبلغ المدفوع وإرفاق الإيصال أو لقطة شاشة — اختياري ويمكن إضافته لاحقاً من القائمة. تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
+    en: ['Trips outside the office', 'A trip by personal car earns fuel compensation — the benzine 92 price of that day × kilometres ÷ 7 — shown on the trip and in the month totals. Write the purpose (client / site), choose how you are going (personal car, company car, taxi / Uber, or with someone — a colleague\'s or the client\'s car, recorded but without compensation) and press Start trip. Record points on the way and End trip when you are back. Every trip has a 🗺️ Map: the start, every recorded point and the end as named pins (the branch, or the street / area), the road route between them as a car drives (OpenStreetMap routing) with the kilometres of each leg — these road kilometres are the trip\'s distance and the basis of the compensation — that day\'s app check-in / out with their locations, and a link that opens the whole route in Google Maps. For a taxi / Uber trip add every ride with its amount and receipt photo — one trip with a client may hold several rides — when you end the trip or any time later from the list (+ Add a ride). Kilometres are calculated from GPS, and no idle prompts appear while a trip is open.'],
+    ar: ['المشاوير خارج المكتب', 'مشوار السيارة الشخصية له تعويض بنزين — سعر بنزين 92 في يومه × الكيلومترات ÷ 7 — يظهر على المشوار وفي إجمالي الشهر. اكتب الغرض (العميل / الموقع) واختر الوسيلة (سيارة شخصية، سيارة الشركة، تاكسي / أوبر، أو مع شخص آخر — سيارة زميل أو العميل، يُسجَّل المشوار بلا تعويض) ثم اضغط «بدء مشوار»، وسجّل نقاطاً في الطريق، ثم «إنهاء المشوار» عند العودة. لكل مشوار 🗺️ خريطة: البداية وكل نقطة مسجلة والنهاية كدبابيس مسماة (الفرع أو الشارع / المنطقة)، ومسار الطريق بينها كما تسير السيارة (توجيه OpenStreetMap) مع كيلومترات كل جزء — كيلومترات الطريق هذه هي مسافة المشوار وأساس التعويض — وتسجيل الدخول / الخروج من التطبيق في ذلك اليوم بمواقعه، ورابط يفتح المسار كله في خرائط جوجل. في التاكسي / أوبر أضف كل رحلة بمبلغها وصورة إيصالها — المشوار الواحد مع العميل قد يضم عدة رحلات — عند إنهاء المشوار أو في أي وقت لاحق من القائمة («إضافة مشوار»). تُحسب الكيلومترات من الـGPS، ولا تظهر أسئلة عدم النشاط أثناء المشوار.'] },
   { c: 'att', page: 'attendance', target: 'exc-new', action: 'att-tab-exceptions',
     en: ['Late / break / early-leave notes', 'Will you be late, need a longer break or must leave early? Send the note before it happens (today or a later date). If your direct manager or HR accepts it, that day carries no deduction. Managers approve their team\'s notes on this tab; HR sees all.'],
     ar: ['أذونات التأخير والاستراحة والانصراف المبكر', 'ستتأخر أو تحتاج استراحة أطول أو ستنصرف مبكراً؟ أرسل الإذن قبل حدوثه (اليوم أو يوم لاحق). إذا وافق مديرك المباشر أو الموارد البشرية فلا خصم على ذلك اليوم. المديرون يعتمدون أذونات فريقهم من هذا التبويب، والموارد البشرية ترى الجميع.'] },
